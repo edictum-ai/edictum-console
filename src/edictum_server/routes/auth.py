@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -12,6 +15,10 @@ from edictum_server.auth.local import LocalAuthProvider
 from edictum_server.auth.provider import DashboardAuthContext
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import User
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
+from edictum_server.redis.client import get_redis
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -37,9 +44,22 @@ async def login(
     body: LoginRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
 ) -> JSONResponse:
     """Authenticate with email/password, receive session cookie."""
     provider = _get_auth_provider(request)
+
+    # Rate limit by IP -- keyed before any credential check to prevent brute force
+    client_ip = request.client.host if request.client else "unknown"
+    rate_key = f"rate_limit:login:{client_ip}"
+    try:
+        await check_rate_limit(redis, rate_key)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Too many login attempts. Please try again later."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
 
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
