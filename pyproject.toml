@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "edictum-console"
+version = "0.1.0"
+description = "Self-hostable agent operations console — runtime governance for AI agents"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "redis[hiredis]>=5.0",
+    "pynacl>=1.5",
+    "httpx>=0.28",
+    "pyyaml>=6.0",
+    "sse-starlette>=2.0",
+    "pydantic-settings>=2.0",
+    "bcrypt>=4.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "httpx>=0.28",
+    "aiosqlite>=0.20",
+    "types-PyYAML>=6.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/edictum_server"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ARG", "PLW"]
+ignore = ["B008"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["security: adversarial security boundary tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning:redis",
+    "ignore:.*deprecated usage of input argument.*:DeprecationWarning",
+    "ignore:Setting per-request cookies:DeprecationWarning",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = false

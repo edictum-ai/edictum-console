@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: edictum
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  server:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      EDICTUM_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/edictum
+      EDICTUM_REDIS_URL: redis://redis:6379/0
+      EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:-changeme-generate-a-real-secret}
+      EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-admin@example.com}
+      EDICTUM_ADMIN_PASSWORD: ${EDICTUM_ADMIN_PASSWORD:-}
+      EDICTUM_BASE_URL: ${EDICTUM_BASE_URL:-http://localhost:8000}
+      EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:-}
+
+volumes:
+  pgdata:
