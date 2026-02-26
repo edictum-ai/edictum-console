@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     api_key_prefix_staging: str = "edk_staging_"
     api_key_prefix_development: str = "edk_development_"
 
+    # Rate limiting
+    rate_limit_max_attempts: int = 10
+    rate_limit_window_seconds: int = 300
+
     # CORS allowed origins (comma-separated)
     cors_origins: str = "http://localhost:8000,http://localhost:3000"
 

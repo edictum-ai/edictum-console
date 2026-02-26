@@ -2,12 +2,13 @@
 
 Risk if bypassed: Credential brute force.
 
-NOTE: Rate limiting may not be implemented yet. These tests document
-what rate limiting should do and verify the auth endpoints are accessible.
-Marked with skip if rate limiting is not implemented.
+Tests verify that the login endpoint enforces per-IP sliding-window
+rate limiting backed by Redis sorted sets.
 """
 
 from __future__ import annotations
+
+from unittest.mock import patch
 
 import pytest
 from httpx import AsyncClient
@@ -17,6 +18,10 @@ from edictum_server.auth.local import LocalAuthProvider
 from edictum_server.db.models import Tenant, User
 
 pytestmark = pytest.mark.security
+
+# Use a low limit so tests stay fast
+_MAX_ATTEMPTS = 5
+_WINDOW_SECONDS = 60
 
 
 @pytest.fixture()
@@ -40,7 +45,6 @@ async def _auth_user(db_session: AsyncSession) -> tuple[str, str]:
 
 async def test_login_endpoint_accessible(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
 ) -> None:
     """Login endpoint responds to valid requests."""
@@ -52,38 +56,82 @@ async def test_login_endpoint_accessible(
     assert resp.status_code == 200
 
 
-@pytest.mark.skip(reason="Rate limiting not yet implemented")
 async def test_burst_login_attempts_throttled(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
 ) -> None:
-    """Rapid failed login attempts should be throttled."""
+    """Rapid failed login attempts should be throttled after max_attempts."""
     email, _ = _auth_user
-    responses = []
-    for _ in range(20):
-        resp = await no_auth_client.post(
+
+    with patch(
+        "edictum_server.rate_limit.get_settings",
+    ) as mock_settings:
+        mock_settings.return_value.rate_limit_max_attempts = _MAX_ATTEMPTS
+        mock_settings.return_value.rate_limit_window_seconds = _WINDOW_SECONDS
+
+        responses = []
+        for _ in range(_MAX_ATTEMPTS + 5):
+            resp = await no_auth_client.post(
+                "/api/v1/auth/login",
+                json={"email": email, "password": "wrong-password"},
+            )
+            responses.append(resp.status_code)
+
+        # First _MAX_ATTEMPTS should be 401 (bad password), rest should be 429
+        assert all(code == 401 for code in responses[:_MAX_ATTEMPTS])
+        assert all(code == 429 for code in responses[_MAX_ATTEMPTS:])
+
+        # 429 responses must include Retry-After header
+        last_resp = await no_auth_client.post(
             "/api/v1/auth/login",
             json={"email": email, "password": "wrong-password"},
         )
-        responses.append(resp.status_code)
+        assert last_resp.status_code == 429
+        assert "retry-after" in last_resp.headers
+        retry_after = int(last_resp.headers["retry-after"])
+        assert retry_after > 0
 
-    # After enough failures, should start getting 429
-    assert 429 in responses
 
-
-@pytest.mark.skip(reason="Rate limiting not yet implemented")
 async def test_rate_limit_resets_after_window(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
+    test_redis: object,
 ) -> None:
     """After the rate limit window passes, requests should succeed again."""
     email, password = _auth_user
-    # This test would need a time mock to advance the window.
-    # Documenting the expected behavior for when rate limiting is added.
-    resp = await no_auth_client.post(
-        "/api/v1/auth/login",
-        json={"email": email, "password": password},
-    )
-    assert resp.status_code == 200
+
+    with patch(
+        "edictum_server.rate_limit.get_settings",
+    ) as mock_settings:
+        mock_settings.return_value.rate_limit_max_attempts = _MAX_ATTEMPTS
+        mock_settings.return_value.rate_limit_window_seconds = _WINDOW_SECONDS
+
+        # Exhaust the rate limit
+        for _ in range(_MAX_ATTEMPTS):
+            await no_auth_client.post(
+                "/api/v1/auth/login",
+                json={"email": email, "password": "wrong-password"},
+            )
+
+        # Confirm we are rate limited
+        resp = await no_auth_client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": password},
+        )
+        assert resp.status_code == 429
+
+        # Simulate window expiry by flushing the rate limit key from Redis
+        # This mimics the sorted set entries aging out of the window.
+        import redis.asyncio as aioredis
+
+        r: aioredis.Redis = test_redis  # type: ignore[assignment]
+        keys = await r.keys("rate_limit:login:*")
+        for key in keys:
+            await r.delete(key)
+
+        # Now login should succeed again
+        resp = await no_auth_client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": password},
+        )
+        assert resp.status_code == 200
