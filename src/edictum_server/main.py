@@ -63,15 +63,20 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                     logger.info("Expired %d approval(s)", len(expired))
                     push: PushManager = app.state.push_manager
                     for item in expired:
-                        push.push_to_env(item["env"], {
-                            "type": "approval_timeout",
-                            "approval_id": item["id"],
-                            "agent_id": item["agent_id"],
-                            "tool_name": item["tool_name"],
-                        })
+                        push.push_to_env(
+                            item["env"],
+                            {
+                                "type": "approval_timeout",
+                                "approval_id": item["id"],
+                                "agent_id": item["agent_id"],
+                                "tool_name": item["tool_name"],
+                            },
+                        )
                     # Notify via telegram channel if available
                     mgr: NotificationManager | None = getattr(
-                        app.state, "notification_manager", None,
+                        app.state,
+                        "notification_manager",
+                        None,
                     )
                     if mgr:
                         for ch in mgr.channels:
@@ -79,15 +84,13 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                                 try:
                                     await ch.update_expired(expired)
                                 except Exception:
-                                    logger.exception(
-                                        "Failed to update expired notifications"
-                                    )
+                                    logger.exception("Failed to update expired notifications")
         except Exception:
             logger.exception("Approval timeout worker error")
         await asyncio.sleep(10)
 
 
-async def _bootstrap_admin(app: FastAPI) -> None:
+async def _bootstrap_admin(_app: FastAPI) -> None:
     """Create default tenant + admin user on first run if no users exist."""
     settings = get_settings()
     if not settings.admin_email or not settings.admin_password:

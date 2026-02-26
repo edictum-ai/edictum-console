@@ -69,15 +69,11 @@ class NotificationManager:
             try:
                 await channel.send_approval_request(**kwargs)
             except Exception:
-                logger.exception(
-                    "Failed to send approval request via %s", channel.name
-                )
+                logger.exception("Failed to send approval request via %s", channel.name)
 
     async def notify_approval_decided(self, **kwargs: Any) -> None:
         for channel in self._channels:
             try:
                 await channel.send_approval_decided(**kwargs)
             except Exception:
-                logger.exception(
-                    "Failed to send approval decision via %s", channel.name
-                )
+                logger.exception("Failed to send approval decision via %s", channel.name)

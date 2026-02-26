@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator, Callable
 import bcrypt
 import fakeredis.aioredis
 import pytest
+import redis.asyncio as aioredis
 from httpx import ASGITransport, AsyncClient
 
 # ---------------------------------------------------------------------------
@@ -18,24 +19,24 @@ from httpx import ASGITransport, AsyncClient
 _original_gensalt = bcrypt.gensalt
 
 
-def _fast_gensalt(rounds: int = 4, prefix: bytes = b"2b") -> bytes:
+def _fast_gensalt(rounds: int = 4, prefix: bytes = b"2b") -> bytes:  # noqa: ARG001
     return _original_gensalt(rounds=4, prefix=prefix)
 
 
 bcrypt.gensalt = _fast_gensalt  # type: ignore[assignment]
-from sqlalchemy.ext.asyncio import (
+from sqlalchemy.ext.asyncio import (  # noqa: E402
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
 
-from edictum_server.auth.dependencies import AuthContext
-from edictum_server.auth.local import LocalAuthProvider
-from edictum_server.db.base import Base
-from edictum_server.db.engine import get_db
-from edictum_server.notifications.base import NotificationManager
-from edictum_server.push.manager import PushManager, get_push_manager
-from edictum_server.redis.client import get_redis
+from edictum_server.auth.dependencies import AuthContext  # noqa: E402
+from edictum_server.auth.local import LocalAuthProvider  # noqa: E402
+from edictum_server.db.base import Base  # noqa: E402
+from edictum_server.db.engine import get_db  # noqa: E402
+from edictum_server.notifications.base import NotificationManager  # noqa: E402
+from edictum_server.push.manager import PushManager, get_push_manager  # noqa: E402
+from edictum_server.redis.client import get_redis  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Database (SQLite async, in-memory)
@@ -111,6 +112,7 @@ def push_manager() -> PushManager:
 
 def _get_app():
     from edictum_server.main import app
+
     return app
 
 

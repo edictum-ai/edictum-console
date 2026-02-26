@@ -25,10 +25,7 @@ class _ApprovalExpired(ColumnElement[bool]):
 
 @compiles(_ApprovalExpired)
 def _compile_pg(element: Any, compiler: Any, **kw: Any) -> str:  # noqa: ARG001
-    return (
-        "approvals.created_at + (approvals.timeout_seconds * interval '1 second')"
-        " <= now()"
-    )
+    return "approvals.created_at + (approvals.timeout_seconds * interval '1 second') <= now()"
 
 
 @compiles(_ApprovalExpired, "sqlite")
@@ -134,11 +131,7 @@ async def expire_approvals(db: AsyncSession) -> list[dict[str, Any]]:
         return []
 
     expired_ids = [row.id for row in rows]
-    await db.execute(
-        update(Approval)
-        .where(Approval.id.in_(expired_ids))
-        .values(status="timeout")
-    )
+    await db.execute(update(Approval).where(Approval.id.in_(expired_ids)).values(status="timeout"))
 
     return [
         {

@@ -49,9 +49,7 @@ async def ingest_events(
         from sqlalchemy.dialects.postgresql import insert as pg_insert
 
         pg_stmt = (
-            pg_insert(Event)
-            .values(rows)
-            .on_conflict_do_nothing(constraint="uq_event_tenant_call")
+            pg_insert(Event).values(rows).on_conflict_do_nothing(constraint="uq_event_tenant_call")
         )
         result = await db.execute(pg_stmt)
     else:

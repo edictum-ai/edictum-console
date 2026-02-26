@@ -18,7 +18,10 @@ class Tenant(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String, unique=True)
     external_auth_id: Mapped[str | None] = mapped_column(
-        String, unique=True, nullable=True, index=True,
+        String,
+        unique=True,
+        nullable=True,
+        index=True,
     )
 
     # Relationships
@@ -53,7 +56,8 @@ class ApiKey(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     env: Mapped[str] = mapped_column(String)
     label: Mapped[str | None] = mapped_column(String, nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
 
     tenant: Mapped[Tenant] = relationship(back_populates="api_keys")
@@ -76,9 +80,7 @@ class Bundle(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A versioned contract bundle."""
 
     __tablename__ = "bundles"
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "version", name="uq_bundle_tenant_version"),
-    )
+    __table_args__ = (UniqueConstraint("tenant_id", "version", name="uq_bundle_tenant_version"),)
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
     version: Mapped[int]
@@ -111,7 +113,10 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "events"
     __table_args__ = (
         UniqueConstraint(
-            "tenant_id", "call_id", "created_at", name="uq_event_tenant_call",
+            "tenant_id",
+            "call_id",
+            "created_at",
+            name="uq_event_tenant_call",
         ),
     )
 
@@ -141,6 +146,7 @@ class Approval(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     timeout_effect: Mapped[str] = mapped_column(String, default="deny")
     decided_by: Mapped[str | None] = mapped_column(String, nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     decision_reason: Mapped[str | None] = mapped_column(String, nullable=True)

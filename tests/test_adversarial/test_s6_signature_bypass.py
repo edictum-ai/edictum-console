@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 
+import nacl.exceptions
 import pytest
 
 from edictum_server.services.signing_service import (
@@ -31,7 +32,8 @@ def keypair(signing_secret: bytes) -> tuple[bytes, bytes]:
 
 
 async def test_sign_and_verify_round_trip(
-    signing_secret: bytes, keypair: tuple[bytes, bytes],
+    signing_secret: bytes,
+    keypair: tuple[bytes, bytes],
 ) -> None:
     """Generate keypair, sign data, verify -> True."""
     public_key, encrypted_private_key = keypair
@@ -47,7 +49,8 @@ async def test_sign_and_verify_round_trip(
 
 
 async def test_tampered_data_fails_verification(
-    signing_secret: bytes, keypair: tuple[bytes, bytes],
+    signing_secret: bytes,
+    keypair: tuple[bytes, bytes],
 ) -> None:
     """Sign original data, tamper YAML bytes, verify -> False."""
     public_key, encrypted_private_key = keypair
@@ -64,7 +67,8 @@ async def test_tampered_data_fails_verification(
 
 
 async def test_verify_with_wrong_public_key(
-    signing_secret: bytes, keypair: tuple[bytes, bytes],
+    signing_secret: bytes,
+    keypair: tuple[bytes, bytes],
 ) -> None:
     """Signature from keypair A does not verify with keypair B's public key."""
     _, encrypted_private_key_a = keypair
@@ -82,14 +86,15 @@ async def test_verify_with_wrong_public_key(
 
 
 async def test_wrong_secret_fails_decryption(
-    signing_secret: bytes, keypair: tuple[bytes, bytes],
+    signing_secret: bytes,  # noqa: ARG001
+    keypair: tuple[bytes, bytes],
 ) -> None:
     """Using the wrong secret to decrypt the private key should fail."""
     _, encrypted_private_key = keypair
     data = b"rules:\n  - name: test\n"
     wrong_secret = os.urandom(32)
 
-    with pytest.raises(Exception):
+    with pytest.raises((nacl.exceptions.CryptoError, ValueError)):
         sign_bundle(
             private_key_encrypted=encrypted_private_key,
             secret=wrong_secret,

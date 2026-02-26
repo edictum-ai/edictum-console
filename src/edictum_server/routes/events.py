@@ -38,9 +38,7 @@ async def post_events(
 
     Duplicate events (same ``tenant_id`` + ``call_id``) are silently ignored.
     """
-    accepted, duplicates = await ingest_events(
-        db, auth.tenant_id, body.events
-    )
+    accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events)
     await db.commit()
     return EventIngestResponse(accepted=accepted, duplicates=duplicates)
 

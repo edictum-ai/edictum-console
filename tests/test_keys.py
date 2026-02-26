@@ -59,6 +59,7 @@ async def test_create_key_invalid_env(client: AsyncClient) -> None:
 
 async def test_revoke_nonexistent_key(client: AsyncClient) -> None:
     import uuid
+
     fake_id = str(uuid.uuid4())
     resp = await client.delete(f"/api/v1/keys/{fake_id}")
     assert resp.status_code == 404

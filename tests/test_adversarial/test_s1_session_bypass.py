@@ -19,7 +19,7 @@ pytestmark = pytest.mark.security
 async def _user_with_session(
     no_auth_client: AsyncClient,
     db_session: AsyncSession,
-    test_redis,
+    test_redis,  # noqa: ARG001
 ) -> tuple[str, str]:
     """Create a user, log in, return (cookie, email)."""
     tenant = Tenant(name="session-test-tenant")
@@ -63,7 +63,7 @@ async def test_empty_cookie_header(no_auth_client: AsyncClient) -> None:
 
 async def test_expired_session_token(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,
+    db_session: AsyncSession,  # noqa: ARG001
     test_redis,
     _user_with_session: tuple[str, str],
 ) -> None:
@@ -89,7 +89,7 @@ async def test_expired_session_token(
 
 async def test_tampered_session_payload(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,
+    db_session: AsyncSession,  # noqa: ARG001
     test_redis,
     _user_with_session: tuple[str, str],
 ) -> None:
@@ -98,8 +98,6 @@ async def test_tampered_session_payload(
     The app may raise an unhandled exception (which ASGI propagates) or
     return 401/500 -- either way, the attacker does NOT get user info.
     """
-    import json
-
     cookie, _ = _user_with_session
 
     # Overwrite with invalid JSON

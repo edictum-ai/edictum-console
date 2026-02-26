@@ -5,16 +5,14 @@ Risk if bypassed: Cross-tenant data leak. SHIP-BLOCKER.
 
 from __future__ import annotations
 
-import uuid
 from collections.abc import Callable
-from datetime import datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Deployment
-from tests.conftest import TENANT_A_ID, TENANT_B_ID
+from tests.conftest import TENANT_A_ID
 
 pytestmark = pytest.mark.security
 
@@ -116,17 +114,20 @@ async def test_get_current_bundle_cross_tenant(
 ) -> None:
     """Current bundle for tenant A is not visible to tenant B."""
     await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML})
-    db_session.add(Deployment(
-        tenant_id=TENANT_A_ID,
-        env="production",
-        bundle_version=1,
-        deployed_by="test",
-    ))
+    db_session.add(
+        Deployment(
+            tenant_id=TENANT_A_ID,
+            env="production",
+            bundle_version=1,
+            deployed_by="test",
+        )
+    )
     await db_session.commit()
 
     set_auth_tenant_b()
     resp = await client.get(
-        "/api/v1/bundles/current", params={"env": "production"},
+        "/api/v1/bundles/current",
+        params={"env": "production"},
     )
     assert resp.status_code == 404
 

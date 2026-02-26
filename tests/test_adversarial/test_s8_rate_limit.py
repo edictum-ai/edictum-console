@@ -40,7 +40,7 @@ async def _auth_user(db_session: AsyncSession) -> tuple[str, str]:
 
 async def test_login_endpoint_accessible(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,
+    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
 ) -> None:
     """Login endpoint responds to valid requests."""
@@ -55,7 +55,7 @@ async def test_login_endpoint_accessible(
 @pytest.mark.skip(reason="Rate limiting not yet implemented")
 async def test_burst_login_attempts_throttled(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,
+    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
 ) -> None:
     """Rapid failed login attempts should be throttled."""
@@ -75,7 +75,7 @@ async def test_burst_login_attempts_throttled(
 @pytest.mark.skip(reason="Rate limiting not yet implemented")
 async def test_rate_limit_resets_after_window(
     no_auth_client: AsyncClient,
-    db_session: AsyncSession,
+    db_session: AsyncSession,  # noqa: ARG001
     _auth_user: tuple[str, str],
 ) -> None:
     """After the rate limit window passes, requests should succeed again."""

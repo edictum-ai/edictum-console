@@ -37,10 +37,10 @@ class TelegramClient:
         self,
         chat_id: int,
         text: str,
-        reply_markup: dict | None = None,
+        reply_markup: dict[str, Any] | None = None,
         parse_mode: str = "HTML",
-    ) -> dict:
-        payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"chat_id": chat_id, "text": text, "parse_mode": parse_mode}
         if reply_markup is not None:
             payload["reply_markup"] = reply_markup
         return await self._post("/sendMessage", payload)
@@ -50,10 +50,10 @@ class TelegramClient:
         chat_id: int,
         message_id: int,
         text: str,
-        reply_markup: dict | None = None,
+        reply_markup: dict[str, Any] | None = None,
         parse_mode: str = "HTML",
-    ) -> dict:
-        payload: dict = {
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "chat_id": chat_id,
             "message_id": message_id,
             "text": text,
@@ -67,34 +67,38 @@ class TelegramClient:
         self,
         callback_query_id: str,
         text: str | None = None,
-    ) -> dict:
-        payload: dict = {"callback_query_id": callback_query_id}
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {"callback_query_id": callback_query_id}
         if text is not None:
             payload["text"] = text
         return await self._post("/answerCallbackQuery", payload)
 
-    async def set_webhook(self, url: str, secret_token: str) -> dict:
-        return await self._post("/setWebhook", {
-            "url": url,
-            "secret_token": secret_token,
-            "allowed_updates": ["callback_query"],
-            "drop_pending_updates": True,
-        })
+    async def set_webhook(self, url: str, secret_token: str) -> dict[str, Any]:
+        return await self._post(
+            "/setWebhook",
+            {
+                "url": url,
+                "secret_token": secret_token,
+                "allowed_updates": ["callback_query"],
+                "drop_pending_updates": True,
+            },
+        )
 
-    async def delete_webhook(self) -> dict:
+    async def delete_webhook(self) -> dict[str, Any]:
         return await self._post("/deleteWebhook", {})
 
     async def close(self) -> None:
         await self._client.aclose()
 
-    async def _post(self, path: str, payload: dict) -> dict:
+    async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
         resp = await self._client.post(path, json=payload)
-        data = resp.json()
+        data: dict[str, Any] = resp.json()
         if not data.get("ok"):
             logger.error("Telegram API error on %s: %s", path, data)
             msg = data.get("description", "Unknown Telegram API error")
             raise TelegramAPIError(msg, error_code=data.get("error_code"))
-        return data["result"]
+        result: dict[str, Any] = data["result"]
+        return result
 
 
 class TelegramChannel(NotificationChannel):
@@ -132,23 +136,34 @@ class TelegramChannel(NotificationChannel):
         tenant_id: str,
     ) -> None:
         text = self._format_approval(
-            agent_id, tool_name, tool_args, message,
-            env, timeout_seconds, timeout_effect,
+            agent_id,
+            tool_name,
+            tool_args,
+            message,
+            env,
+            timeout_seconds,
+            timeout_effect,
         )
         reply_markup = {
-            "inline_keyboard": [[
-                {"text": "\u2705 Approve", "callback_data": f"approve:{approval_id}"},
-                {"text": "\u274c Deny", "callback_data": f"deny:{approval_id}"},
-            ]],
+            "inline_keyboard": [
+                [
+                    {"text": "\u2705 Approve", "callback_data": f"approve:{approval_id}"},
+                    {"text": "\u274c Deny", "callback_data": f"deny:{approval_id}"},
+                ]
+            ],
         }
         result = await self.client.send_message(
-            chat_id=self._chat_id, text=text, reply_markup=reply_markup,
+            chat_id=self._chat_id,
+            text=text,
+            reply_markup=reply_markup,
         )
         ttl = timeout_seconds + 60
-        msg_data = json.dumps({
-            "chat_id": self._chat_id,
-            "message_id": result["message_id"],
-        })
+        msg_data = json.dumps(
+            {
+                "chat_id": self._chat_id,
+                "message_id": result["message_id"],
+            }
+        )
         await self._redis.set(f"telegram:msg:{approval_id}", msg_data, ex=ttl)
         await self._redis.set(f"telegram:tenant:{approval_id}", tenant_id, ex=ttl)
 
@@ -202,7 +217,8 @@ class TelegramChannel(NotificationChannel):
                 )
             except Exception:
                 logger.exception(
-                    "Failed to update expired message for %s", item.get("id"),
+                    "Failed to update expired message for %s",
+                    item.get("id"),
                 )
 
     async def update_decision(
@@ -223,7 +239,7 @@ class TelegramChannel(NotificationChannel):
     def _format_approval(
         agent_id: str,
         tool_name: str,
-        tool_args: dict | None,
+        tool_args: dict[str, Any] | None,
         message: str,
         env: str,
         timeout_seconds: int,

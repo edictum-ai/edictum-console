@@ -122,15 +122,20 @@ async def _upload_and_get_version(client: AsyncClient, yaml: str) -> int:
 
 
 async def _deploy_via_db(
-    db: AsyncSession, version: int, env: str, at: datetime,
+    db: AsyncSession,
+    version: int,
+    env: str,
+    at: datetime,
 ) -> None:
-    db.add(Deployment(
-        tenant_id=TENANT_A_ID,
-        env=env,
-        bundle_version=version,
-        deployed_by="test",
-        created_at=at,
-    ))
+    db.add(
+        Deployment(
+            tenant_id=TENANT_A_ID,
+            env=env,
+            bundle_version=version,
+            deployed_by="test",
+            created_at=at,
+        )
+    )
     await db.commit()
 
 
@@ -140,7 +145,8 @@ async def test_list_bundles_deployed_envs(
 ) -> None:
     v1 = await _upload_and_get_version(client, SAMPLE_YAML)
     v2 = await _upload_and_get_version(
-        client, "rules:\n  - name: v2\n",
+        client,
+        "rules:\n  - name: v2\n",
     )
 
     t = _T0
@@ -161,14 +167,18 @@ async def test_list_bundles_redeploy_moves_env(
 ) -> None:
     v1 = await _upload_and_get_version(client, SAMPLE_YAML)
     v2 = await _upload_and_get_version(
-        client, "rules:\n  - name: v2\n",
+        client,
+        "rules:\n  - name: v2\n",
     )
 
     t = _T0
     await _deploy_via_db(db_session, v1, "production", at=t)
     await _deploy_via_db(db_session, v2, "staging", at=t + timedelta(seconds=1))
     await _deploy_via_db(
-        db_session, v2, "production", at=t + timedelta(seconds=2),
+        db_session,
+        v2,
+        "production",
+        at=t + timedelta(seconds=2),
     )
 
     resp = await client.get("/api/v1/bundles")

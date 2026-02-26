@@ -99,9 +99,7 @@ async def list_tenant_bundles(
 ) -> list[Bundle]:
     """Return all bundles for a tenant, ordered by version DESC."""
     result = await db.execute(
-        select(Bundle)
-        .where(Bundle.tenant_id == tenant_id)
-        .order_by(Bundle.version.desc())
+        select(Bundle).where(Bundle.tenant_id == tenant_id).order_by(Bundle.version.desc())
     )
     return list(result.scalars().all())
 
@@ -132,9 +130,7 @@ async def get_deployed_envs_map(
     )
 
     result = await db.execute(
-        select(ranked.c.bundle_version, ranked.c.env).where(
-            ranked.c.rn == 1
-        )
+        select(ranked.c.bundle_version, ranked.c.env).where(ranked.c.rn == 1)
     )
 
     mapping: dict[int, list[str]] = defaultdict(list)

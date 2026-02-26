@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.local import LocalAuthProvider
@@ -30,7 +30,8 @@ async def _create_test_user(db: AsyncSession) -> tuple[str, str, Tenant]:
 
 
 async def test_login_valid_credentials(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     email, password, _ = await _create_test_user(db_session)
     resp = await no_auth_client.post(
@@ -42,7 +43,8 @@ async def test_login_valid_credentials(
 
 
 async def test_login_bad_password(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     email, _, _ = await _create_test_user(db_session)
     resp = await no_auth_client.post(
@@ -54,7 +56,8 @@ async def test_login_bad_password(
 
 
 async def test_login_nonexistent_email(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _create_test_user(db_session)
     resp = await no_auth_client.post(
@@ -67,7 +70,8 @@ async def test_login_nonexistent_email(
 
 
 async def test_me_with_valid_session(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     email, password, _ = await _create_test_user(db_session)
     login_resp = await no_auth_client.post(
@@ -93,7 +97,8 @@ async def test_me_without_cookie(no_auth_client: AsyncClient) -> None:
 
 
 async def test_logout_clears_session(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     email, password, _ = await _create_test_user(db_session)
     login_resp = await no_auth_client.post(
@@ -117,7 +122,8 @@ async def test_logout_clears_session(
 
 
 async def test_session_expiry(
-    no_auth_client: AsyncClient, db_session: AsyncSession,
+    no_auth_client: AsyncClient,
+    db_session: AsyncSession,
     test_redis,
 ) -> None:
     """Create a session, manually delete it from Redis, verify 401."""

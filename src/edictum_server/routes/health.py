@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/v1", tags=["health"])
 async def health(
     settings: Settings = Depends(get_settings),
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, object]:
     result = await db.execute(select(func.count()).select_from(User))
     user_count = result.scalar() or 0
 

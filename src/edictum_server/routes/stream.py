@@ -34,7 +34,7 @@ async def _event_generator(
 @router.get("")
 async def stream(
     env: str = Query(..., description="Environment to subscribe to"),
-    auth: AuthContext = Depends(require_api_key),
+    _auth: AuthContext = Depends(require_api_key),
     push: PushManager = Depends(get_push_manager),
 ) -> EventSourceResponse:
     """SSE endpoint for agents to receive real-time bundle updates.

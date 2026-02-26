@@ -59,28 +59,33 @@ async def create_approval(
     approval = await approval_service.create_approval(db, auth.tenant_id, body, env=env)
     await db.commit()
 
-    push.push_to_env(env, {
-        "type": "approval_created",
-        "approval_id": str(approval.id),
-        "agent_id": approval.agent_id,
-        "tool_name": approval.tool_name,
-        "message": approval.message,
-    })
+    push.push_to_env(
+        env,
+        {
+            "type": "approval_created",
+            "approval_id": str(approval.id),
+            "agent_id": approval.agent_id,
+            "tool_name": approval.tool_name,
+            "message": approval.message,
+        },
+    )
 
     # Use NotificationManager from app.state instead of direct telegram_notifier
     notification_mgr = getattr(request.app.state, "notification_manager", None)
     if notification_mgr is not None:
-        asyncio.create_task(notification_mgr.notify_approval_request(
-            approval_id=str(approval.id),
-            agent_id=approval.agent_id,
-            tool_name=approval.tool_name,
-            tool_args=approval.tool_args,
-            message=approval.message,
-            env=approval.env,
-            timeout_seconds=approval.timeout_seconds,
-            timeout_effect=approval.timeout_effect,
-            tenant_id=str(approval.tenant_id),
-        ))
+        asyncio.create_task(
+            notification_mgr.notify_approval_request(
+                approval_id=str(approval.id),
+                agent_id=approval.agent_id,
+                tool_name=approval.tool_name,
+                tool_args=approval.tool_args,
+                message=approval.message,
+                env=approval.env,
+                timeout_seconds=approval.timeout_seconds,
+                timeout_effect=approval.timeout_effect,
+                tenant_id=str(approval.tenant_id),
+            )
+        )
 
     return _to_response(approval)
 
@@ -134,16 +139,17 @@ async def submit_decision(
         reason=body.reason,
     )
     if approval is None:
-        raise HTTPException(
-            status_code=409, detail="Approval not found or already decided."
-        )
+        raise HTTPException(status_code=409, detail="Approval not found or already decided.")
     await db.commit()
 
-    push.push_to_env(approval.env, {
-        "type": "approval_decided",
-        "approval_id": str(approval.id),
-        "status": approval.status,
-        "decided_by": approval.decided_by,
-    })
+    push.push_to_env(
+        approval.env,
+        {
+            "type": "approval_decided",
+            "approval_id": str(approval.id),
+            "status": approval.status,
+            "decided_by": approval.decided_by,
+        },
+    )
 
     return _to_response(approval)

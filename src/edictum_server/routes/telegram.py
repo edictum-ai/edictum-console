@@ -25,7 +25,9 @@ router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"])
 def _get_telegram_channel(request: Request) -> TelegramChannel | None:
     """Extract the TelegramChannel from the notification manager, if present."""
     mgr: NotificationManager | None = getattr(
-        request.app.state, "notification_manager", None,
+        request.app.state,
+        "notification_manager",
+        None,
     )
     if mgr is None:
         return None
@@ -80,7 +82,8 @@ async def webhook(
         if tg_channel is not None:
             try:
                 await tg_channel.client.answer_callback_query(
-                    callback_query["id"], "Approval expired or not found.",
+                    callback_query["id"],
+                    "Approval expired or not found.",
                 )
             except Exception:
                 logger.exception("Failed to answer callback query")
@@ -102,7 +105,8 @@ async def webhook(
         if tg_channel is not None:
             try:
                 await tg_channel.client.answer_callback_query(
-                    callback_query["id"], "Already decided or not found.",
+                    callback_query["id"],
+                    "Already decided or not found.",
                 )
             except Exception:
                 logger.exception("Failed to answer callback query")
@@ -112,12 +116,15 @@ async def webhook(
 
     # Push SSE event to agents
     push: PushManager = request.app.state.push_manager
-    push.push_to_env(approval.env, {
-        "type": "approval_decided",
-        "approval_id": str(approval.id),
-        "status": approval.status,
-        "decided_by": decided_by,
-    })
+    push.push_to_env(
+        approval.env,
+        {
+            "type": "approval_decided",
+            "approval_id": str(approval.id),
+            "status": approval.status,
+            "decided_by": decided_by,
+        },
+    )
 
     # Update the Telegram message and answer callback
     if tg_channel is not None:
@@ -129,7 +136,8 @@ async def webhook(
         try:
             result_text = "Approved \u2705" if approved else "Denied \u274c"
             await tg_channel.client.answer_callback_query(
-                callback_query["id"], result_text,
+                callback_query["id"],
+                result_text,
             )
         except Exception:
             logger.exception("Failed to answer callback query")

@@ -5,8 +5,6 @@ Risk if bypassed: Privilege escalation -- attacker creates admin after bootstrap
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -53,9 +51,7 @@ async def test_bootstrap_creates_admin_when_no_users(
     """On first run with env vars set, bootstrap creates admin + tenant."""
     await _run_bootstrap(db_session, "bootstrap@test.com", "strong-password-123")
 
-    result = await db_session.execute(
-        select(User).where(User.email == "bootstrap@test.com")
-    )
+    result = await db_session.execute(select(User).where(User.email == "bootstrap@test.com"))
     user = result.scalar_one_or_none()
     assert user is not None
     assert user.is_admin is True
@@ -82,9 +78,7 @@ async def test_second_bootstrap_skipped_when_user_exists(
     # Try to bootstrap again -- should skip
     await _run_bootstrap(db_session, "attacker@test.com", "attacker-pass")
 
-    result = await db_session.execute(
-        select(func.count()).select_from(User)
-    )
+    result = await db_session.execute(select(func.count()).select_from(User))
     count = result.scalar()
     assert count == 1  # Only the original user
 
@@ -95,8 +89,6 @@ async def test_bootstrap_without_env_vars_skips(
     """If admin email/password not set, bootstrap skips silently."""
     await _run_bootstrap(db_session, "", "")
 
-    result = await db_session.execute(
-        select(func.count()).select_from(User)
-    )
+    result = await db_session.execute(select(func.count()).select_from(User))
     count = result.scalar()
     assert count == 0

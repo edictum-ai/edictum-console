@@ -27,9 +27,7 @@ def _make_approval_body(**overrides: object) -> dict:
 
 
 async def _create_approval(client: AsyncClient, **overrides: object) -> dict:
-    resp = await client.post(
-        "/api/v1/approvals", json=_make_approval_body(**overrides)
-    )
+    resp = await client.post("/api/v1/approvals", json=_make_approval_body(**overrides))
     assert resp.status_code == 201
     return resp.json()
 
@@ -124,7 +122,8 @@ async def test_submit_decision_already_decided(client: AsyncClient) -> None:
 
 
 async def test_expire_approvals(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     created = await _create_approval(client, timeout=1)
 

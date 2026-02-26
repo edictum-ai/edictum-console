@@ -18,9 +18,7 @@ class PushManager:
     """
 
     def __init__(self) -> None:
-        self._connections: dict[str, set[asyncio.Queue[dict[str, Any]]]] = (
-            defaultdict(set)
-        )
+        self._connections: dict[str, set[asyncio.Queue[dict[str, Any]]]] = defaultdict(set)
 
     def subscribe(self, env: str) -> asyncio.Queue[dict[str, Any]]:
         """Register a new SSE connection for an environment.

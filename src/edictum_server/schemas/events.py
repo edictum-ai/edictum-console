@@ -24,9 +24,7 @@ class EventPayload(BaseModel):
 class EventBatchRequest(BaseModel):
     """Batch of events sent by an agent in a single HTTP call."""
 
-    events: list[EventPayload] = Field(
-        ..., min_length=1, description="One or more audit events"
-    )
+    events: list[EventPayload] = Field(..., min_length=1, description="One or more audit events")
 
 
 class EventResponse(BaseModel):
@@ -47,6 +45,4 @@ class EventIngestResponse(BaseModel):
     """Response after ingesting a batch of events."""
 
     accepted: int = Field(..., description="Number of newly stored events")
-    duplicates: int = Field(
-        ..., description="Number of events skipped (already ingested)"
-    )
+    duplicates: int = Field(..., description="Number of events skipped (already ingested)")

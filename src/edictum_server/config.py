@@ -13,9 +13,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="EDICTUM_")
 
     # Database
-    database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/edictum"
-    )
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/edictum"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

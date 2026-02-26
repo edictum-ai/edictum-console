@@ -55,12 +55,14 @@ class LocalAuthProvider(AuthProvider):
         is_admin: bool,
     ) -> tuple[str, dict[str, str | bool | int]]:
         token = secrets.token_urlsafe(32)
-        session_data = json.dumps({
-            "user_id": str(user_id),
-            "tenant_id": str(tenant_id),
-            "email": email,
-            "is_admin": is_admin,
-        })
+        session_data = json.dumps(
+            {
+                "user_id": str(user_id),
+                "tenant_id": str(tenant_id),
+                "email": email,
+                "is_admin": is_admin,
+            }
+        )
         await self._redis.set(
             f"{_SESSION_PREFIX}{token}",
             session_data,

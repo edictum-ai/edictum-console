@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock
-
-import pytest
 
 from edictum_server.notifications.base import NotificationChannel, NotificationManager
 
@@ -44,10 +41,10 @@ class FailingChannel(NotificationChannel):
     def supports_interactive(self) -> bool:
         return False
 
-    async def send_approval_request(self, **kwargs: Any) -> None:
+    async def send_approval_request(self, **kwargs: Any) -> None:  # noqa: ARG002
         raise RuntimeError("send failed")
 
-    async def send_approval_decided(self, **kwargs: Any) -> None:
+    async def send_approval_decided(self, **kwargs: Any) -> None:  # noqa: ARG002
         raise RuntimeError("decide failed")
 
 
@@ -94,8 +91,10 @@ async def test_manager_works_with_empty_channels() -> None:
     # Should not raise
     await mgr.notify_approval_request(**_sample_kwargs())
     await mgr.notify_approval_decided(
-        approval_id="abc", status="approved",
-        decided_by="admin", reason=None,
+        approval_id="abc",
+        status="approved",
+        decided_by="admin",
+        reason=None,
     )
 
 
@@ -114,8 +113,10 @@ async def test_manager_notify_decided_fans_out() -> None:
     mgr = NotificationManager(channels=[ch1, ch2])
 
     await mgr.notify_approval_decided(
-        approval_id="abc", status="approved",
-        decided_by="admin", reason="safe",
+        approval_id="abc",
+        status="approved",
+        decided_by="admin",
+        reason="safe",
     )
 
     assert len(ch1.approval_decisions) == 1

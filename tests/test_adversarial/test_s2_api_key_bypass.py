@@ -7,9 +7,6 @@ from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from edictum_server.db.models import Tenant
 
 pytestmark = pytest.mark.security
 
@@ -29,7 +26,7 @@ async def test_revoked_key_rejected(client: AsyncClient) -> None:
     assert revoke_resp.status_code == 204
 
     # Try using the revoked key via no_auth_client
-    resp = await client.get(
+    await client.get(
         "/api/v1/events",
         headers={"Authorization": f"Bearer {full_key}"},
     )

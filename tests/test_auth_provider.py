@@ -98,7 +98,8 @@ async def test_authenticate_missing_cookie(
 
 
 async def test_authenticate_expired_token(
-    provider: LocalAuthProvider, redis: aioredis.Redis,
+    provider: LocalAuthProvider,
+    redis: aioredis.Redis,
 ) -> None:
     user_id = uuid.uuid4()
     tenant_id = uuid.uuid4()
@@ -119,7 +120,8 @@ async def test_authenticate_expired_token(
 
 
 async def test_destroy_session_removes_token(
-    provider: LocalAuthProvider, redis: aioredis.Redis,
+    provider: LocalAuthProvider,
+    redis: aioredis.Redis,
 ) -> None:
     user_id = uuid.uuid4()
     tenant_id = uuid.uuid4()

@@ -100,9 +100,7 @@ async def current(
     """
     bundle = await get_current_bundle(db, auth.tenant_id, env)
     if bundle is None:
-        raise HTTPException(
-            status_code=404, detail=f"No deployed bundle for env '{env}'"
-        )
+        raise HTTPException(status_code=404, detail=f"No deployed bundle for env '{env}'")
     return _bundle_to_response(bundle)
 
 

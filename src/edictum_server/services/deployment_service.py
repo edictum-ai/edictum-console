@@ -37,10 +37,12 @@ async def deploy_bundle(
     # Sign the bundle if it hasn't been signed yet
     if bundle.signature is None:
         result = await db.execute(
-            select(SigningKey).where(
+            select(SigningKey)
+            .where(
                 SigningKey.tenant_id == tenant_id,
                 SigningKey.active.is_(True),
-            ).limit(1)
+            )
+            .limit(1)
         )
         signing_key_row = result.scalar_one_or_none()
         if signing_key_row is None:
@@ -65,12 +67,15 @@ async def deploy_bundle(
 
     # Push to all connected agents for this environment
     # SDK expects event type "contract_update" (not "bundle_deployed")
-    push_manager.push_to_env(env, {
-        "type": "contract_update",
-        "version": version,
-        "revision_hash": bundle.revision_hash,
-        "signature": bundle.signature.hex() if bundle.signature else None,
-        "yaml_bytes": base64.b64encode(bundle.yaml_bytes).decode(),
-    })
+    push_manager.push_to_env(
+        env,
+        {
+            "type": "contract_update",
+            "version": version,
+            "revision_hash": bundle.revision_hash,
+            "signature": bundle.signature.hex() if bundle.signature else None,
+            "yaml_bytes": base64.b64encode(bundle.yaml_bytes).decode(),
+        },
+    )
 
     return deployment
