@@ -34,7 +34,7 @@ def _to_response(approval: Approval) -> ApprovalResponse:
         status=approval.status,
         agent_id=approval.agent_id,
         tool_name=approval.tool_name,
-        tool_args=approval.tool_args,  # type: ignore[arg-type]
+        tool_args=approval.tool_args,
         message=approval.message,
         env=approval.env,
         timeout_seconds=approval.timeout_seconds,

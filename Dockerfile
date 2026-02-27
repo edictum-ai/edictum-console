@@ -1,10 +1,10 @@
-# -- Stage 1: Frontend build (Phase 3 -- uncomment when dashboard is ready) --
-# FROM node:20-slim AS frontend
-# WORKDIR /app/dashboard
-# COPY dashboard/package.json dashboard/pnpm-lock.yaml ./
-# RUN corepack enable && pnpm install --frozen-lockfile
-# COPY dashboard/ .
-# RUN pnpm build
+# -- Stage 1: Frontend build ---------------------------------------------------
+FROM node:20-slim AS frontend
+WORKDIR /app/dashboard
+COPY dashboard/package.json dashboard/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY dashboard/ .
+RUN pnpm build
 
 # -- Stage 2: Python build -------------------------------------------------------
 FROM python:3.12-slim AS builder
@@ -32,8 +32,7 @@ COPY alembic/ alembic/
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Phase 3: uncomment when dashboard is ready
-# COPY --from=frontend /app/dashboard/dist static/dashboard/
+COPY --from=frontend /app/dashboard/dist static/dashboard/
 
 USER app
 

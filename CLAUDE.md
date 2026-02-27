@@ -318,3 +318,4 @@ Apache License 2.0 (same as ArgoCD/Argo project). Standard for infrastructure OS
 | Adversarial tests before first push | Positive tests prove it works. Adversarial tests prove it doesn't break. ~43 minimum across 8 security boundaries. Ship-blocker if tenant isolation can be bypassed. |
 | Protocols only where second impl is planned | AuthProvider (OIDC planned) and NotificationChannel (Slack planned) get ABCs. No ObservabilitySink until OTLP is actually being built. Balance between pluggability and premature abstraction. |
 | DDD layer rules | Services never import routes. Routes are thin. Infrastructure injected via dependencies. Keeps the codebase navigable for both humans and AI. |
+| Keep `/api/v1/setup` endpoint | Frontend bootstrap wizard (`/dashboard/setup`) uses this endpoint for interactive first-run. Env-var bootstrap via `_bootstrap_admin()` in lifespan is an alternative path, not the only path. Both are protected by S7 bootstrap lock. |

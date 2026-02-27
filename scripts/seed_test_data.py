@@ -57,11 +57,7 @@ PG_PORT = int(os.getenv("PGPORT", "5432"))
 PG_USER = os.getenv("PGUSER", "postgres")
 PG_PASS = os.getenv("PGPASSWORD", "postgres")
 
-DEFAULT_SOURCE_URL = (
-    "postgresql://neondb_owner:npg_wGdaiRkrWX04"
-    "@ep-late-dream-agfsw82e-pooler.c-2.eu-central-1.aws.neon.tech"
-    "/neondb?ssl=require"
-)
+DEFAULT_SOURCE_URL = os.environ.get("SEED_SOURCE_URL", "")
 
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "admin123"
@@ -773,9 +769,14 @@ def main() -> None:
         "--source-url",
         type=str,
         default=DEFAULT_SOURCE_URL,
-        help="Source Postgres URL to read events/approvals from.",
+        help="Source Postgres URL to read events/approvals from (or set SEED_SOURCE_URL env var).",
     )
     args = parser.parse_args()
+
+    if not args.source_url:
+        print("Error: No source database URL provided.")
+        print("Set SEED_SOURCE_URL environment variable or pass --source-url.")
+        sys.exit(1)
 
     targets = [args.agents] if args.agents else [1, 3, 10]
 

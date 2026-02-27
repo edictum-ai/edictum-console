@@ -11,7 +11,7 @@ def create_redis_client(url: str) -> aioredis.Redis:
 
     Supports both ``redis://`` (local) and ``rediss://`` (Upstash TLS) URLs.
     """
-    return aioredis.from_url(  # type: ignore[no-any-return]
+    return aioredis.from_url(
         url,
         decode_responses=True,
     )
