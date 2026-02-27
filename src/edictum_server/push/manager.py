@@ -14,6 +14,7 @@ _DASHBOARD_EVENT_TYPES = frozenset({
     "approval_created",
     "approval_decided",
     "approval_timeout",
+    "bundle_uploaded",
     "contract_update",
 })
 

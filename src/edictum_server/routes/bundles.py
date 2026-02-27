@@ -53,6 +53,7 @@ async def upload(
     body: BundleUploadRequest,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
+    push: PushManager = Depends(get_push_manager),
 ) -> BundleResponse:
     """Upload a new contract bundle (dashboard-authenticated users)."""
     try:
@@ -67,6 +68,13 @@ async def upload(
         await db.commit()
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    push.push_to_dashboard(auth.tenant_id, {
+        "type": "bundle_uploaded",
+        "version": bundle.version,
+        "revision_hash": bundle.revision_hash,
+        "uploaded_by": auth.user_id or "unknown",
+    })
 
     return _bundle_to_response(bundle)
 

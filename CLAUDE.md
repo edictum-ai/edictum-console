@@ -62,7 +62,7 @@ Svelte 5 runes are too new — LLMs still confuse Svelte 3/4/5 syntax and produc
 ## Non-Negotiable Principles
 
 1. **edictum core works without the server.** The library is standalone. Server is an optional enhancement. Never introduce a server dependency into the core library.
-2. **All governance runs in the agent process.** The server NEVER evaluates contracts. Zero latency on tool calls. Server stores events, manages approvals, pushes contract updates.
+2. **All governance runs in the agent process.** The server NEVER evaluates contracts in production. Zero latency on tool calls. Server stores events, manages approvals, pushes contract updates. **Exception:** `POST /api/v1/bundles/evaluate` is a development-time playground endpoint for testing contracts in the dashboard. It is never called by agents. Production evaluation remains agent-side only.
 3. **Fail closed.** Server unreachable → errors propagate → deny. Never fail open.
 4. **Single Docker image.** FastAPI serves the SPA at `/dashboard`, API at `/api/v1/*`, marketing/landing at `/`. One deployment.
 5. **Local-first auth.** `EDICTUM_AUTH_PROVIDER=local` is the default. No external auth dependency required.

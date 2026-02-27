@@ -22,6 +22,8 @@ from edictum_server.routes import (
     approvals,
     auth,
     bundles,
+    deployments,
+    evaluate,
     events,
     health,
     keys,
@@ -217,6 +219,8 @@ app.include_router(setup.router)
 app.include_router(auth.router)
 app.include_router(keys.router)
 app.include_router(bundles.router)
+app.include_router(evaluate.router)
+app.include_router(deployments.router)
 app.include_router(stream.router)
 app.include_router(events.router)
 app.include_router(sessions.router)
