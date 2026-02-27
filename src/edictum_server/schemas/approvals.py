@@ -17,6 +17,8 @@ class CreateApprovalRequest(BaseModel):
     message: str
     timeout: int = Field(default=300, ge=1, le=86400)
     timeout_effect: Literal["deny", "allow"] = "deny"
+    decision_source: str | None = None
+    contract_name: str | None = None
 
 
 class ApprovalResponse(BaseModel):
@@ -29,9 +31,12 @@ class ApprovalResponse(BaseModel):
     env: str
     timeout_seconds: int
     timeout_effect: str
+    decision_source: str | None = None
+    contract_name: str | None = None
     decided_by: str | None = None
     decided_at: datetime | None = None
     decision_reason: str | None = None
+    decided_via: str | None = None
     created_at: datetime
 
 
@@ -39,3 +44,4 @@ class SubmitDecisionRequest(BaseModel):
     approved: bool
     decided_by: str | None = None
     reason: str | None = None
+    decided_via: str | None = None

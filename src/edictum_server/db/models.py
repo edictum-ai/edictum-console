@@ -144,9 +144,12 @@ class Approval(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     env: Mapped[str] = mapped_column(String, default="production")
     timeout_seconds: Mapped[int] = mapped_column(default=300)
     timeout_effect: Mapped[str] = mapped_column(String, default="deny")
+    decision_source: Mapped[str | None] = mapped_column(String, nullable=True)
+    contract_name: Mapped[str | None] = mapped_column(String, nullable=True)
     decided_by: Mapped[str | None] = mapped_column(String, nullable=True)
     decided_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
     decision_reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    decided_via: Mapped[str | None] = mapped_column(String, nullable=True)

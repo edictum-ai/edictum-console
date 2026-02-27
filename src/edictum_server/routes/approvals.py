@@ -39,9 +39,12 @@ def _to_response(approval: Approval) -> ApprovalResponse:
         env=approval.env,
         timeout_seconds=approval.timeout_seconds,
         timeout_effect=approval.timeout_effect,
+        decision_source=approval.decision_source,
+        contract_name=approval.contract_name,
         decided_by=approval.decided_by,
         decided_at=approval.decided_at,
         decision_reason=approval.decision_reason,
+        decided_via=approval.decided_via,
         created_at=approval.created_at,
     )
 
@@ -59,16 +62,15 @@ async def create_approval(
     approval = await approval_service.create_approval(db, auth.tenant_id, body, env=env)
     await db.commit()
 
-    push.push_to_env(
-        env,
-        {
-            "type": "approval_created",
-            "approval_id": str(approval.id),
-            "agent_id": approval.agent_id,
-            "tool_name": approval.tool_name,
-            "message": approval.message,
-        },
-    )
+    event_data = {
+        "type": "approval_created",
+        "approval_id": str(approval.id),
+        "agent_id": approval.agent_id,
+        "tool_name": approval.tool_name,
+        "message": approval.message,
+    }
+    push.push_to_env(env, event_data)
+    push.push_to_dashboard(auth.tenant_id, event_data)
 
     # Use NotificationManager from app.state instead of direct telegram_notifier
     notification_mgr = getattr(request.app.state, "notification_manager", None)
@@ -125,6 +127,7 @@ async def list_approvals(
 async def submit_decision(
     approval_id: uuid.UUID,
     body: SubmitDecisionRequest,
+    request: Request,
     auth: AuthContext = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
@@ -137,19 +140,30 @@ async def submit_decision(
         approved=body.approved,
         decided_by=body.decided_by,
         reason=body.reason,
+        decided_via=body.decided_via or "console",
     )
     if approval is None:
         raise HTTPException(status_code=409, detail="Approval not found or already decided.")
     await db.commit()
 
-    push.push_to_env(
-        approval.env,
-        {
-            "type": "approval_decided",
-            "approval_id": str(approval.id),
-            "status": approval.status,
-            "decided_by": approval.decided_by,
-        },
-    )
+    decided_data = {
+        "type": "approval_decided",
+        "approval_id": str(approval.id),
+        "status": approval.status,
+        "decided_by": approval.decided_by,
+    }
+    push.push_to_env(approval.env, decided_data)
+    push.push_to_dashboard(auth.tenant_id, decided_data)
+
+    notification_mgr = getattr(request.app.state, "notification_manager", None)
+    if notification_mgr is not None:
+        asyncio.create_task(
+            notification_mgr.notify_approval_decided(
+                approval_id=str(approval.id),
+                status=approval.status,
+                decided_by=approval.decided_by,
+                reason=approval.decision_reason,
+            )
+        )
 
     return _to_response(approval)

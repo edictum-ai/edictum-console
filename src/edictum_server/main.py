@@ -26,6 +26,8 @@ from edictum_server.routes import (
     health,
     keys,
     sessions,
+    setup,
+    stats,
     stream,
     telegram,
 )
@@ -63,15 +65,14 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                     logger.info("Expired %d approval(s)", len(expired))
                     push: PushManager = app.state.push_manager
                     for item in expired:
-                        push.push_to_env(
-                            item["env"],
-                            {
-                                "type": "approval_timeout",
-                                "approval_id": item["id"],
-                                "agent_id": item["agent_id"],
-                                "tool_name": item["tool_name"],
-                            },
-                        )
+                        timeout_data = {
+                            "type": "approval_timeout",
+                            "approval_id": item["id"],
+                            "agent_id": item["agent_id"],
+                            "tool_name": item["tool_name"],
+                        }
+                        push.push_to_env(item["env"], timeout_data)
+                        push.push_to_dashboard(item["tenant_id"], timeout_data)
                     # Notify via telegram channel if available
                     mgr: NotificationManager | None = getattr(
                         app.state,
@@ -212,6 +213,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(health.router)
+app.include_router(setup.router)
 app.include_router(auth.router)
 app.include_router(keys.router)
 app.include_router(bundles.router)
@@ -219,4 +221,5 @@ app.include_router(stream.router)
 app.include_router(events.router)
 app.include_router(sessions.router)
 app.include_router(approvals.router)
+app.include_router(stats.router)
 app.include_router(telegram.router)

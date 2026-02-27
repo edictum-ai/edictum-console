@@ -67,15 +67,14 @@ async def deploy_bundle(
 
     # Push to all connected agents for this environment
     # SDK expects event type "contract_update" (not "bundle_deployed")
-    push_manager.push_to_env(
-        env,
-        {
-            "type": "contract_update",
-            "version": version,
-            "revision_hash": bundle.revision_hash,
-            "signature": bundle.signature.hex() if bundle.signature else None,
-            "yaml_bytes": base64.b64encode(bundle.yaml_bytes).decode(),
-        },
-    )
+    contract_data = {
+        "type": "contract_update",
+        "version": version,
+        "revision_hash": bundle.revision_hash,
+        "signature": bundle.signature.hex() if bundle.signature else None,
+        "yaml_bytes": base64.b64encode(bundle.yaml_bytes).decode(),
+    }
+    push_manager.push_to_env(env, contract_data)
+    push_manager.push_to_dashboard(tenant_id, contract_data)
 
     return deployment

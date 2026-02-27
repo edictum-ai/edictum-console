@@ -55,6 +55,8 @@ async def create_approval(
         env=env,
         timeout_seconds=request.timeout,
         timeout_effect=request.timeout_effect,
+        decision_source=request.decision_source,
+        contract_name=request.contract_name,
     )
     db.add(approval)
     await db.flush()
@@ -96,6 +98,7 @@ async def submit_decision(
     approved: bool,
     decided_by: str | None = None,
     reason: str | None = None,
+    decided_via: str | None = None,
 ) -> Approval | None:
     """Submit a human decision on a pending approval.
 
@@ -109,6 +112,7 @@ async def submit_decision(
     approval.decided_by = decided_by
     approval.decided_at = datetime.now(UTC)
     approval.decision_reason = reason
+    approval.decided_via = decided_via
     await db.flush()
     return approval
 
@@ -121,7 +125,13 @@ async def expire_approvals(db: AsyncSession) -> list[dict[str, Any]]:
     """
     # SELECT first to capture info needed for SSE notifications
     result = await db.execute(
-        select(Approval.id, Approval.env, Approval.agent_id, Approval.tool_name)
+        select(
+            Approval.id,
+            Approval.tenant_id,
+            Approval.env,
+            Approval.agent_id,
+            Approval.tool_name,
+        )
         .where(Approval.status == "pending")
         .where(_ApprovalExpired())
     )
@@ -131,11 +141,16 @@ async def expire_approvals(db: AsyncSession) -> list[dict[str, Any]]:
         return []
 
     expired_ids = [row.id for row in rows]
-    await db.execute(update(Approval).where(Approval.id.in_(expired_ids)).values(status="timeout"))
+    await db.execute(
+        update(Approval)
+        .where(Approval.id.in_(expired_ids))
+        .values(status="timeout", decided_via="system")
+    )
 
     return [
         {
             "id": str(row.id),
+            "tenant_id": row.tenant_id,
             "env": row.env,
             "agent_id": row.agent_id,
             "tool_name": row.tool_name,

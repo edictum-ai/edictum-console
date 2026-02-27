@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -100,6 +101,7 @@ async def webhook(
         approval_id,
         approved=approved,
         decided_by=decided_by,
+        decided_via="telegram",
     )
     if approval is None:
         if tg_channel is not None:
@@ -114,17 +116,28 @@ async def webhook(
 
     await db.commit()
 
-    # Push SSE event to agents
+    # Push SSE event to agents and dashboard
     push: PushManager = request.app.state.push_manager
-    push.push_to_env(
-        approval.env,
-        {
-            "type": "approval_decided",
-            "approval_id": str(approval.id),
-            "status": approval.status,
-            "decided_by": decided_by,
-        },
-    )
+    decided_data = {
+        "type": "approval_decided",
+        "approval_id": str(approval.id),
+        "status": approval.status,
+        "decided_by": decided_by,
+    }
+    push.push_to_env(approval.env, decided_data)
+    push.push_to_dashboard(tenant_id, decided_data)
+
+    # Notify other channels about the decision
+    notification_mgr = getattr(request.app.state, "notification_manager", None)
+    if notification_mgr is not None:
+        asyncio.create_task(
+            notification_mgr.notify_approval_decided(
+                approval_id=str(approval.id),
+                status=approval.status,
+                decided_by=decided_by,
+                reason=None,
+            )
+        )
 
     # Update the Telegram message and answer callback
     if tg_channel is not None:
