@@ -1,27 +1,20 @@
 import { useState } from "react"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   X,
   Clock,
-  Shield,
-  Copy,
   ChevronDown,
   ChevronRight,
   ExternalLink,
-  Check,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { EventResponse } from "@/lib/api"
-import {
-  extractProvenance,
-  formatDecisionSource,
-  isObserveFinding,
-} from "@/lib/payload-helpers"
+import { extractProvenance, isObserveFinding } from "@/lib/payload-helpers"
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
+import { DecisionContextCard } from "./detail-decision-context"
+import { ToolArgsCard } from "./detail-tool-args"
+import { ContractsEvaluatedCard } from "./detail-contracts-evaluated"
 
 function DetailRow({
   label,
@@ -53,8 +46,6 @@ interface EventDetailProps {
 
 export function EventDetail({ event, onClose }: EventDetailProps) {
   const [jsonExpanded, setJsonExpanded] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [copiedVersion, setCopiedVersion] = useState(false)
 
   const payload = event.payload ?? {}
   const prov = extractProvenance(event)
@@ -70,24 +61,9 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
       ? payload.env
       : undefined
 
-  // Forward-compatible: renders when core library adds contracts_evaluated to ServerAuditSink payload
   const contractsEvaluated = Array.isArray(payload.contracts_evaluated)
     ? (payload.contracts_evaluated as Array<{ name: string; type: string; passed: boolean; message?: string; observed?: boolean }>)
     : null
-
-  const handleCopyArgs = async () => {
-    const text = toolArgs ? JSON.stringify(toolArgs, null, 2) : "{}"
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
-
-  const handleCopyVersion = async () => {
-    if (!prov.policyVersion) return
-    await navigator.clipboard.writeText(prov.policyVersion)
-    setCopiedVersion(true)
-    setTimeout(() => setCopiedVersion(false), 1500)
-  }
 
   return (
     <div className="flex flex-col border-t border-border bg-card/50">
@@ -109,7 +85,6 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
         <div className="flex flex-wrap gap-4 p-3">
           {/* Left column: header + core fields */}
           <div className="min-w-[200px] flex-1 space-y-3">
-            {/* Observe mode banner */}
             {observe && (
               <Alert className="border-amber-500/20 bg-amber-500/10">
                 <AlertDescription className="text-xs text-amber-600 dark:text-amber-400">
@@ -118,7 +93,6 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
               </Alert>
             )}
 
-            {/* Header badges */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge
@@ -151,7 +125,6 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
               </div>
             </div>
 
-            {/* Core fields */}
             <div className="space-y-1.5">
               <DetailRow label="Agent" value={event.agent_id} />
               <DetailRow label="Tool" value={event.tool_name} mono />
@@ -170,161 +143,17 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
               )}
             </div>
 
-            {/* Decision Context */}
-            {(prov.contractName ?? prov.decisionSource ?? prov.reason) && (
-              <Card className="border-border bg-background/50 p-0">
-                <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-                  <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-foreground">
-                    Decision Context
-                  </span>
-                </div>
-                <div className="space-y-2 p-3">
-                  {prov.contractName && (
-                    <DetailRow label="Contract" value={prov.contractName} mono />
-                  )}
-                  {prov.decisionSource && (
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        Type
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className="h-5 rounded px-1.5 text-[10px] font-normal"
-                      >
-                        {formatDecisionSource(prov.decisionSource)}
-                      </Badge>
-                    </div>
-                  )}
-                  {prov.policyVersion && (
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="shrink-0 text-[11px] text-muted-foreground">
-                        Bundle Version
-                      </span>
-                      <span className="flex items-center gap-1 min-w-0">
-                        <span className="truncate text-right font-mono text-[11px] text-foreground">
-                          {prov.policyVersion.length > 12
-                            ? prov.policyVersion.slice(0, 12) + "..."
-                            : prov.policyVersion}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => void handleCopyVersion()}
-                          className="h-5 w-5 shrink-0 p-0 text-muted-foreground hover:text-foreground"
-                        >
-                          {copiedVersion ? (
-                            <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </span>
-                    </div>
-                  )}
-                  {prov.reason && (
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      {prov.reason}
-                    </p>
-                  )}
-                </div>
-              </Card>
-            )}
+            <DecisionContextCard prov={prov} />
           </div>
 
           {/* Right column: tool args, contracts, raw JSON */}
           <div className="min-w-[200px] flex-1 space-y-3">
-            {/* Tool Arguments */}
-            {toolArgs && Object.keys(toolArgs).length > 0 && (
-              <Card className="border-border bg-background/50 p-0">
-                <div className="flex items-center justify-between border-b border-border px-3 py-2">
-                  <span className="text-xs font-semibold text-foreground">
-                    Tool Arguments
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => void handleCopyArgs()}
-                    className="h-5 px-1.5 text-muted-foreground hover:text-foreground"
-                  >
-                    {copied ? (
-                      <Check className="mr-1 h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <Copy className="mr-1 h-3 w-3" />
-                    )}
-                    <span className="text-[10px]">{copied ? "Copied" : "Copy"}</span>
-                  </Button>
-                </div>
-                <div className="space-y-1.5 p-3">
-                  {Object.entries(toolArgs).map(([key, value]) => (
-                    <div key={key} className="flex gap-2">
-                      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
-                        {key}:
-                      </span>
-                      <span className="min-w-0 break-all font-mono text-[11px] text-foreground">
-                        {typeof value === "object"
-                          ? JSON.stringify(value)
-                          : String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            )}
+            {toolArgs && <ToolArgsCard toolArgs={toolArgs} />}
 
-            {/* Contracts Evaluated */}
             {contractsEvaluated && contractsEvaluated.length > 0 && (
-              <Card className="border-border bg-background/50 p-0">
-                <div className="flex items-center gap-1.5 border-b border-border px-3 py-2">
-                  <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-foreground">
-                    Contracts Evaluated
-                  </span>
-                </div>
-                <div className="space-y-2 p-3">
-                  {contractsEvaluated.map((c) => (
-                    <div
-                      key={`${c.name}-${c.type}`}
-                      className="flex items-start gap-2 rounded-md border border-border bg-background/50 px-2.5 py-2"
-                    >
-                      {c.passed ? (
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                      ) : (
-                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
-                      )}
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[11px] text-foreground">
-                            {c.name}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="h-4 rounded px-1 text-[9px] font-normal"
-                          >
-                            {c.type}
-                          </Badge>
-                          {c.observed && (
-                            <Badge
-                              variant="outline"
-                              className="h-4 rounded px-1 text-[9px] font-normal border-amber-500/30 text-amber-600 dark:text-amber-400"
-                            >
-                              observed
-                            </Badge>
-                          )}
-                        </div>
-                        {!c.passed && c.message && (
-                          <p className="text-[11px] leading-relaxed text-muted-foreground">
-                            {c.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+              <ContractsEvaluatedCard contracts={contractsEvaluated} />
             )}
 
-            {/* Raw JSON */}
             <div className="max-w-full">
               <Button
                 variant="ghost"
@@ -352,4 +181,3 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
     </div>
   )
 }
-
