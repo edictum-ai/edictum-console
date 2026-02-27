@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/v1/bundles", tags=["evaluate"])
 @router.post("/evaluate", response_model=EvaluateResponse)
 async def evaluate(
     body: EvaluateRequest,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    _auth: AuthContext = Depends(require_dashboard_auth),
 ) -> EvaluateResponse:
     """Evaluate a tool call against YAML contracts (dashboard playground).
 

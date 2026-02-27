@@ -7,7 +7,11 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from edictum_server.auth.dependencies import AuthContext, get_current_tenant, require_dashboard_auth
+from edictum_server.auth.dependencies import (
+    AuthContext,
+    get_current_tenant,
+    require_dashboard_auth,
+)
 from edictum_server.db.engine import get_db
 from edictum_server.schemas.stats import ContractStatsResponse, StatsOverviewResponse
 from edictum_server.services.stats_service import get_contract_stats, get_overview
