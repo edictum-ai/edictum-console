@@ -18,20 +18,10 @@ import {
   XCircle,
 } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
+import { getArgsPreview } from "@/lib/format"
 import { TimerBar, getTimerState } from "./timer"
-import { EnvBadge } from "./badges"
+import { EnvBadge } from "@/lib/env-colors"
 import { ExpandedDetail } from "./expanded-detail"
-
-function getArgsPreview(toolArgs: Record<string, unknown> | null): string {
-  if (!toolArgs) return "(no arguments)"
-  const entries = Object.entries(toolArgs)
-  if (entries.length === 0) return "(empty)"
-  const preview = entries
-    .slice(0, 2)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
-    .join(", ")
-  return entries.length > 2 ? `${preview} ...` : preview
-}
 
 interface ApprovalsTableProps {
   approvals: ApprovalResponse[]
@@ -103,7 +93,7 @@ export function ApprovalsTable({
               <Button
                 size="sm"
                 variant="outline"
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                className="border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                 onClick={() => setBulkDenyOpen(true)}
                 disabled={acting}
               >
@@ -227,7 +217,7 @@ export function ApprovalsTable({
                       <Button
                         size="xs"
                         variant="outline"
-                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-400"
+                        className="border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400"
                         onClick={() => setExpandedId(approval.id)}
                         disabled={acting || zone === "expired"}
                       >

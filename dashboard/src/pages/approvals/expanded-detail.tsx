@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button"
 import { CheckCircle2, Code2, MessageSquare } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { formatDecisionSource } from "@/lib/payload-helpers"
-import { ChannelBadge, EnvBadge } from "./badges"
+import { ChannelBadge } from "./badges"
+import { EnvBadge } from "@/lib/env-colors"
 import { DenyButton } from "./deny-button"
 import { getTimerState } from "./timer"
 
@@ -64,7 +65,7 @@ export function ExpandedDetail({ approval, onApprove, onDeny, acting }: Expanded
               </div>
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">On timeout</dt>
-                <dd className={`text-xs font-medium ${approval.timeout_effect === "allow" ? "text-amber-400" : "text-red-400"}`}>
+                <dd className={`text-xs font-medium ${approval.timeout_effect === "allow" ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
                   {approval.timeout_effect}
                 </dd>
               </div>

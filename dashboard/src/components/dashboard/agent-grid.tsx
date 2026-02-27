@@ -16,17 +16,12 @@ import {
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
 import type { EventResponse } from "@/lib/api"
 import { deriveAgents, type AgentStatus, type AgentSummary } from "@/lib/derive-agents"
+import { ENV_COLORS } from "@/lib/env-colors"
 
 const STATUS_CONFIG: Record<AgentStatus, { label: string; dotClass: string; icon: typeof Signal }> = {
   healthy: { label: "Healthy", dotClass: "bg-emerald-500", icon: Signal },
   degraded: { label: "Degraded", dotClass: "bg-amber-500", icon: AlertTriangle },
   offline: { label: "Offline", dotClass: "bg-zinc-500", icon: WifiOff },
-}
-
-const ENV_COLORS: Record<string, string> = {
-  production: "bg-red-500/15 text-red-400",
-  staging: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
-  development: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
 }
 
 function StatusDot({ status }: { status: AgentStatus }) {
@@ -93,7 +88,7 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
               <h3 className="truncate text-sm font-semibold">{agent.name}</h3>
               <Badge
                 variant="secondary"
-                className={`text-[10px] px-1.5 py-0 ${ENV_COLORS[agent.env] ?? "bg-zinc-500/15 text-zinc-400"}`}
+                className={`text-[10px] px-1.5 py-0 ${ENV_COLORS[agent.env] ?? "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400"}`}
               >
                 {agent.env}
               </Badge>
@@ -102,7 +97,7 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
                   <TooltipTrigger asChild>
                     <Badge
                       variant="secondary"
-                      className="text-[10px] px-1.5 py-0 font-mono bg-violet-500/15 text-violet-400"
+                      className="text-[10px] px-1.5 py-0 font-mono bg-violet-500/15 text-violet-600 dark:text-violet-400"
                     >
                       {agent.bundleVersion.slice(0, 8)}
                     </Badge>
@@ -113,7 +108,7 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
               {agent.mode === "observe" && (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-400"
+                  className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-600 dark:text-amber-400"
                 >
                   observe
                 </Badge>

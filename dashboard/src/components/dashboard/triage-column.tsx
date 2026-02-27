@@ -38,6 +38,7 @@ import {
   CheckCircle,
 } from "lucide-react"
 import { submitDecision, type ApprovalResponse } from "@/lib/api"
+import { formatArgs } from "@/lib/format"
 import { useTimerTick } from "@/pages/approvals/timer"
 
 function LiveCountdown({ createdAt, timeoutSeconds }: { createdAt: string; timeoutSeconds: number }) {
@@ -58,13 +59,6 @@ function LiveCountdown({ createdAt, timeoutSeconds }: { createdAt: string; timeo
       {zone === "expired" ? "Expired" : timeStr}
     </span>
   )
-}
-
-function formatArgs(args: Record<string, unknown> | null): string {
-  if (!args) return ""
-  return Object.entries(args)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
-    .join(", ")
 }
 
 interface TriageColumnProps {

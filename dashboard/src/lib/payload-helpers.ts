@@ -64,6 +64,48 @@ export function isObserveFinding(event: {
   )
 }
 
+/** Tool-name-aware extraction of the most relevant argument for preview. */
+export function extractArgsPreview(event: {
+  tool_name: string
+  payload: Record<string, unknown> | null
+}): string {
+  const payload = event.payload
+  if (!payload) return ""
+  const toolArgs = payload.tool_args as Record<string, unknown> | undefined
+  if (!toolArgs) return ""
+
+  const tool = event.tool_name.toLowerCase()
+  if (tool.includes("exec") || tool.includes("shell")) {
+    const cmd = toolArgs.command ?? toolArgs.cmd
+    if (typeof cmd === "string") return cmd
+  }
+  if (tool.includes("file") || tool.includes("read") || tool.includes("write")) {
+    const path = toolArgs.path ?? toolArgs.file
+    if (typeof path === "string") return path
+  }
+  if (tool.includes("sql") || tool.includes("query")) {
+    const query = toolArgs.query ?? toolArgs.sql
+    if (typeof query === "string") return query
+  }
+  if (tool.includes("mcp")) {
+    const server = toolArgs.server ?? toolArgs.function
+    const method = toolArgs.method ?? ""
+    if (typeof server === "string") {
+      return method ? `${server}.${method}` : server
+    }
+  }
+  if (tool.includes("http") || tool.includes("request") || tool.includes("fetch")) {
+    const url = toolArgs.url ?? toolArgs.endpoint
+    if (typeof url === "string") return url
+  }
+
+  const firstVal = Object.values(toolArgs)[0]
+  if (firstVal !== undefined) {
+    return typeof firstVal === "string" ? firstVal : JSON.stringify(firstVal)
+  }
+  return ""
+}
+
 export function extractUniqueContracts(
   events: Array<{ payload: Record<string, unknown> | null }>,
 ): Map<string, number> {
