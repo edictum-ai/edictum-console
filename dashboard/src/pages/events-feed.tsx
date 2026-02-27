@@ -11,6 +11,7 @@ import {
   resolveWindow,
 } from "./events/event-list"
 import { EventDetail } from "./events/event-detail"
+import { Loader2 } from "lucide-react"
 
 function applyClientFilters(
   events: EventResponse[],
@@ -70,6 +71,7 @@ export function EventsFeed() {
 
   // UI state
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(DEFAULT_TIME_WINDOW)
   const [collapsedFacets, setCollapsedFacets] = useState<Set<string>>(
@@ -169,6 +171,7 @@ export function EventsFeed() {
     const eventId = searchParams.get("event")
     if (eventId && events.length > 0) {
       setSelectedEventId(eventId)
+      setHighlightedEventId(eventId)
       // Clean up the event param from the URL, keeping other filters
       const nextParams = new URLSearchParams(searchParams)
       nextParams.delete("event")
@@ -198,6 +201,7 @@ export function EventsFeed() {
 
     if (closestId) {
       setSelectedEventId(closestId)
+      setHighlightedEventId(closestId)
     }
 
     // Clean up the ts param from the URL, keeping other filters
@@ -260,7 +264,7 @@ export function EventsFeed() {
   if (loading && events.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -299,6 +303,8 @@ export function EventsFeed() {
           onShowNewEvents={handleShowNewEvents}
           timeWindow={timeWindow}
           onTimeWindowChange={setTimeWindow}
+          highlightedEventId={highlightedEventId}
+          onHighlightComplete={() => setHighlightedEventId(null)}
         />
       </div>
 

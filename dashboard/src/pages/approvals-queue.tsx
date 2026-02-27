@@ -5,10 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   LayoutGrid,
   List,
+  Loader2,
   Shield,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   listApprovals,
   submitDecision,
@@ -167,7 +169,7 @@ export function ApprovalsQueue() {
   if (loadingPending) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
@@ -215,12 +217,12 @@ export function ApprovalsQueue() {
 
       {/* Urgency banner */}
       {expiringCount > 0 && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-2.5 animate-pulse">
-          <ShieldAlert className="size-4 text-red-400" />
-          <span className="text-sm font-medium text-red-400">
+        <Alert variant="destructive" className="animate-pulse">
+          <ShieldAlert className="size-4" />
+          <AlertDescription>
             {expiringCount} approval{expiringCount > 1 ? "s" : ""} expiring soon
-          </span>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Tabs: Pending / History */}

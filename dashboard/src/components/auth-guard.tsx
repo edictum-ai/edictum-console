@@ -1,4 +1,5 @@
 import { Navigate } from "react-router"
+import { Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
 interface AuthGuardProps {
@@ -11,7 +12,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }

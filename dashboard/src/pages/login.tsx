@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -114,11 +115,13 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <p className="text-sm text-destructive">
-                {retryAfter > 0
-                  ? `Too many attempts. Try again in ${retryAfter}s.`
-                  : error}
-              </p>
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {retryAfter > 0
+                    ? `Too many attempts. Try again in ${retryAfter}s.`
+                    : error}
+                </AlertDescription>
+              </Alert>
             )}
           </CardContent>
 

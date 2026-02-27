@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Bot, Clock, MessageSquare } from "lucide-react"
+import { Bot, Clock, Loader2, MessageSquare } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { ChannelBadge, StatusBadge, EnvBadge } from "./badges"
 
@@ -43,7 +43,7 @@ export function HistoryTable({ approvals, loading }: HistoryTableProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }

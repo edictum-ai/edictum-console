@@ -136,3 +136,23 @@
     font-family: var(--font-sans);
   }
 }
+
+/* Deep-link highlight animation — pulses then settles to selected state */
+@keyframes highlight-fade {
+  0% {
+    background-color: color-mix(in srgb, var(--primary) 25%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+  50% {
+    background-color: color-mix(in srgb, var(--primary) 15%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  100% {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+}
+
+.animate-highlight-fade {
+  animation: highlight-fade 2s ease-out forwards;
+}

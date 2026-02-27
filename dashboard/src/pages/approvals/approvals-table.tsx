@@ -1,5 +1,7 @@
 import { Fragment, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -110,11 +112,11 @@ export function ApprovalsTable({
               </Button>
             ) : (
               <div className="flex items-center gap-1.5">
-                <input
+                <Input
                   value={bulkDenyReason}
                   onChange={(e) => setBulkDenyReason(e.target.value)}
                   placeholder="Shared reason..."
-                  className="h-7 w-40 rounded-md border border-input bg-background px-2 text-xs"
+                  className="h-7 w-40 text-xs"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleBulkDeny()
@@ -145,14 +147,10 @@ export function ApprovalsTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-10">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSelected && !allSelected
-                }}
-                onChange={toggleAll}
-                className="size-3.5 rounded border-muted-foreground/50 accent-primary"
+              <Checkbox
+                checked={someSelected && !allSelected ? "indeterminate" : allSelected}
+                onCheckedChange={toggleAll}
+                aria-label="Select all approvals"
               />
             </TableHead>
             <TableHead className="w-8 px-0" />
@@ -178,11 +176,10 @@ export function ApprovalsTable({
                   onClick={() => setExpandedId(isExpanded ? null : approval.id)}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selected.has(approval.id)}
-                      onChange={() => toggleOne(approval.id)}
-                      className="size-3.5 rounded border-muted-foreground/50 accent-primary"
+                      onCheckedChange={() => toggleOne(approval.id)}
+                      aria-label={`Select approval for ${approval.tool_name}`}
                     />
                   </TableCell>
                   <TableCell className="px-0">

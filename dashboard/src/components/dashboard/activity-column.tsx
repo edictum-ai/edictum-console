@@ -7,7 +7,13 @@ import { Separator } from "@/components/ui/separator"
 import { Zap, ShieldCheck } from "lucide-react"
 import type { EventResponse } from "@/lib/api"
 import { contractLabel, extractProvenance, isObserveFinding } from "@/lib/payload-helpers"
-import { BarChart, Bar, ResponsiveContainer, XAxis, Tooltip } from "recharts"
+import {
+  ChartContainer,
+  ChartTooltip as ShadcnChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import { BarChart, Bar, XAxis } from "recharts"
 
 type ActivityTab = "all" | "enforced" | "observed"
 
@@ -48,6 +54,21 @@ function formatRelativeTime(timestamp: string): string {
   if (hours < 24) return `${hours}h ago`
   return `${Math.floor(hours / 24)}d ago`
 }
+
+const activityChartConfig = {
+  allowed: {
+    label: "Allowed",
+    color: "#10b981",
+  },
+  denied: {
+    label: "Denied",
+    color: "#ef4444",
+  },
+  observed: {
+    label: "Observed",
+    color: "#f59e0b",
+  },
+} satisfies ChartConfig
 
 function extractArgsPreview(event: EventResponse): string {
   if (!event.payload) return ""
@@ -124,7 +145,7 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
   ]
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col h-full">
       {/* Mini Histogram */}
       <div className="shrink-0 px-6 pt-4 pb-3 border-b border-border">
         <div className="flex items-center justify-between mb-2">
@@ -146,18 +167,15 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
             </span>
           </div>
         </div>
-        <ResponsiveContainer width="100%" height={48}>
-          <BarChart data={histogram}>
+        <ChartContainer config={activityChartConfig} className="h-[48px] w-full [&>div]:!aspect-auto">
+          <BarChart accessibilityLayer data={histogram}>
             <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-            <Tooltip
-              contentStyle={{ fontSize: 12, background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
-              labelStyle={{ color: "hsl(var(--foreground))" }}
-            />
-            <Bar dataKey="allowed" stackId="v" fill="rgba(16,185,129,0.5)" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="denied" stackId="v" fill="rgba(239,68,68,0.6)" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="observed" stackId="v" fill="rgba(245,158,11,0.5)" radius={[2, 2, 0, 0]} />
+            <ShadcnChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+            <Bar dataKey="allowed" stackId="v" fill="var(--color-allowed)" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="denied" stackId="v" fill="var(--color-denied)" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="observed" stackId="v" fill="var(--color-observed)" radius={[2, 2, 0, 0]} />
           </BarChart>
-        </ResponsiveContainer>
+        </ChartContainer>
       </div>
 
       {/* Activity Stream Header */}

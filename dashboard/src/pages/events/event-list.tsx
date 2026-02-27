@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from "react"
+import { useMemo, useCallback, useState, useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group"
+import { Label } from "@/components/ui/label"
+import {
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -19,16 +31,7 @@ import {
   X,
   Clock,
 } from "lucide-react"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Cell,
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import type { EventResponse } from "@/lib/api"
 import {
   extractProvenance,
@@ -118,30 +121,26 @@ function extractArgsPreview(event: EventResponse): string {
   return ""
 }
 
-// -- Custom Recharts tooltip ------------------------------------------------
+// -- Chart config -----------------------------------------------------------
 
-function ChartTooltip({ active, payload, label }: {
-  active?: boolean
-  payload?: Array<{ name: string; value: number; color: string }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  const total = payload.reduce((sum, entry) => sum + entry.value, 0)
-  if (total === 0) return null
-  return (
-    <div className="rounded-md border border-border bg-popover px-3 py-2 text-sm shadow-md">
-      <p className="font-medium text-popover-foreground mb-1">{label}</p>
-      {payload.map((entry, i) => (
-        entry.value > 0 && (
-          <div key={i} className="flex items-center gap-2 text-popover-foreground">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span>{entry.name}: {entry.value}</span>
-          </div>
-        )
-      ))}
-    </div>
-  )
-}
+const histogramConfig = {
+  allowed: {
+    label: "Allowed",
+    color: "#10b981",
+  },
+  denied: {
+    label: "Denied",
+    color: "#ef4444",
+  },
+  pending: {
+    label: "Pending",
+    color: "#f59e0b",
+  },
+  observed: {
+    label: "Observed",
+    color: "#d97706",
+  },
+} satisfies ChartConfig
 
 // -- Timeframe config -------------------------------------------------------
 
@@ -314,6 +313,10 @@ interface EventListProps {
   onShowNewEvents: () => void
   timeWindow: TimeWindow
   onTimeWindowChange: (tw: TimeWindow) => void
+  /** Event ID to scroll into view and briefly highlight (from deep link navigation). */
+  highlightedEventId: string | null
+  /** Called after the highlight animation completes to clear the highlight state. */
+  onHighlightComplete: () => void
 }
 
 export function EventList({
@@ -326,8 +329,22 @@ export function EventList({
   onShowNewEvents,
   timeWindow,
   onTimeWindowChange,
+  highlightedEventId,
+  onHighlightComplete,
 }: EventListProps) {
   const histogramData = useMemo(() => buildHistogram(events, timeWindow), [events, timeWindow])
+  const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+
+  // Scroll to and highlight deep-linked event
+  useEffect(() => {
+    if (!highlightedEventId) return
+    const el = rowRefs.current.get(highlightedEventId)
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+    const timer = setTimeout(() => onHighlightComplete(), 2000)
+    return () => clearTimeout(timer)
+  }, [highlightedEventId, onHighlightComplete])
 
   // Custom range inline state
   const [showCustomInputs, setShowCustomInputs] = useState(false)
@@ -373,20 +390,22 @@ export function EventList({
       : null
 
   return (
-    <div className="flex min-w-0 flex-col">
+    <div className="flex h-full min-w-0 flex-col">
       {/* Search bar */}
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search events... (agent, tool, args)"
-          className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-        />
-        <span className="text-xs text-muted-foreground">
-          {events.length} events
-        </span>
+      <div className="border-b border-border px-3 py-2">
+        <InputGroup className="border-0 shadow-none">
+          <InputGroupAddon>
+            <Search className="h-4 w-4" />
+          </InputGroupAddon>
+          <InputGroupInput
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search events... (agent, tool, args)"
+          />
+          <InputGroupAddon align="inline-end">
+            <span className="text-xs">{events.length} events</span>
+          </InputGroupAddon>
+        </InputGroup>
       </div>
 
       {/* New events banner */}
@@ -467,7 +486,7 @@ export function EventList({
             {showCustomInputs && (
               <div className="mt-2 flex items-end gap-2 rounded-md border border-border bg-background/50 px-3 py-2">
                 <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">From</label>
+                  <Label className="text-[11px] text-muted-foreground">From</Label>
                   <Input
                     type="datetime-local"
                     value={customStart}
@@ -476,7 +495,7 @@ export function EventList({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[11px] text-muted-foreground">To</label>
+                  <Label className="text-[11px] text-muted-foreground">To</Label>
                   <Input
                     type="datetime-local"
                     value={customEnd}
@@ -498,9 +517,10 @@ export function EventList({
               </div>
             )}
           </div>
-          <div className="h-[100px] px-2 pb-2">
-            <ResponsiveContainer width="100%" height="100%">
+          <div className="px-2 pb-2">
+            <ChartContainer config={histogramConfig} className="h-[130px] w-full [&>div]:!aspect-auto">
               <BarChart
+                accessibilityLayer
                 data={histogramData}
                 barGap={1}
                 onClick={(state) => {
@@ -510,85 +530,27 @@ export function EventList({
                 }}
                 style={{ cursor: "pointer" }}
               >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="hsl(var(--border))"
-                />
+                <CartesianGrid vertical={false} />
                 <XAxis
                   dataKey="time"
-                  tick={{
-                    fontSize: 10,
-                    fill: "hsl(var(--muted-foreground))",
-                  }}
-                  axisLine={false}
                   tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
                 />
                 <YAxis hide />
-                <RechartsTooltip
-                  content={<ChartTooltip />}
-                  cursor={{ fill: "hsl(var(--muted))" }}
-                />
-                <Bar
-                  dataKey="allowed"
-                  stackId="a"
-                  fill="#10b981"
-                  radius={[0, 0, 0, 0]}
-                >
-                  {histogramData.map((entry) => (
-                    <Cell
-                      key={`allowed-${entry._index}`}
-                      opacity={1}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="denied"
-                  stackId="a"
-                  fill="#ef4444"
-                  radius={[0, 0, 0, 0]}
-                >
-                  {histogramData.map((entry) => (
-                    <Cell
-                      key={`denied-${entry._index}`}
-                      opacity={1}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="pending"
-                  stackId="a"
-                  fill="#f59e0b"
-                  radius={[0, 0, 0, 0]}
-                >
-                  {histogramData.map((entry) => (
-                    <Cell
-                      key={`pending-${entry._index}`}
-                      opacity={1}
-                    />
-                  ))}
-                </Bar>
-                <Bar
-                  dataKey="observed"
-                  stackId="a"
-                  fill="#d97706"
-                  radius={[2, 2, 0, 0]}
-                >
-                  {histogramData.map((entry) => (
-                    <Cell
-                      key={`observed-${entry._index}`}
-                      opacity={1}
-                    />
-                  ))}
-                </Bar>
+                <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+                <Bar dataKey="allowed" stackId="a" fill="var(--color-allowed)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="denied" stackId="a" fill="var(--color-denied)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="pending" stackId="a" fill="var(--color-pending)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="observed" stackId="a" fill="var(--color-observed)" radius={[2, 2, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </Card>
       )}
 
       {/* Event List */}
-      <div className="px-3 pt-2">
+      <div className="flex-1 overflow-y-auto px-3 pt-2">
         <div className="space-y-px pb-3">
           {events.length === 0 && (
             <div className="flex items-center justify-center py-12">
@@ -597,6 +559,7 @@ export function EventList({
           )}
           {events.map((event) => {
             const isSelected = event.id === selectedEventId
+            const isHighlighted = event.id === highlightedEventId
             const argsPreview = extractArgsPreview(event)
             const observe = isObserveFinding(event)
             const prov = extractProvenance(event)
@@ -604,13 +567,19 @@ export function EventList({
             return (
               <button
                 key={event.id}
+                ref={(el) => {
+                  if (el) rowRefs.current.set(event.id, el)
+                  else rowRefs.current.delete(event.id)
+                }}
                 onClick={() => onSelectEvent(event.id)}
                 className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors ${
                   observe ? "opacity-75" : ""
                 } ${
-                  isSelected
-                    ? "bg-primary/10 ring-1 ring-primary/20"
-                    : "hover:bg-accent/50"
+                  isHighlighted
+                    ? "animate-highlight-fade bg-primary/20 ring-2 ring-primary/40"
+                    : isSelected
+                      ? "bg-primary/10 ring-1 ring-primary/20"
+                      : "hover:bg-accent/50"
                 }`}
               >
                 <VerdictIcon verdict={event.verdict} />

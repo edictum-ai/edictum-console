@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { EventResponse } from "@/lib/api"
 import {
   extractProvenance,
@@ -139,11 +140,11 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
           <div className="min-w-[200px] flex-1 space-y-3">
             {/* Observe mode banner */}
             {observe && (
-              <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-                <p className="text-xs text-amber-400">
+              <Alert className="border-amber-500/20 bg-amber-500/10">
+                <AlertDescription className="text-xs text-amber-400">
                   Observe mode — tool call allowed regardless of verdict.
-                </p>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
 
             {/* Header badges */}
@@ -235,16 +236,18 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                             ? prov.policyVersion.slice(0, 12) + "..."
                             : prov.policyVersion}
                         </span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => void handleCopyVersion()}
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
+                          className="h-5 w-5 shrink-0 p-0 text-muted-foreground hover:text-foreground"
                         >
                           {copiedVersion ? (
                             <Check className="h-3 w-3 text-emerald-400" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
-                        </button>
+                        </Button>
                       </span>
                     </div>
                   )}
@@ -352,9 +355,11 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
 
             {/* Raw JSON */}
             <div className="max-w-full">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setJsonExpanded(!jsonExpanded)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                className="h-auto px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground"
               >
                 {jsonExpanded ? (
                   <ChevronDown className="h-3 w-3" />
@@ -363,7 +368,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                 )}
                 Raw JSON
                 <ExternalLink className="ml-1 h-3 w-3" />
-              </button>
+              </Button>
               {jsonExpanded && (
                 <pre className="mt-2 max-h-[300px] max-w-full overflow-x-auto overflow-y-auto whitespace-pre-wrap break-all rounded-md bg-background p-3 font-mono text-[10px] leading-relaxed text-muted-foreground">
                   {JSON.stringify(event, null, 2)}

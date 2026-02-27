@@ -163,13 +163,16 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
             {agent.recentTools.slice(0, 3).map((call, i) => (
               <div key={i} className="flex items-center gap-1.5 text-[11px]">
                 <code className="font-mono font-medium text-foreground">{call.tool}</code>
-                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
-                  call.verdict === "allowed" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : call.verdict === "denied" ? "bg-red-500/15 text-red-500 dark:text-red-400"
-                      : "bg-zinc-500/15 text-zinc-500 dark:text-zinc-400"
-                }`}>
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] font-medium ${
+                    call.verdict === "allowed" ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                      : call.verdict === "denied" ? "bg-red-500/15 text-red-500 dark:text-red-400 border-red-500/30"
+                        : "bg-zinc-500/15 text-zinc-500 dark:text-zinc-400 border-zinc-500/30"
+                  }`}
+                >
                   {call.verdict}
-                </span>
+                </Badge>
               </div>
             ))}
           </div>

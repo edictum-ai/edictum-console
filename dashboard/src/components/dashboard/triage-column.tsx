@@ -1,10 +1,33 @@
+/**
+ * Triage Column — "Needs Attention" section of the dashboard home.
+ *
+ * This column surfaces actionable items that require operator attention,
+ * sorted by urgency. It's a prioritized triage list, NOT a full feed.
+ * Capped at ~10 most urgent items across all categories.
+ *
+ * Currently implemented:
+ * - Pending approvals (sorted by timeout, oldest first)
+ *
+ * Future items to add (see DASHBOARD.md "Needs Attention" section):
+ * - Disconnected agents (no heartbeat for X minutes)
+ * - Denial spikes (denials > 2x rolling average in time window)
+ * - Failed deployments
+ * - Agent dead (no activity for >1 hour)
+ *
+ * When adding new triage item types:
+ * 1. Create a new section similar to "Pending Approvals"
+ * 2. Each item type gets its own icon and color scheme
+ * 3. Items should have inline actions where possible (approve/deny, dismiss, investigate)
+ * 4. Sort all items by urgency across categories, not grouped by type
+ * 5. Update the props interface to receive the new data
+ */
+
 import { useState } from "react"
 import { useNavigate } from "react-router"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
   ShieldAlert,
   Clock,
@@ -47,6 +70,12 @@ function formatArgs(args: Record<string, unknown> | null): string {
 interface TriageColumnProps {
   approvals: ApprovalResponse[]
   onDecisionMade: () => void
+  // TODO: Add when implementing agent presence tracking
+  // disconnectedAgents?: Array<{ agent_id: string; last_seen: string }>
+  // TODO: Add when implementing denial spike detection
+  // denialSpikes?: Array<{ time_window: string; count: number; baseline: number }>
+  // TODO: Add when implementing deployment status
+  // failedDeployments?: Array<{ env: string; version: string; error: string }>
 }
 
 export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
@@ -70,15 +99,15 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
   const pending = approvals.filter((a) => a.status === "pending")
 
   return (
-    <div className="border-r border-border flex flex-col">
+    <div className="border-r border-border flex flex-col h-full">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
-          {/* Pending Approvals */}
+          {/* Triage section - actionable items needing attention */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <ShieldAlert className="size-4 text-amber-500" />
-                Pending Approvals
+                Triage
                 {pending.length > 0 && (
                   <Badge
                     variant="outline"
@@ -174,20 +203,20 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
             )}
           </section>
 
-          <Separator />
+          {/* TODO: Disconnected Agents section
+              Icon: WifiOff (red)
+              Show agents with no heartbeat for X minutes
+              Actions: View agent, Dismiss alert */}
 
-          {/* Quick summary of recent denials */}
-          <section>
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
-              <ShieldAlert className="size-4 text-muted-foreground" />
-              Triage Summary
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {pending.length === 0
-                ? "All clear. No items require attention."
-                : `${pending.length} approval${pending.length > 1 ? "s" : ""} waiting for your decision.`}
-            </p>
-          </section>
+          {/* TODO: Denial Spikes section
+              Icon: TrendingUp (red)
+              Show when denials > 2x rolling average
+              Actions: View denied events, Investigate */}
+
+          {/* TODO: Failed Deployments section
+              Icon: XCircle (red)
+              Show recent deployment failures
+              Actions: View deployment, Retry */}
         </div>
       </ScrollArea>
     </div>

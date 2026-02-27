@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { Timer } from "lucide-react"
 
 type TimerZone = "green" | "amber" | "red" | "expired"
@@ -57,11 +58,11 @@ const zoneBadgeStyle: Record<TimerZone, string> = {
   expired: "bg-zinc-500/15 text-zinc-500 border-zinc-500/25",
 }
 
-const zoneBarColor: Record<TimerZone, string> = {
-  green: "bg-emerald-500",
-  amber: "bg-amber-500",
-  red: "bg-red-500",
-  expired: "bg-zinc-500",
+const zoneIndicatorColor: Record<TimerZone, string> = {
+  green: "[&>[data-slot=progress-indicator]]:bg-emerald-500",
+  amber: "[&>[data-slot=progress-indicator]]:bg-amber-500",
+  red: "[&>[data-slot=progress-indicator]]:bg-red-500 [&>[data-slot=progress-indicator]]:animate-pulse",
+  expired: "[&>[data-slot=progress-indicator]]:bg-zinc-500",
 }
 
 export function TimerBadge({ createdAt, timeoutSeconds }: { createdAt: string; timeoutSeconds: number }) {
@@ -88,12 +89,10 @@ export function TimerBar({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 flex-1 min-w-16 overflow-hidden rounded-full bg-muted">
-        <div
-          className={`h-full rounded-full transition-all ${zoneBarColor[zone]} ${zone === "red" ? "animate-pulse" : ""}`}
-          style={{ width: `${Math.max(remainingPct, 2)}%` }}
-        />
-      </div>
+      <Progress
+        value={Math.max(remainingPct, 2)}
+        className={`h-1.5 flex-1 min-w-16 bg-muted ${zoneIndicatorColor[zone]}`}
+      />
       {showLabel && (
         <span className={`text-xs font-mono whitespace-nowrap ${zoneTextColor[zone]}`}>
           {zone === "expired" ? "Expired" : timeStr}

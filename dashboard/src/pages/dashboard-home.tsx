@@ -16,6 +16,7 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable"
+import { Loader2 } from "lucide-react"
 
 export function DashboardHome() {
   const { data: stats, loading: statsLoading, refresh: refreshStats } = useStats()
@@ -67,29 +68,37 @@ export function DashboardHome() {
   if (loading && statsLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-4 bg-background p-4">
+    <div className="flex flex-col bg-background p-4 h-screen overflow-auto">
       {/* Top Stats Bar */}
       <StatsBar stats={stats} loading={statsLoading} />
 
-      {/* Two-column layout: triage + activity (resizable) */}
-      <ResizablePanelGroup direction="horizontal" autoSaveId="edictum-overview-cols">
-        <ResizablePanel defaultSize={40} minSize={25}>
-          <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={60} minSize={30}>
-          <ActivityColumn events={events} />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+      {/* Two-column layout: triage + activity (resizable horizontally) */}
+      <div className="mt-4 h-[50vh] min-h-[300px]">
+        <ResizablePanelGroup direction="horizontal" autoSaveId="edictum-overview-cols" className="h-full">
+          <ResizablePanel defaultSize={40} minSize={25}>
+            <div className="h-full overflow-auto border-r border-border">
+              <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={60} minSize={30}>
+            <div className="h-full overflow-auto">
+              <ActivityColumn events={events} />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
 
-      {/* Agent Fleet */}
-      <AgentGrid events={events} />
+      {/* Agent Fleet - scrolls with page */}
+      <div className="mt-4">
+        <AgentGrid events={events} />
+      </div>
     </div>
   )
 }

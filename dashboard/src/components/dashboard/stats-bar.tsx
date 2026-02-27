@@ -1,4 +1,5 @@
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   ShieldAlert,
   Bot,
@@ -49,9 +50,9 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
     return (
       <div className="shrink-0 border-b border-border bg-card/50 px-6 py-3">
         <div className="flex items-center gap-6 text-sm">
-          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-          <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
         </div>
       </div>
     )

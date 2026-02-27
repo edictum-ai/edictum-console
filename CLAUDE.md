@@ -131,12 +131,45 @@ Phase 0 alone (auth + API keys) is infrastructure without a payoff. Phase 1 (con
 - **API client** in `lib/api.ts` — single module for all server calls. Cookie auth (HttpOnly session cookie set by backend).
 - **No localStorage/sessionStorage for auth.** Session is a server-side cookie.
 - **Tailwind utility classes.** No custom CSS files unless truly necessary.
-- **shadcn/ui** for component primitives (tables, buttons, dialogs, forms).
 - **Dark theme by default.** Design for dark first, light as secondary.
 - Components are small and focused. One component = one job.
 - Real-time feeds use SSE via `EventSource` API. No polling unless SSE is unavailable.
 - **TanStack Table** for data tables (sorting, filtering, pagination).
-- **Recharts** for any charts/visualizations.
+- **Recharts** for charts — always wrapped in shadcn `ChartContainer` + `ChartTooltip` + `ChartTooltipContent` (never raw Recharts `ResponsiveContainer` or hand-rolled tooltips).
+
+#### shadcn/ui — Mandatory Component Library
+
+**shadcn/ui is the ONLY component library for this project. This is non-negotiable.**
+
+Before writing ANY UI element, check if shadcn has a component for it. Use the shadcn MCP tools (`search_items_in_registries`, `view_items_in_registries`) to look up components and their APIs. If shadcn has it, use it. No exceptions.
+
+**Never hand-roll these — shadcn equivalents exist and MUST be used:**
+
+| Element | Use This | NOT This |
+|---------|----------|----------|
+| Buttons | `<Button>` from `@/components/ui/button` | Raw `<button>` |
+| Inputs | `<Input>` from `@/components/ui/input` | Raw `<input type="text">` |
+| Checkboxes | `<Checkbox>` from `@/components/ui/checkbox` | Raw `<input type="checkbox">` |
+| Labels | `<Label>` from `@/components/ui/label` | Raw `<label>` |
+| Alerts/banners | `<Alert>` from `@/components/ui/alert` | Hand-rolled `<div>` with border/bg |
+| Progress bars | `<Progress>` from `@/components/ui/progress` | Hand-rolled div-in-div fills |
+| Loading skeletons | `<Skeleton>` from `@/components/ui/skeleton` | `animate-pulse` divs |
+| Loading spinners | `<Loader2>` from `lucide-react` with `animate-spin` | Border-hack spinner divs |
+| Badges/pills | `<Badge>` from `@/components/ui/badge` | Custom `<span>` with rounded-full |
+| Tabs | `<Tabs>` with `variant="line"` for underline style | Manual `data-[state=active]` overrides |
+| Tooltips | `<Tooltip>` from `@/components/ui/tooltip` | Custom hover divs |
+| Dialogs/modals | `<Dialog>` from `@/components/ui/dialog` | Custom overlay divs |
+| Select dropdowns | `<Select>` from `@/components/ui/select` | Raw `<select>` |
+| Tables | `<Table>` from `@/components/ui/table` | Raw `<table>` |
+| Scroll areas | `<ScrollArea>` from `@/components/ui/scroll-area` | Custom overflow containers |
+| Separators | `<Separator>` from `@/components/ui/separator` | `<hr>` or border-b divs |
+| Cards | `<Card>` from `@/components/ui/card` | Custom bordered containers |
+
+**Installing new components:** If a shadcn component isn't installed yet, install it: `pnpm dlx shadcn@latest add <component>`. Check `dashboard/src/components/ui/` for what's already installed.
+
+**Customizing shadcn components:** Use `className` overrides on shadcn components, never fight them with `data-[state=]` hacks. If you need a variant that doesn't exist, extend the component in `components/ui/` — don't bypass it.
+
+**The test:** If a PR introduces a raw `<button>`, `<input>`, `<label>`, `<select>`, or hand-rolled alert/progress/skeleton, it's a bug. The reviewer asks: **"Why isn't this using shadcn?"**
 
 ### General
 

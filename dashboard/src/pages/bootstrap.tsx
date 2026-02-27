@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Shield,
   FileText,
@@ -232,7 +233,11 @@ function CreateAdminStep({
               required
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
           <div className="flex justify-between pt-2">
             <Button type="button" variant="ghost" onClick={onBack}>
               <ArrowLeft className="mr-2 h-4 w-4" />
