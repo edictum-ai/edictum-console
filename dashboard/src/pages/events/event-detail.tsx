@@ -6,9 +6,6 @@ import {
   X,
   Clock,
   Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldQuestion,
   Copy,
   ChevronDown,
   ChevronRight,
@@ -24,33 +21,7 @@ import {
   formatDecisionSource,
   isObserveFinding,
 } from "@/lib/payload-helpers"
-
-function verdictColor(v: string) {
-  switch (v) {
-    case "allowed":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-    case "denied":
-      return "bg-red-500/15 text-red-400 border-red-500/30"
-    case "pending":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/30"
-    default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
-  }
-}
-
-function VerdictIcon({ verdict }: { verdict: string }) {
-  const cls = "h-3.5 w-3.5"
-  switch (verdict) {
-    case "allowed":
-      return <ShieldCheck className={`${cls} text-emerald-400`} />
-    case "denied":
-      return <ShieldAlert className={`${cls} text-red-400`} />
-    case "pending":
-      return <ShieldQuestion className={`${cls} text-amber-400`} />
-    default:
-      return <Shield className={`${cls} text-zinc-400`} />
-  }
-}
+import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
 
 function DetailRow({
   label,
@@ -141,7 +112,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
             {/* Observe mode banner */}
             {observe && (
               <Alert className="border-amber-500/20 bg-amber-500/10">
-                <AlertDescription className="text-xs text-amber-400">
+                <AlertDescription className="text-xs text-amber-600 dark:text-amber-400">
                   Observe mode — tool call allowed regardless of verdict.
                 </AlertDescription>
               </Alert>
@@ -243,7 +214,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                           className="h-5 w-5 shrink-0 p-0 text-muted-foreground hover:text-foreground"
                         >
                           {copiedVersion ? (
-                            <Check className="h-3 w-3 text-emerald-400" />
+                            <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                           ) : (
                             <Copy className="h-3 w-3" />
                           )}
@@ -277,7 +248,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                     className="h-5 px-1.5 text-muted-foreground hover:text-foreground"
                   >
                     {copied ? (
-                      <Check className="mr-1 h-3 w-3 text-emerald-400" />
+                      <Check className="mr-1 h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                     ) : (
                       <Copy className="mr-1 h-3 w-3" />
                     )}
@@ -317,9 +288,9 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                       className="flex items-start gap-2 rounded-md border border-border bg-background/50 px-2.5 py-2"
                     >
                       {c.passed ? (
-                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-400" />
+                        <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600 dark:text-red-400" />
                       )}
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center gap-1.5">
@@ -335,7 +306,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
                           {c.observed && (
                             <Badge
                               variant="outline"
-                              className="h-4 rounded px-1 text-[9px] font-normal border-amber-500/30 text-amber-400"
+                              className="h-4 rounded px-1 text-[9px] font-normal border-amber-500/30 text-amber-600 dark:text-amber-400"
                             >
                               observed
                             </Badge>

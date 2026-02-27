@@ -14,7 +14,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart"
 import {
   InputGroup,
@@ -22,284 +21,34 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
-import {
-  Search,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldQuestion,
-  Shield,
-  X,
-  Clock,
-} from "lucide-react"
+import { Search, X, Clock } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import type { EventResponse } from "@/lib/api"
 import {
   extractProvenance,
   contractLabel,
   isObserveFinding,
+  extractArgsPreview,
 } from "@/lib/payload-helpers"
+import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
+import { formatTime, truncate } from "@/lib/format"
+import {
+  buildHistogram,
+  histogramConfig,
+  type HistogramBucket,
+  type TimeWindow,
+  type PresetKey,
+  PRESETS,
+  PRESET_KEYS,
+  DEFAULT_TIME_WINDOW,
+  resolveWindow,
+  formatCustomLabel,
+  toLocalISOString,
+} from "@/lib/histogram"
 
-// -- Verdict helpers -------------------------------------------------------
-
-function verdictColor(v: string) {
-  switch (v) {
-    case "allowed":
-      return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-    case "denied":
-      return "bg-red-500/15 text-red-400 border-red-500/30"
-    case "pending":
-      return "bg-amber-500/15 text-amber-400 border-amber-500/30"
-    default:
-      return "bg-zinc-500/15 text-zinc-400 border-zinc-500/30"
-  }
-}
-
-function VerdictIcon({ verdict }: { verdict: string }) {
-  const cls = "h-3.5 w-3.5"
-  switch (verdict) {
-    case "allowed":
-      return <ShieldCheck className={`${cls} text-emerald-400`} />
-    case "denied":
-      return <ShieldAlert className={`${cls} text-red-400`} />
-    case "pending":
-      return <ShieldQuestion className={`${cls} text-amber-400`} />
-    default:
-      return <Shield className={`${cls} text-zinc-400`} />
-  }
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  })
-}
-
-function truncate(s: string, len: number) {
-  return s.length > len ? s.slice(0, len) + "..." : s
-}
-
-function extractArgsPreview(event: EventResponse): string {
-  const payload = event.payload
-  if (!payload) return ""
-  const toolArgs = payload.tool_args as Record<string, unknown> | undefined
-  if (!toolArgs) return ""
-
-  const tool = event.tool_name.toLowerCase()
-  if (tool.includes("exec") || tool.includes("shell")) {
-    const cmd = toolArgs.command ?? toolArgs.cmd
-    if (typeof cmd === "string") return cmd
-  }
-  if (tool.includes("file") || tool.includes("read") || tool.includes("write")) {
-    const path = toolArgs.path ?? toolArgs.file
-    if (typeof path === "string") return path
-  }
-  if (tool.includes("sql") || tool.includes("query")) {
-    const query = toolArgs.query ?? toolArgs.sql
-    if (typeof query === "string") return query
-  }
-  if (tool.includes("mcp")) {
-    const server = toolArgs.server ?? toolArgs.function
-    const method = toolArgs.method ?? ""
-    if (typeof server === "string") {
-      return method ? `${server}.${method}` : server
-    }
-  }
-  if (tool.includes("http") || tool.includes("request") || tool.includes("fetch")) {
-    const url = toolArgs.url ?? toolArgs.endpoint
-    if (typeof url === "string") return url
-  }
-
-  // Fallback: first value
-  const firstVal = Object.values(toolArgs)[0]
-  if (firstVal !== undefined) {
-    return typeof firstVal === "string" ? firstVal : JSON.stringify(firstVal)
-  }
-  return ""
-}
-
-// -- Chart config -----------------------------------------------------------
-
-const histogramConfig = {
-  allowed: {
-    label: "Allowed",
-    color: "#10b981",
-  },
-  denied: {
-    label: "Denied",
-    color: "#ef4444",
-  },
-  pending: {
-    label: "Pending",
-    color: "#f59e0b",
-  },
-  observed: {
-    label: "Observed",
-    color: "#d97706",
-  },
-} satisfies ChartConfig
-
-// -- Timeframe config -------------------------------------------------------
-
-export type PresetKey = "1h" | "6h" | "12h" | "24h" | "7d"
-
-interface TimeframeConfig {
-  label: string
-  windowMs: number
-  bucketCount: number
-  bucketMs: number
-}
-
-export const PRESETS: Record<PresetKey, TimeframeConfig> = {
-  "1h":  { label: "Last 1h",  windowMs: 1 * 60 * 60 * 1000,  bucketCount: 12, bucketMs: 5 * 60 * 1000 },
-  "6h":  { label: "Last 6h",  windowMs: 6 * 60 * 60 * 1000,  bucketCount: 12, bucketMs: 30 * 60 * 1000 },
-  "12h": { label: "Last 12h", windowMs: 12 * 60 * 60 * 1000, bucketCount: 12, bucketMs: 60 * 60 * 1000 },
-  "24h": { label: "Last 24h", windowMs: 24 * 60 * 60 * 1000, bucketCount: 12, bucketMs: 2 * 60 * 60 * 1000 },
-  "7d":  { label: "Last 7d",  windowMs: 7 * 24 * 60 * 60 * 1000, bucketCount: 14, bucketMs: 12 * 60 * 60 * 1000 },
-}
-
-const PRESET_KEYS = Object.keys(PRESETS) as PresetKey[]
-
-/** Unified time window — either a preset or a custom absolute range. */
-export type TimeWindow =
-  | { kind: "preset"; key: PresetKey }
-  | { kind: "custom"; start: number; end: number }
-
-export const DEFAULT_TIME_WINDOW: TimeWindow = { kind: "preset", key: "24h" }
-
-/** Resolve the absolute start/end timestamps for any TimeWindow. */
-export function resolveWindow(tw: TimeWindow): { start: number; end: number } {
-  if (tw.kind === "custom") return { start: tw.start, end: tw.end }
-  const cfg = PRESETS[tw.key]
-  const now = Date.now()
-  return { start: now - cfg.windowMs, end: now }
-}
-
-function bestBucketConfig(windowMs: number): { bucketCount: number; bucketMs: number } {
-  // Pick a bucket size that yields 10-14 bars
-  const targets = [
-    5 * 60 * 1000,       // 5m
-    15 * 60 * 1000,      // 15m
-    30 * 60 * 1000,      // 30m
-    60 * 60 * 1000,      // 1h
-    2 * 60 * 60 * 1000,  // 2h
-    6 * 60 * 60 * 1000,  // 6h
-    12 * 60 * 60 * 1000, // 12h
-    24 * 60 * 60 * 1000, // 1d
-  ]
-  for (const bucketMs of targets) {
-    const count = Math.ceil(windowMs / bucketMs)
-    if (count >= 4 && count <= 20) return { bucketCount: count, bucketMs }
-  }
-  return { bucketCount: 12, bucketMs: Math.ceil(windowMs / 12) }
-}
-
-function formatBucketLabelForWindow(date: Date, windowMs: number): string {
-  const oneDay = 24 * 60 * 60 * 1000
-  if (windowMs > 3 * oneDay) {
-    // Multi-day: "Mon 6 AM"
-    return date.toLocaleDateString("en-US", { weekday: "short" }) +
-      " " +
-      date.toLocaleTimeString("en-US", { hour: "numeric", hour12: true })
-  }
-  if (windowMs > 6 * 60 * 60 * 1000) {
-    // >6h: "3 PM"
-    return date.toLocaleTimeString("en-US", { hour: "numeric", hour12: true })
-  }
-  // Short: "3:30 PM"
-  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
-}
-
-/** Format a compact label for a custom time window (shown in the selector). */
-function formatCustomLabel(start: number, end: number): string {
-  const s = new Date(start)
-  const e = new Date(end)
-  const fmtDate = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-  const fmtTime = (d: Date) =>
-    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
-  if (s.toDateString() === e.toDateString()) {
-    return `${fmtDate(s)} ${fmtTime(s)} - ${fmtTime(e)}`
-  }
-  return `${fmtDate(s)} ${fmtTime(s)} - ${fmtDate(e)} ${fmtTime(e)}`
-}
-
-/** Convert a Date to a `datetime-local` input value (YYYY-MM-DDThh:mm). */
-function toLocalISOString(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-// -- Histogram builder -----------------------------------------------------
-
-interface HistogramBucket {
-  time: string
-  allowed: number
-  denied: number
-  pending: number
-  observed: number
-  _start: number
-  _end: number
-  _index: number
-}
-
-function buildHistogram(events: EventResponse[], tw: TimeWindow): HistogramBucket[] {
-  let bucketCount: number
-  let bucketMs: number
-  let windowStart: number
-  let windowEnd: number
-
-  if (tw.kind === "preset") {
-    const cfg = PRESETS[tw.key]
-    bucketCount = cfg.bucketCount
-    bucketMs = cfg.bucketMs
-    windowEnd = Date.now()
-    windowStart = windowEnd - cfg.windowMs
-  } else {
-    const windowMs = tw.end - tw.start
-    const best = bestBucketConfig(windowMs)
-    bucketCount = best.bucketCount
-    bucketMs = best.bucketMs
-    windowStart = tw.start
-    windowEnd = tw.end
-  }
-
-  const windowMs = windowEnd - windowStart
-  const buckets: HistogramBucket[] = []
-
-  for (let i = 0; i < bucketCount; i++) {
-    const start = windowStart + i * bucketMs
-    const end = Math.min(start + bucketMs, windowEnd)
-    const bucket: HistogramBucket = {
-      time: formatBucketLabelForWindow(new Date(end), windowMs),
-      allowed: 0,
-      denied: 0,
-      pending: 0,
-      observed: 0,
-      _start: start,
-      _end: end,
-      _index: i,
-    }
-    for (const e of events) {
-      const t = new Date(e.timestamp).getTime()
-      if (t >= start && t < end) {
-        if (isObserveFinding(e)) {
-          bucket.observed++
-        } else {
-          const v = e.verdict.toLowerCase()
-          if (v === "allowed") bucket.allowed++
-          else if (v === "denied") bucket.denied++
-          else if (v === "pending") bucket.pending++
-        }
-      }
-    }
-    buckets.push(bucket)
-  }
-  return buckets
-}
+// Re-export types used by events-feed.tsx
+export type { TimeWindow, PresetKey }
+export { DEFAULT_TIME_WINDOW, resolveWindow }
 
 // -- Component -------------------------------------------------------------
 
@@ -313,9 +62,7 @@ interface EventListProps {
   onShowNewEvents: () => void
   timeWindow: TimeWindow
   onTimeWindowChange: (tw: TimeWindow) => void
-  /** Event ID to scroll into view and briefly highlight (from deep link navigation). */
   highlightedEventId: string | null
-  /** Called after the highlight animation completes to clear the highlight state. */
   onHighlightComplete: () => void
 }
 
@@ -410,12 +157,13 @@ export function EventList({
 
       {/* New events banner */}
       {newEventCount > 0 && (
-        <button
+        <Button
+          variant="ghost"
           onClick={onShowNewEvents}
-          className="mx-3 mt-2 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15 transition-colors"
+          className="mx-3 mt-2 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
         >
           Show {newEventCount} New Event{newEventCount > 1 ? "s" : ""}
-        </button>
+        </Button>
       )}
 
       {/* Histogram */}
@@ -602,7 +350,7 @@ export function EventList({
                 {label && (
                   <Badge
                     variant="outline"
-                    className="h-5 shrink-0 rounded px-1.5 font-mono text-[10px] font-normal border-violet-500/30 text-violet-400"
+                    className="h-5 shrink-0 rounded px-1.5 font-mono text-[10px] font-normal border-violet-500/30 text-violet-600 dark:text-violet-400"
                   >
                     {label}
                   </Badge>

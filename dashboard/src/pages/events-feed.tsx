@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "react-router"
 import { listEvents, type EventResponse } from "@/lib/api"
 import { createDashboardSSE } from "@/lib/sse"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { EventFilterPanel } from "./events/event-filter-panel"
 import {
   EventList,

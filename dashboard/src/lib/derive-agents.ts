@@ -1,4 +1,5 @@
 import type { EventResponse } from "@/lib/api"
+import { formatRelativeTime } from "@/lib/format"
 
 export type AgentStatus = "healthy" | "degraded" | "offline"
 
@@ -12,17 +13,6 @@ export interface AgentSummary {
   totalEvents: number
   bundleVersion: string | null
   mode: string | null
-}
-
-function formatRelativeTime(timestamp: string): string {
-  if (!timestamp) return "never"
-  const diff = Date.now() - new Date(timestamp).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h ago`
 }
 
 export function deriveAgents(events: EventResponse[]): AgentSummary[] {

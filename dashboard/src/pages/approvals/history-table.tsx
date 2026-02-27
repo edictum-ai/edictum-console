@@ -9,28 +9,9 @@ import {
 } from "@/components/ui/table"
 import { Bot, Clock, Loader2, MessageSquare } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
-import { ChannelBadge, StatusBadge, EnvBadge } from "./badges"
-
-function formatRelativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
-function formatResponseTime(createdAt: string, decidedAt: string | null): string {
-  if (!decidedAt) return "-"
-  const diff = new Date(decidedAt).getTime() - new Date(createdAt).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return `${seconds}s`
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}m ${remainingSeconds}s`
-}
+import { ChannelBadge, StatusBadge } from "./badges"
+import { EnvBadge } from "@/lib/env-colors"
+import { formatRelativeTime, formatResponseTime } from "@/lib/format"
 
 interface HistoryTableProps {
   approvals: ApprovalResponse[]
@@ -98,7 +79,7 @@ export function HistoryTable({ approvals, loading }: HistoryTableProps) {
                   : "(no arguments)"}
               </code>
               {item.decision_reason && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-red-400">
+                <div className="flex items-center gap-1 mt-1 text-xs text-red-600 dark:text-red-400">
                   <MessageSquare className="size-2.5" />
                   {item.decision_reason}
                 </div>

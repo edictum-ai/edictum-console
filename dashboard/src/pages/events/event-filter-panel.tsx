@@ -4,8 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import type { EventResponse } from "@/lib/api"
 import { extractUniqueContracts } from "@/lib/payload-helpers"
-
-type Verdict = "allowed" | "denied" | "pending"
+import { verdictDot } from "@/lib/verdict-helpers"
 
 interface FacetValue {
   label: string
@@ -17,17 +16,6 @@ interface Facet {
   name: string
   field: string
   values: FacetValue[]
-}
-
-function verdictDot(v: Verdict) {
-  switch (v) {
-    case "allowed":
-      return "bg-emerald-400"
-    case "denied":
-      return "bg-red-400"
-    case "pending":
-      return "bg-amber-400"
-  }
 }
 
 function buildFacets(events: EventResponse[]): Facet[] {
@@ -144,7 +132,7 @@ export function EventFilterPanel({
                             <span className="flex items-center gap-1.5 truncate">
                               {facet.field === "verdict" && (
                                 <span
-                                  className={`inline-block h-2 w-2 rounded-full ${verdictDot(value.key as Verdict)}`}
+                                  className={`inline-block h-2 w-2 rounded-full ${verdictDot(value.key)}`}
                                 />
                               )}
                               <span className="truncate">{value.label}</span>

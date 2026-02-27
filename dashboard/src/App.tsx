@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react"
+import { Loader2 } from "lucide-react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
@@ -59,7 +60,7 @@ const ContractsTab1V5 = lazy(() => import("@/pages/mockups/contracts-tab1-v5"))
 function MockupFallback() {
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
     </div>
   )
 }

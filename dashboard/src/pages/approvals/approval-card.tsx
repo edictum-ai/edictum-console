@@ -10,14 +10,10 @@ import {
 } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { formatDecisionSource } from "@/lib/payload-helpers"
+import { formatToolArgs } from "@/lib/format"
 import { TimerBadge, TimerBar, getTimerState } from "./timer"
-import { EnvBadge } from "./badges"
+import { EnvBadge } from "@/lib/env-colors"
 import { DenyButton } from "./deny-button"
-
-function formatToolArgs(toolArgs: Record<string, unknown> | null): string {
-  if (!toolArgs) return "(no arguments)"
-  return JSON.stringify(toolArgs, null, 2)
-}
 
 interface ApprovalCardProps {
   approval: ApprovalResponse

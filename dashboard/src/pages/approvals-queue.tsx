@@ -180,7 +180,7 @@ export function ApprovalsQueue() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <Shield className="size-5 text-amber-400" />
+            <Shield className="size-5 text-amber-600 dark:text-amber-400" />
             Approvals Queue
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -188,7 +188,7 @@ export function ApprovalsQueue() {
             {pending.length === 1 ? "approval" : "approvals"}
             {pending.length > 0 && " — agents are waiting"}
             {!sseConnected && (
-              <span className="ml-2 text-amber-400">Live updates paused — reconnecting...</span>
+              <span className="ml-2 text-amber-600 dark:text-amber-400">Live updates paused — reconnecting...</span>
             )}
           </p>
         </div>
@@ -233,7 +233,7 @@ export function ApprovalsQueue() {
             {pending.length > 0 && (
               <Badge
                 variant="outline"
-                className="ml-1.5 bg-amber-500/15 text-amber-400 border-amber-500/25 text-[10px] h-4 px-1.5"
+                className="ml-1.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25 text-[10px] h-4 px-1.5"
               >
                 {pending.length}
               </Badge>
@@ -245,7 +245,7 @@ export function ApprovalsQueue() {
         <TabsContent value="pending" className="mt-4">
           {pending.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ShieldCheck className="mb-3 size-10 text-emerald-400" />
+              <ShieldCheck className="mb-3 size-10 text-emerald-600 dark:text-emerald-400" />
               <p className="text-sm font-medium">No pending approvals</p>
               <p className="text-xs text-muted-foreground mt-1">
                 All agents are running freely

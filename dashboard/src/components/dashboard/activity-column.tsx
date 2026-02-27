@@ -6,23 +6,18 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Zap, ShieldCheck } from "lucide-react"
 import type { EventResponse } from "@/lib/api"
-import { contractLabel, extractProvenance, isObserveFinding } from "@/lib/payload-helpers"
+import { contractLabel, extractProvenance, isObserveFinding, extractArgsPreview } from "@/lib/payload-helpers"
+import { VERDICT_STYLES } from "@/lib/verdict-helpers"
+import { formatRelativeTime } from "@/lib/format"
+import { buildSimpleHistogram, activityChartConfig } from "@/lib/histogram"
 import {
   ChartContainer,
   ChartTooltip as ShadcnChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart"
 import { BarChart, Bar, XAxis } from "recharts"
 
 type ActivityTab = "all" | "enforced" | "observed"
-
-const VERDICT_STYLES: Record<string, string> = {
-  allowed: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-  denied: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/25",
-  pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
-  timeout: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/25",
-}
 
 function VerdictBadge({ verdict }: { verdict: string }) {
   const style = VERDICT_STYLES[verdict] ?? VERDICT_STYLES["timeout"]
@@ -44,83 +39,6 @@ function EventIcon({ verdict }: { verdict: string }) {
   }
 }
 
-function formatRelativeTime(timestamp: string): string {
-  const diff = Date.now() - new Date(timestamp).getTime()
-  const seconds = Math.floor(diff / 1000)
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
-}
-
-const activityChartConfig = {
-  allowed: {
-    label: "Allowed",
-    color: "#10b981",
-  },
-  denied: {
-    label: "Denied",
-    color: "#ef4444",
-  },
-  observed: {
-    label: "Observed",
-    color: "#f59e0b",
-  },
-} satisfies ChartConfig
-
-function extractArgsPreview(event: EventResponse): string {
-  if (!event.payload) return ""
-  const args = event.payload["tool_args"]
-  if (!args || typeof args !== "object") return ""
-  const argsObj = args as Record<string, unknown>
-  // Heuristic: show the most relevant field
-  for (const key of ["command", "path", "query", "url", "to"]) {
-    if (key in argsObj) return String(argsObj[key])
-  }
-  const entries = Object.entries(argsObj)
-  const first = entries[0]
-  if (first) {
-    const val = typeof first[1] === "string" ? first[1] : JSON.stringify(first[1])
-    return `${first[0]}=${val}`.slice(0, 60)
-  }
-  return ""
-}
-
-interface HistogramBucket {
-  label: string
-  allowed: number
-  denied: number
-  observed: number
-}
-
-function buildHistogram(events: EventResponse[]): HistogramBucket[] {
-  const buckets: HistogramBucket[] = []
-  const now = Date.now()
-  // 12 buckets of 2 hours each = 24 hours
-  for (let i = 11; i >= 0; i--) {
-    const start = now - (i + 1) * 2 * 60 * 60 * 1000
-    const end = now - i * 2 * 60 * 60 * 1000
-    const bucket: HistogramBucket = {
-      label: new Date(end).toLocaleTimeString([], { hour: "numeric" }),
-      allowed: 0,
-      denied: 0,
-      observed: 0,
-    }
-    for (const e of events) {
-      const t = new Date(e.timestamp).getTime()
-      if (t >= start && t < end) {
-        if (isObserveFinding(e)) bucket.observed++
-        else if (e.verdict === "denied") bucket.denied++
-        else bucket.allowed++
-      }
-    }
-    buckets.push(bucket)
-  }
-  return buckets
-}
-
 interface ActivityColumnProps {
   events: EventResponse[]
 }
@@ -129,7 +47,7 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<ActivityTab>("all")
 
-  const histogram = buildHistogram(events)
+  const histogram = buildSimpleHistogram(events)
 
   const filteredEvents = events.filter((e) => {
     if (activeTab === "all") return true
@@ -169,7 +87,7 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
         </div>
         <ChartContainer config={activityChartConfig} className="h-[48px] w-full [&>div]:!aspect-auto">
           <BarChart accessibilityLayer data={histogram}>
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+            <XAxis dataKey="time" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
             <ShadcnChartTooltip content={<ChartTooltipContent indicator="dot" />} />
             <Bar dataKey="allowed" stackId="v" fill="var(--color-allowed)" radius={[2, 2, 0, 0]} />
             <Bar dataKey="denied" stackId="v" fill="var(--color-denied)" radius={[2, 2, 0, 0]} />
@@ -233,7 +151,7 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
                           const prov = extractProvenance(event)
                           const label = contractLabel(prov)
                           return label ? (
-                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 border-violet-500/30 text-violet-400">
+                            <Badge variant="outline" className="text-[10px] font-mono px-1.5 border-violet-500/30 text-violet-600 dark:text-violet-400">
                               {label}
                             </Badge>
                           ) : null
