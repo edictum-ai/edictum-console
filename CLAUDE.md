@@ -70,6 +70,7 @@ Svelte 5 runes are too new — LLMs still confuse Svelte 3/4/5 syntax and produc
 7. **AI-fluent stack.** Technology choices optimize for AI-assisted development. Every layer (FastAPI, SQLAlchemy, React, Tailwind, shadcn/ui) has deep LLM training coverage. When choosing between options, pick the one the AI will be better at generating, debugging, and iterating on.
 8. **Tenant isolation on every query.** All database queries filter by `tenant_id`. No admin-sees-all shortcuts. No exceptions. Single tenant is the default UX (one admin, one tenant, auto-created on bootstrap), but the data model is multi-tenant from day one. If a query touches tenant-scoped data without a `tenant_id` filter, it's a bug, not a feature.
 9. **Adversarial tests before ship.** Every security boundary has bypass tests before the first push. Positive tests prove it works. Adversarial tests prove it doesn't break. Both are required.
+10. **Quality gate before "done."** No view is complete until it passes the `PROMPT-FRONTEND-AUDIT.md` checklist. "TypeScript compiles" is not done. "Works in dark mode" is not done. Done means: real data, both themes tested, consistent with other views, interactive, accessible, and you'd show it in a demo without hesitation. If an agent says a view is done, the reviewer opens the browser and checks — not the code.
 
 ## Release Strategy
 
@@ -131,11 +132,25 @@ Phase 0 alone (auth + API keys) is infrastructure without a payoff. Phase 1 (con
 - **API client** in `lib/api.ts` — single module for all server calls. Cookie auth (HttpOnly session cookie set by backend).
 - **No localStorage/sessionStorage for auth.** Session is a server-side cookie.
 - **Tailwind utility classes.** No custom CSS files unless truly necessary.
-- **Dark theme by default.** Design for dark first, light as secondary.
+- **Dark theme by default, light must work.** Design for dark first, but EVERY colored element must work in light mode. The rule: `text-*-600 dark:text-*-400` for ALL semantic colors (verdicts, env badges, status indicators, timer zones). Never use `text-*-400` alone — it's invisible on white backgrounds. Same for `bg-*` tints: test in both themes.
 - Components are small and focused. One component = one job.
 - Real-time feeds use SSE via `EventSource` API. No polling unless SSE is unavailable.
 - **TanStack Table** for data tables (sorting, filtering, pagination).
 - **Recharts** for charts — always wrapped in shadcn `ChartContainer` + `ChartTooltip` + `ChartTooltipContent` (never raw Recharts `ResponsiveContainer` or hand-rolled tooltips).
+
+#### Shared Modules — No Duplication
+
+**Before writing a utility function, check if it already exists.** Common modules:
+
+| Module | Contains |
+|--------|----------|
+| `lib/format.ts` | `formatRelativeTime`, `formatArgs`, `formatToolArgs`, `formatTime`, `truncate` |
+| `lib/verdict-helpers.ts` | `verdictColor`, `VerdictIcon`, `VERDICT_STYLES`, `verdictDot` |
+| `lib/env-colors.ts` | `ENV_COLORS`, `EnvBadge` |
+| `lib/payload-helpers.ts` | `extractProvenance`, `contractLabel`, `isObserveFinding`, `extractArgsPreview` |
+| `lib/histogram.ts` | `buildHistogram`, `HistogramBucket`, chart config constants |
+
+If a function is defined in two files, it's a bug. Extract to the appropriate shared module.
 
 #### shadcn/ui — Mandatory Component Library
 
