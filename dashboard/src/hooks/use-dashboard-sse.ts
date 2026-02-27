@@ -1,40 +1,26 @@
 import { useEffect, useRef } from "react"
 import { createDashboardSSE, type SSEClient } from "@/lib/sse"
 
-interface DashboardSSECallbacks {
-  onStatsUpdate?: (data: unknown) => void
-  onNewEvent?: (data: unknown) => void
-  onApprovalUpdate?: (data: unknown) => void
-  onAgentStatus?: (data: unknown) => void
-}
-
-export function useDashboardSSE(callbacks: DashboardSSECallbacks) {
-  const callbacksRef = useRef(callbacks)
-  callbacksRef.current = callbacks
+/**
+ * Hook for subscribing to dashboard SSE events.
+ * Accepts a map of SSE event names to handler functions.
+ * Handles connect/disconnect/cleanup automatically.
+ */
+export function useDashboardSSE(handlers: Record<string, (data: unknown) => void>) {
+  const handlersRef = useRef(handlers)
+  handlersRef.current = handlers
 
   useEffect(() => {
-    const handlers: Record<string, (data: unknown) => void> = {}
+    const currentKeys = Object.keys(handlersRef.current)
+    if (currentKeys.length === 0) return
 
-    if (callbacksRef.current.onStatsUpdate) {
-      handlers["stats_update"] = (data) =>
-        callbacksRef.current.onStatsUpdate?.(data)
-    }
-    if (callbacksRef.current.onNewEvent) {
-      handlers["new_event"] = (data) =>
-        callbacksRef.current.onNewEvent?.(data)
-    }
-    if (callbacksRef.current.onApprovalUpdate) {
-      handlers["approval_update"] = (data) =>
-        callbacksRef.current.onApprovalUpdate?.(data)
-    }
-    if (callbacksRef.current.onAgentStatus) {
-      handlers["agent_status"] = (data) =>
-        callbacksRef.current.onAgentStatus?.(data)
+    // Proxy through ref so latest handlers are always called
+    const proxyHandlers: Record<string, (data: unknown) => void> = {}
+    for (const key of currentKeys) {
+      proxyHandlers[key] = (data) => handlersRef.current[key]?.(data)
     }
 
-    if (Object.keys(handlers).length === 0) return
-
-    let client: SSEClient | null = createDashboardSSE(handlers)
+    let client: SSEClient | null = createDashboardSSE(proxyHandlers)
     client.connect()
 
     return () => {

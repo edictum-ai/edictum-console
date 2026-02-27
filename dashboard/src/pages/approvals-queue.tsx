@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,7 +16,7 @@ import {
   submitDecision,
   type ApprovalResponse,
 } from "@/lib/api"
-import { createDashboardSSE } from "@/lib/sse"
+import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { useAuth } from "@/hooks/use-auth"
 import { getTimerState } from "./approvals/timer"
 import { ApprovalCard } from "./approvals/approval-card"
@@ -35,8 +35,6 @@ export function ApprovalsQueue() {
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [acting, setActing] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>("auto")
-  const [sseConnected, setSseConnected] = useState(false)
-  const sseRef = useRef<ReturnType<typeof createDashboardSSE> | null>(null)
 
   // Fetch pending approvals
   const fetchPending = useCallback(async () => {
@@ -76,31 +74,11 @@ export function ApprovalsQueue() {
   }, [fetchPending, fetchHistory])
 
   // SSE for real-time updates
-  useEffect(() => {
-    const sse = createDashboardSSE({
-      approval_created: () => {
-        void fetchPending()
-      },
-      approval_decided: () => {
-        void fetchPending()
-        void fetchHistory()
-      },
-      approval_timeout: () => {
-        void fetchPending()
-        void fetchHistory()
-      },
-    })
-
-    sse.connect()
-    sseRef.current = sse
-    setSseConnected(true)
-
-    return () => {
-      sse.disconnect()
-      sseRef.current = null
-      setSseConnected(false)
-    }
-  }, [fetchPending, fetchHistory])
+  useDashboardSSE({
+    approval_created: () => { void fetchPending() },
+    approval_decided: () => { void fetchPending(); void fetchHistory() },
+    approval_timeout: () => { void fetchPending(); void fetchHistory() },
+  })
 
   // Approve a single approval
   async function handleApprove(id: string) {
@@ -187,9 +165,6 @@ export function ApprovalsQueue() {
             {pending.length} pending{" "}
             {pending.length === 1 ? "approval" : "approvals"}
             {pending.length > 0 && " — agents are waiting"}
-            {!sseConnected && (
-              <span className="ml-2 text-amber-600 dark:text-amber-400">Live updates paused — reconnecting...</span>
-            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

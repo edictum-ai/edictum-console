@@ -37,7 +37,7 @@ function StatusDot({ status }: { status: AgentStatus }) {
 }
 
 function MiniSparkline({ data, status, agentName }: { data: number[]; status: AgentStatus; agentName: string }) {
-  const color = status === "healthy" ? "#10b981" : status === "degraded" ? "#f59e0b" : "#71717a"
+  const color = status === "healthy" ? "var(--success)" : status === "degraded" ? "var(--warning)" : "var(--muted-foreground)"
   const chartData = data.map((v, i) => ({ i, v }))
   const gradientId = `spark-${agentName}-${status}`
   return (

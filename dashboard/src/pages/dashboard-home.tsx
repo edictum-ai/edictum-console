@@ -45,17 +45,16 @@ export function DashboardHome() {
 
   // SSE for real-time updates
   useDashboardSSE({
-    onStatsUpdate: () => {
+    stats_update: () => {
       void refreshStats()
     },
-    onNewEvent: (raw) => {
+    new_event: (raw) => {
       const event = raw as EventResponse
       if (event?.id) {
         setEvents((prev) => [event, ...prev].slice(0, 100))
       }
     },
-    onApprovalUpdate: () => {
-      // Refetch approvals on any change
+    approval_update: () => {
       void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
     },
   })

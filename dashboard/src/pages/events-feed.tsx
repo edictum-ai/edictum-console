@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useSearchParams } from "react-router"
 import { listEvents, type EventResponse } from "@/lib/api"
-import { createDashboardSSE } from "@/lib/sse"
+import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { EventFilterPanel } from "./events/event-filter-panel"
 import {
   EventList,
@@ -137,16 +137,12 @@ export function EventsFeed() {
   }, [fetchEvents])
 
   // SSE for real-time events
-  useEffect(() => {
-    const sse = createDashboardSSE({
-      event_created: (data) => {
-        const event = data as EventResponse
-        setBufferedEvents((prev) => [event, ...prev])
-      },
-    })
-    sse.connect()
-    return () => sse.disconnect()
-  }, [])
+  useDashboardSSE({
+    event_created: (data) => {
+      const event = data as EventResponse
+      setBufferedEvents((prev) => [event, ...prev])
+    },
+  })
 
   // Show buffered events
   const handleShowNewEvents = useCallback(() => {

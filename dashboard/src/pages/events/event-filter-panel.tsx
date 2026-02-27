@@ -98,9 +98,11 @@ export function EventFilterPanel({
 
             return (
               <div key={facet.name} className="mb-1">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => onToggleFacetCollapse(facet.name)}
-                  className="flex w-full items-center gap-1 rounded px-1.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                  className="w-full justify-start h-auto gap-1 px-1.5 py-1.5 text-xs font-medium text-foreground"
                 >
                   {isCollapsed ? (
                     <ChevronRight className="h-3 w-3 text-muted-foreground" />
@@ -108,7 +110,7 @@ export function EventFilterPanel({
                     <ChevronDown className="h-3 w-3 text-muted-foreground" />
                   )}
                   {facet.name}
-                </button>
+                </Button>
 
                 {!isCollapsed && (
                   <div className="ml-1 space-y-0.5 pb-2">
@@ -118,14 +120,16 @@ export function EventFilterPanel({
                       .map((value) => {
                         const isActive = activeSet.has(value.key)
                         return (
-                          <button
+                          <Button
                             key={value.key}
+                            variant="ghost"
+                            size="sm"
                             onClick={() =>
                               onToggleFilter(facet.field, value.key)
                             }
-                            className={`flex w-full items-center justify-between rounded px-2 py-1 text-xs transition-colors ${
+                            className={`w-full justify-between h-auto px-2 py-1 text-xs ${
                               isActive
-                                ? "bg-primary/15 text-primary"
+                                ? "bg-primary/15 text-primary hover:bg-primary/20"
                                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             }`}
                           >
@@ -146,7 +150,7 @@ export function EventFilterPanel({
                             >
                               {value.count}
                             </span>
-                          </button>
+                          </Button>
                         )
                       })}
                   </div>
