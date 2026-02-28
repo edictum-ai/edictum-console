@@ -1,7 +1,7 @@
 # SDK Compatibility Contract
 
 > The `edictum[server]` SDK (in `~/project/edictum/src/edictum/server/`) expects these exact API paths, headers, response schemas, and SSE event names. The console server MUST match.
-> Source: edictum v0.11.3
+> Source: edictum v0.12+
 
 ## Authentication
 
@@ -22,6 +22,107 @@ Content-Type: application/json
 - **Connection errors** → same retry as 5xx
 
 ## API Endpoints
+
+### Bundles (Name-Scoped Routes)
+
+**List bundle names (summaries):**
+```
+GET /api/v1/bundles
+Response: [
+  {
+    "name": "devops-agent",
+    "latest_version": 3,
+    "version_count": 3,
+    "last_updated": "ISO8601",
+    "deployed_envs": ["production", "staging"]
+  }
+]
+```
+
+**List versions for a named bundle:**
+```
+GET /api/v1/bundles/{name}
+Response: [
+  {
+    "id": "uuid",
+    "tenant_id": "uuid",
+    "name": "devops-agent",
+    "version": 3,
+    "revision_hash": "abc123...",
+    "signature_hex": "hex|null",
+    "source_hub_slug": "string|null",
+    "source_hub_revision": "string|null",
+    "uploaded_by": "user_id",
+    "created_at": "ISO8601",
+    "deployed_envs": ["production"]
+  }
+]
+```
+
+**Upload a bundle version (name extracted from YAML `metadata.name`):**
+```
+POST /api/v1/bundles
+Body: {"yaml_content": "string"}
+Response: BundleResponse (see above, without deployed_envs)
+```
+
+**Deploy a bundle version:**
+```
+POST /api/v1/bundles/{name}/{version}/deploy
+Body: {"env": "production"}
+Response: {
+  "id": "uuid",
+  "env": "production",
+  "bundle_name": "devops-agent",
+  "bundle_version": 3,
+  "deployed_by": "user_id",
+  "created_at": "ISO8601"
+}
+```
+
+**Get bundle YAML:**
+```
+GET /api/v1/bundles/{name}/{version}/yaml
+Response: raw YAML bytes (Content-Type: application/x-yaml)
+```
+
+**Get currently deployed bundle for a (name, env):**
+```
+GET /api/v1/bundles/{name}/current?env={env}
+Response: BundleResponse
+```
+
+**Evaluate bundle (dashboard playground only, not used by SDK):**
+```
+POST /api/v1/bundles/evaluate
+Body: {
+  "yaml_content": "string",
+  "tool_name": "string",
+  "tool_args": {},
+  "environment": "string|null",
+  "agent_id": "string|null",
+  "principal": {"user_id": "string", "role": "string", "claims": {}} | null
+}
+Response: {
+  "verdict": "string",
+  "mode": "string",
+  "contracts_evaluated": [...],
+  "deciding_contract": "string|null",
+  "policy_version": "string",
+  "evaluation_time_ms": float
+}
+```
+
+### Deployments
+
+**List deployments:**
+```
+GET /api/v1/deployments?bundle_name={name}&env={env}&limit={n}
+Response: DeploymentResponse[]
+```
+- `bundle_name` (optional): filter by bundle name
+- `env` (optional): filter by environment
+- `limit` (optional, default 50): max results
 
 ### Approvals
 
@@ -73,7 +174,8 @@ Body: {
         "decision_source": "string",
         "decision_name": "string",
         "reason": null | "string",
-        "policy_version": "string"
+        "policy_version": "string",
+        "bundle_name": "string|null"
       }
     }
   ]
@@ -82,6 +184,8 @@ Response: {"accepted": int, "duplicates": int}
 ```
 SDK does NOT validate response shape — any 2xx is success.
 Batching: 50 events or 5 seconds, whichever comes first. Max buffer: 10,000.
+
+Note: `bundle_name` in event payload is optional (SDK v0.12+). Older agents omit it.
 
 ### Session Storage
 
@@ -118,18 +222,47 @@ SDK reads: `response["value"]` as the new counter value.
 
 **Subscribe to contract updates:**
 ```
-GET /api/v1/stream
+GET /api/v1/stream?env={env}&bundle_name={name}&policy_version={hash}
 Header: Accept: text/event-stream
 Auth: Bearer {api_key}
 ```
 
-**Event format:**
+Query parameters:
+- `env` (required): environment to subscribe to
+- `bundle_name` (optional): filter `contract_update` events to this bundle only. When omitted, all `contract_update` events for the tenant are forwarded (backward compatible).
+- `policy_version` (optional): revision_hash the agent is currently running. Used for drift detection on the fleet status endpoint.
+
+**`contract_update` event (on deploy):**
 ```
 event: contract_update
-data: {"version": 7, "revision_hash": "abc123", ...}
+data: {
+  "type": "contract_update",
+  "bundle_name": "devops-agent",
+  "version": 3,
+  "revision_hash": "abc123...",
+  "signature": "hex|null",
+  "public_key": "hex|null",
+  "yaml_bytes": "base64-encoded YAML"
+}
 ```
 
-**CRITICAL:** Event name MUST be `contract_update`. The existing edictum-server sends `bundle_deployed` — this is a bug that must be fixed.
+**CRITICAL:** Event name MUST be `contract_update`.
+
+Fields:
+- `bundle_name`: name of the deployed bundle
+- `public_key`: hex-encoded public key for signature verification (from signing key row). SDK stores but doesn't verify yet — ready for `edictum[verified]`.
+
+**`bundle_uploaded` event (on upload):**
+```
+event: bundle_uploaded
+data: {
+  "type": "bundle_uploaded",
+  "bundle_name": "devops-agent",
+  "version": 3,
+  "revision_hash": "abc123...",
+  "uploaded_by": "user_123"
+}
+```
 
 SDK behavior:
 - `ServerContractSource` listens for `event.event == "contract_update"`
@@ -137,15 +270,28 @@ SDK behavior:
 - Yields the parsed dict
 - Auto-reconnects with exponential backoff (1s initial, 60s max)
 
-### Bundles (Dashboard-only, not used by SDK)
+### Agent Fleet Status (Dashboard-only)
 
-**Get bundle YAML (NEW — needed for contract push):**
+**Get connected agents:**
 ```
-GET /api/v1/bundles/{version}/yaml
-Auth: Bearer {api_key}
-Response: raw YAML bytes (Content-Type: application/x-yaml)
+GET /api/v1/agents/status?bundle_name={name}
+Auth: Dashboard session cookie
+Response: {
+  "agents": [
+    {
+      "agent_id": "string",
+      "env": "production",
+      "bundle_name": "devops-agent|null",
+      "policy_version": "abc123...|null",
+      "status": "current" | "drift" | "unknown",
+      "connected_at": "ISO8601"
+    }
+  ]
+}
 ```
-This endpoint does not exist yet. Needed as fallback if SSE payload doesn't include YAML bytes.
+
+- `bundle_name` (optional): filter to agents running this bundle
+- `status` is computed at read time: compares `policy_version` against the currently deployed `revision_hash` for the agent's env.
 
 ## SDK Classes
 

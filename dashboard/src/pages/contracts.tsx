@@ -6,7 +6,11 @@ import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ContractsTab } from "./contracts/contracts-tab"
+import { VersionsTab } from "./contracts/versions-tab"
+import { UploadSheet } from "./contracts/upload-sheet"
 import { YamlSheet } from "./contracts/yaml-sheet"
+import { DiffTab } from "./contracts/diff-tab"
+import { EvaluateTab } from "./contracts/evaluate-tab"
 import { useContractsData } from "./contracts/use-contracts-data"
 
 export function ContractsPage() {
@@ -90,7 +94,7 @@ export function ContractsPage() {
           {parsedBundle && yamlContent && selectedBundle && selectedVersion && (
             <YamlSheet bundleName={selectedBundle} version={selectedVersion} yamlContent={yamlContent} />
           )}
-          <Button variant="outline" size="sm" disabled>Upload</Button>
+          <UploadSheet onRefresh={() => { void refreshSummaries(); void refreshVersions() }} />
         </div>
       </div>
 
@@ -111,18 +115,21 @@ export function ContractsPage() {
             parseError={parseError}
           />
         </TabsContent>
-        <TabsContent value="versions" className="mt-4"><TabPlaceholder name="Versions" phase="P4" /></TabsContent>
-        <TabsContent value="diff" className="mt-4"><TabPlaceholder name="Diff" phase="P5" /></TabsContent>
-        <TabsContent value="evaluate" className="mt-4"><TabPlaceholder name="Evaluate" phase="P6" /></TabsContent>
+        <TabsContent value="versions" className="mt-4">
+          <VersionsTab
+            bundleName={selectedBundle}
+            bundles={versions}
+            onRefresh={() => { void refreshSummaries(); void refreshVersions() }}
+          />
+        </TabsContent>
+        <TabsContent value="diff" className="mt-4">
+          <DiffTab bundles={versions} selectedBundle={selectedBundle} />
+        </TabsContent>
+        <TabsContent value="evaluate" className="mt-4">
+          <EvaluateTab bundles={versions} selectedBundle={selectedBundle} />
+        </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function TabPlaceholder({ name, phase }: { name: string; phase: string }) {
-  return (
-    <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border">
-      <p className="text-sm text-muted-foreground">{name} tab — coming in {phase}</p>
-    </div>
-  )
-}

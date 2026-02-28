@@ -56,7 +56,7 @@ export function YamlSheet({ bundleName, version, yamlContent }: YamlSheetProps) 
  * Simple regex-based YAML syntax highlighting.
  * Returns an array of React elements with colored spans.
  */
-function highlightYaml(yaml: string) {
+export function highlightYaml(yaml: string) {
   return yaml.split("\n").map((line, i) => {
     // Comments
     const commentIdx = findCommentStart(line)
