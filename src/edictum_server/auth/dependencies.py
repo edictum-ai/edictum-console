@@ -27,6 +27,7 @@ class AuthContext:
     auth_type: Literal["api_key", "dashboard"]
     env: str | None = None
     user_id: str | None = None
+    agent_id: str | None = None
 
 
 def _extract_bearer(authorization: str) -> str:
@@ -41,6 +42,7 @@ def _extract_bearer(authorization: str) -> str:
 
 async def require_api_key(
     authorization: str = Header(alias="Authorization"),
+    x_edictum_agent_id: str | None = Header(default=None, alias="X-Edictum-Agent-Id"),
     db: AsyncSession = Depends(get_db),
 ) -> AuthContext:
     """Authenticate an agent request via API key.
@@ -68,6 +70,7 @@ async def require_api_key(
         tenant_id=api_key.tenant_id,
         auth_type="api_key",
         env=api_key.env,
+        agent_id=x_edictum_agent_id,
     )
 
 

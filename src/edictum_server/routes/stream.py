@@ -38,23 +38,31 @@ async def _event_generator(
 @router.get("")
 async def stream(
     env: str = Query(..., description="Environment to subscribe to"),
-    _auth: AuthContext = Depends(require_api_key),
+    bundle_name: str | None = Query(default=None, description="Filter by bundle name"),
+    policy_version: str | None = Query(default=None, description="Agent's current policy version"),
+    auth: AuthContext = Depends(require_api_key),
     push: PushManager = Depends(get_push_manager),
 ) -> EventSourceResponse:
     """SSE endpoint for agents to receive real-time bundle updates.
 
     Agents connect with their API key and specify the target environment.
-    The server pushes bundle_deployed events whenever a new bundle is
-    deployed to that environment.
+    Optional bundle_name and policy_version params enable per-bundle
+    filtering and drift detection.
     """
-    queue = push.subscribe(env)
+    conn = push.subscribe(
+        env,
+        tenant_id=auth.tenant_id,
+        agent_id=auth.agent_id or "unknown",
+        bundle_name=bundle_name,
+        policy_version=policy_version,
+    )
 
     async def event_stream() -> AsyncGenerator[dict[str, str], None]:
         try:
-            async for event in _event_generator(queue):
+            async for event in _event_generator(conn.queue):
                 yield event
         finally:
-            push.unsubscribe(env, queue)
+            push.unsubscribe(env, conn)
 
     return EventSourceResponse(event_stream())
 

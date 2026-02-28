@@ -69,7 +69,7 @@ async def create_approval(
         "tool_name": approval.tool_name,
         "message": approval.message,
     }
-    push.push_to_env(env, event_data)
+    push.push_to_env(env, event_data, tenant_id=auth.tenant_id)
     push.push_to_dashboard(auth.tenant_id, event_data)
 
     # Use NotificationManager from app.state instead of direct telegram_notifier
@@ -152,7 +152,7 @@ async def submit_decision(
         "status": approval.status,
         "decided_by": approval.decided_by,
     }
-    push.push_to_env(approval.env, decided_data)
+    push.push_to_env(approval.env, decided_data, tenant_id=auth.tenant_id)
     push.push_to_dashboard(auth.tenant_id, decided_data)
 
     notification_mgr = getattr(request.app.state, "notification_manager", None)

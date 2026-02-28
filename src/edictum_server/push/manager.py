@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import Request
@@ -19,34 +21,62 @@ _DASHBOARD_EVENT_TYPES = frozenset({
 })
 
 
+@dataclass(eq=False)
+class AgentConnection:
+    """Metadata for a connected agent's SSE subscription."""
+
+    queue: asyncio.Queue[dict[str, Any]]
+    env: str
+    tenant_id: uuid.UUID
+    bundle_name: str | None
+    policy_version: str | None
+    agent_id: str
+    connected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class PushManager:
     """Manages per-environment SSE connections using asyncio Queues.
 
     Each connected agent subscribes to a queue for its environment.
     When a bundle is deployed, `push_to_env` fans out the event
-    to every queue in that environment.
+    to every queue in that environment, filtered by tenant and bundle.
 
     Dashboard connections subscribe per-tenant (all environments).
     """
 
     def __init__(self) -> None:
-        self._connections: dict[str, set[asyncio.Queue[dict[str, Any]]]] = defaultdict(set)
+        self._connections: dict[str, set[AgentConnection]] = defaultdict(set)
         self._dashboard_connections: dict[uuid.UUID, set[asyncio.Queue[dict[str, Any]]]] = (
             defaultdict(set)
         )
 
-    def subscribe(self, env: str) -> asyncio.Queue[dict[str, Any]]:
+    def subscribe(
+        self,
+        env: str,
+        *,
+        tenant_id: uuid.UUID,
+        agent_id: str = "unknown",
+        bundle_name: str | None = None,
+        policy_version: str | None = None,
+    ) -> AgentConnection:
         """Register a new SSE connection for an environment.
 
-        Returns an asyncio Queue the caller should read from.
+        Returns an AgentConnection the caller should read from via `.queue`.
         """
-        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-        self._connections[env].add(queue)
-        return queue
+        conn = AgentConnection(
+            queue=asyncio.Queue(),
+            env=env,
+            tenant_id=tenant_id,
+            bundle_name=bundle_name,
+            policy_version=policy_version,
+            agent_id=agent_id,
+        )
+        self._connections[env].add(conn)
+        return conn
 
-    def unsubscribe(self, env: str, queue: asyncio.Queue[dict[str, Any]]) -> None:
-        """Remove a queue when the SSE connection closes."""
-        self._connections[env].discard(queue)
+    def unsubscribe(self, env: str, conn: AgentConnection) -> None:
+        """Remove an agent connection when the SSE stream closes."""
+        self._connections[env].discard(conn)
         if not self._connections[env]:
             del self._connections[env]
 
@@ -67,10 +97,30 @@ class PushManager:
         if not self._dashboard_connections[tenant_id]:
             del self._dashboard_connections[tenant_id]
 
-    def push_to_env(self, env: str, data: dict[str, Any]) -> None:
-        """Fan out an event to all connected agents in an environment."""
-        for queue in self._connections.get(env, set()):
-            queue.put_nowait(data)
+    def push_to_env(
+        self, env: str, data: dict[str, Any], *, tenant_id: uuid.UUID
+    ) -> None:
+        """Fan out an event to connected agents in an environment.
+
+        Filters by tenant_id (required). For ``contract_update`` events,
+        also filters by bundle_name — connections that specified a bundle_name
+        only receive updates for that bundle.
+        """
+        event_type = data.get("type", "")
+        event_bundle = data.get("bundle_name")
+
+        for conn in self._connections.get(env, set()):
+            if conn.tenant_id != tenant_id:
+                continue
+            # For contract_update, respect bundle_name filter
+            if (
+                event_type == "contract_update"
+                and conn.bundle_name is not None
+                and event_bundle is not None
+                and conn.bundle_name != event_bundle
+            ):
+                continue
+            conn.queue.put_nowait(data)
 
     def push_to_dashboard(self, tenant_id: uuid.UUID, data: dict[str, Any]) -> None:
         """Fan out an event to all dashboard connections for a tenant."""
@@ -79,6 +129,22 @@ class PushManager:
             return
         for queue in self._dashboard_connections.get(tenant_id, set()):
             queue.put_nowait(data)
+
+    def get_agent_connections(
+        self,
+        tenant_id: uuid.UUID,
+        bundle_name: str | None = None,
+    ) -> list[AgentConnection]:
+        """Return all agent connections for a tenant, optionally filtered by bundle."""
+        result: list[AgentConnection] = []
+        for conns in self._connections.values():
+            for conn in conns:
+                if conn.tenant_id != tenant_id:
+                    continue
+                if bundle_name is not None and conn.bundle_name != bundle_name:
+                    continue
+                result.append(conn)
+        return result
 
     @property
     def connection_count(self) -> int:

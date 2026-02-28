@@ -19,6 +19,7 @@ from edictum_server.notifications.base import NotificationManager
 from edictum_server.push.manager import PushManager
 from edictum_server.redis.client import create_redis_client
 from edictum_server.routes import (
+    agents,
     approvals,
     auth,
     bundles,
@@ -73,7 +74,9 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                             "agent_id": item["agent_id"],
                             "tool_name": item["tool_name"],
                         }
-                        push.push_to_env(item["env"], timeout_data)
+                        push.push_to_env(
+                            item["env"], timeout_data, tenant_id=item["tenant_id"]
+                        )
                         push.push_to_dashboard(item["tenant_id"], timeout_data)
                     # Notify via telegram channel if available
                     mgr: NotificationManager | None = getattr(
@@ -227,3 +230,4 @@ app.include_router(sessions.router)
 app.include_router(approvals.router)
 app.include_router(stats.router)
 app.include_router(telegram.router)
+app.include_router(agents.router)

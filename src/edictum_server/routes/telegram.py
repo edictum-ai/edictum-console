@@ -124,7 +124,7 @@ async def webhook(
         "status": approval.status,
         "decided_by": decided_by,
     }
-    push.push_to_env(approval.env, decided_data)
+    push.push_to_env(approval.env, decided_data, tenant_id=tenant_id)
     push.push_to_dashboard(tenant_id, decided_data)
 
     # Notify other channels about the decision
