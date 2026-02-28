@@ -2,11 +2,20 @@ import { request } from "./client"
 
 // --- Health ---
 
+export interface ServiceHealth {
+  connected: boolean
+  latency_ms: number | null
+}
+
 export interface HealthResponse {
   status: string
   version: string
   auth_provider: string
   bootstrap_complete: boolean
+  // Enriched fields (optional — older servers won't have these)
+  database?: ServiceHealth
+  redis?: ServiceHealth
+  connected_agents?: number
 }
 
 export function getHealth() {
