@@ -21,34 +21,30 @@ async def upload_bundle(
     source_hub_slug: str | None = None,
     source_hub_revision: str | None = None,
 ) -> Bundle:
-    """Validate YAML, compute revision hash, auto-version, and persist.
-
-    Args:
-        db: Active async database session.
-        tenant_id: Owning tenant UUID.
-        yaml_content: Raw YAML bytes.
-        uploaded_by: Identity of the uploader (Clerk user id).
-        source_hub_slug: Optional hub bundle slug this was copied from.
-        source_hub_revision: Optional hub revision hash.
-
-    Returns:
-        The newly created Bundle row.
+    """Validate YAML, extract name, compute revision hash, auto-version, and persist.
 
     Raises:
-        ValueError: If the YAML is unparseable.
+        ValueError: If the YAML is unparseable or missing metadata.name.
     """
-    # Validate YAML parses cleanly
     try:
-        yaml.safe_load(yaml_content)
+        parsed = yaml.safe_load(yaml_content)
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid YAML: {exc}") from exc
 
+    # Extract bundle name from metadata
+    if not isinstance(parsed, dict):
+        raise ValueError("Invalid YAML: expected a mapping at the top level")
+    metadata = parsed.get("metadata")
+    if not isinstance(metadata, dict) or not metadata.get("name"):
+        raise ValueError("Missing required field: metadata.name")
+    bundle_name: str = metadata["name"]
+
     revision_hash = hashlib.sha256(yaml_content).hexdigest()
 
-    # Determine next version number for this tenant
+    # Determine next version number for this tenant + name
     result = await db.execute(
         select(Bundle.version)
-        .where(Bundle.tenant_id == tenant_id)
+        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
         .order_by(Bundle.version.desc())
         .limit(1)
     )
@@ -57,6 +53,7 @@ async def upload_bundle(
 
     bundle = Bundle(
         tenant_id=tenant_id,
+        name=bundle_name,
         version=next_version,
         revision_hash=revision_hash,
         yaml_bytes=yaml_content,
@@ -73,23 +70,26 @@ async def get_current_bundle(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     env: str,
+    bundle_name: str | None = None,
 ) -> Bundle | None:
     """Return the latest deployed bundle for a given environment.
 
-    Joins bundles with deployments and returns the most recently
-    deployed bundle for the specified tenant + environment.
+    If bundle_name is provided, scopes to that bundle name.
     """
-    result = await db.execute(
+    query = (
         select(Bundle)
         .join(
             Deployment,
             (Deployment.tenant_id == Bundle.tenant_id)
+            & (Deployment.bundle_name == Bundle.name)
             & (Deployment.bundle_version == Bundle.version),
         )
         .where(Deployment.tenant_id == tenant_id, Deployment.env == env)
-        .order_by(Deployment.created_at.desc())
-        .limit(1)
     )
+    if bundle_name is not None:
+        query = query.where(Bundle.name == bundle_name)
+    query = query.order_by(Deployment.created_at.desc()).limit(1)
+    result = await db.execute(query)
     return result.scalar_one_or_none()
 
 
@@ -104,15 +104,57 @@ async def list_tenant_bundles(
     return list(result.scalars().all())
 
 
+async def list_bundle_names(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+) -> list[dict[str, object]]:
+    """Return distinct bundle names with aggregates (version_count, latest_version)."""
+    result = await db.execute(
+        select(
+            Bundle.name,
+            func.count(Bundle.id).label("version_count"),
+            func.max(Bundle.version).label("latest_version"),
+            func.max(Bundle.created_at).label("last_updated"),
+        )
+        .where(Bundle.tenant_id == tenant_id)
+        .group_by(Bundle.name)
+        .order_by(func.max(Bundle.created_at).desc())
+    )
+    return [
+        {
+            "name": row.name,
+            "version_count": row.version_count,
+            "latest_version": row.latest_version,
+            "last_updated": row.last_updated,
+        }
+        for row in result.all()
+    ]
+
+
+async def list_bundle_versions(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    bundle_name: str,
+) -> list[Bundle]:
+    """Return all versions for a specific bundle name, ordered by version DESC."""
+    result = await db.execute(
+        select(Bundle)
+        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+        .order_by(Bundle.version.desc())
+    )
+    return list(result.scalars().all())
+
+
 async def get_deployed_envs_map(
     db: AsyncSession,
     tenant_id: uuid.UUID,
+    bundle_name: str | None = None,
 ) -> dict[int, list[str]]:
-    """Return a mapping of bundle_version -> list of deployed env names.
+    """Return mapping of bundle_version -> deployed env names (current only)."""
+    filters = [Deployment.tenant_id == tenant_id]
+    if bundle_name is not None:
+        filters.append(Deployment.bundle_name == bundle_name)
 
-    For each environment, only the most recent deployment counts as
-    the "current" deployment. Uses a single query with a window function.
-    """
     # Subquery: rank deployments per env by recency
     ranked = (
         select(
@@ -125,7 +167,7 @@ async def get_deployed_envs_map(
             )
             .label("rn"),
         )
-        .where(Deployment.tenant_id == tenant_id)
+        .where(*filters)
         .subquery()
     )
 
@@ -136,7 +178,6 @@ async def get_deployed_envs_map(
     mapping: dict[int, list[str]] = defaultdict(list)
     for version, env in result.all():
         mapping[version].append(env)
-    # Sort env lists for deterministic output
     for envs in mapping.values():
         envs.sort()
     return dict(mapping)
@@ -146,12 +187,11 @@ async def get_bundle_by_version(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     version: int,
+    bundle_name: str | None = None,
 ) -> Bundle | None:
     """Return a specific bundle version for a tenant."""
-    result = await db.execute(
-        select(Bundle).where(
-            Bundle.tenant_id == tenant_id,
-            Bundle.version == version,
-        )
-    )
+    filters = [Bundle.tenant_id == tenant_id, Bundle.version == version]
+    if bundle_name is not None:
+        filters.append(Bundle.name == bundle_name)
+    result = await db.execute(select(Bundle).where(*filters))
     return result.scalar_one_or_none()

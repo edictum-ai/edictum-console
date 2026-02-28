@@ -21,6 +21,7 @@ class BundleResponse(BaseModel):
 
     id: uuid.UUID
     tenant_id: uuid.UUID
+    name: str
     version: int
     revision_hash: str
     signature_hex: str | None = None
@@ -33,6 +34,16 @@ class BundleResponse(BaseModel):
 class BundleWithDeploymentsResponse(BundleResponse):
     """Bundle response enriched with deployed environment names."""
 
+    deployed_envs: list[str] = []
+
+
+class BundleSummaryResponse(BaseModel):
+    """Summary of a named bundle (for the bundle list)."""
+
+    name: str
+    latest_version: int
+    version_count: int
+    last_updated: datetime
     deployed_envs: list[str] = []
 
 
@@ -49,6 +60,7 @@ class DeploymentResponse(BaseModel):
 
     id: uuid.UUID
     env: str
+    bundle_name: str
     bundle_version: int
     deployed_by: str
     created_at: datetime

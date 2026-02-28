@@ -80,11 +80,14 @@ class Bundle(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """A versioned contract bundle."""
 
     __tablename__ = "bundles"
-    __table_args__ = (UniqueConstraint("tenant_id", "version", name="uq_bundle_tenant_version"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", "version", name="uq_bundle_tenant_name_version"),
+    )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
+    name: Mapped[str] = mapped_column(String, index=True)
     version: Mapped[int]
-    revision_hash: Mapped[str] = mapped_column(String(64))
+    revision_hash: Mapped[str] = mapped_column(String(64), index=True)
     yaml_bytes: Mapped[bytes] = mapped_column(LargeBinary)
     signature: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     source_hub_slug: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -101,6 +104,7 @@ class Deployment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
     env: Mapped[str] = mapped_column(String)
+    bundle_name: Mapped[str] = mapped_column(String, index=True)
     bundle_version: Mapped[int]
     deployed_by: Mapped[str] = mapped_column(String)
 
