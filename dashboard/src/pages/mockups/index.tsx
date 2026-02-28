@@ -42,6 +42,27 @@ const mockupViews = [
       { to: "contracts-v5", label: "V5: Tabbed Workbench" },
     ],
   },
+  {
+    label: "V6 Redesign: Deployments",
+    variations: [
+      { to: "contracts-deploy-v1", label: "V1: Status Cards + Fleet" },
+      { to: "contracts-deploy-v2", label: "V2: Environment Columns" },
+      { to: "contracts-deploy-v3", label: "V3: Compact Dashboard" },
+      { to: "contracts-deploy-v4", label: "V4: ArgoCD Sync Grid" },
+      { to: "contracts-deploy-v5", label: "V5: Split Env + Agents" },
+    ],
+  },
+  {
+    label: "V6 Redesign v2: Contracts",
+    variations: [
+      { to: "contracts-tab1-v1", label: "V1: Contract Cards" },
+      { to: "contracts-tab1-v2", label: "V2: Contract Table" },
+      { to: "contracts-tab1-v3", label: "V3: Grouped by Type" },
+      { to: "contracts-tab1-v3b", label: "V3b: Multi-Bundle" },
+      { to: "contracts-tab1-v4", label: "V4: Split View" },
+      { to: "contracts-tab1-v5", label: "V5: Document View" },
+    ],
+  },
 ]
 
 export function MockupGallery() {

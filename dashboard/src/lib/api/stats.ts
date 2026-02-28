@@ -13,3 +13,28 @@ export interface StatsOverview {
 export function getStatsOverview() {
   return request<StatsOverview>("/stats/overview")
 }
+
+// --- Contract Coverage Stats ---
+
+export interface ContractCoverage {
+  decision_name: string
+  total_evaluations: number
+  total_denials: number
+  total_warnings: number
+  last_triggered: string | null
+}
+
+export interface ContractStatsResponse {
+  coverage: ContractCoverage[]
+  total_events: number
+  period_start: string
+  period_end: string
+}
+
+export function getContractStats(since?: string, until?: string) {
+  const params = new URLSearchParams()
+  if (since) params.set("since", since)
+  if (until) params.set("until", until)
+  const qs = params.toString()
+  return request<ContractStatsResponse>(`/stats/contracts${qs ? `?${qs}` : ""}`)
+}

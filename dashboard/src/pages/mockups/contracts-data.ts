@@ -434,6 +434,443 @@ export function driftedAgents(env: Environment, expectedVersion: number): Connec
   )
 }
 
+// ── Per-environment deployment status (Tab 1: Deployments redesign) ──
+
+export interface EnvironmentStatus {
+  env: Environment
+  deployed_version: number
+  deployed_at: string
+  deployed_by: string
+  agents_total: number
+  agents_online: number
+  agents_on_version: Record<number, number>
+  composition: CompositionLayer[]
+}
+
+export const MOCK_ENV_STATUS: EnvironmentStatus[] = [
+  {
+    env: "production",
+    deployed_version: 3,
+    deployed_at: "2026-02-26T14:30:00Z",
+    deployed_by: "admin@example.com",
+    agents_total: 5,
+    agents_online: 4,
+    agents_on_version: { 3: 4, 2: 1 },
+    composition: [
+      { bundle_name: "org-base-contracts", version: 3, mode: "enforce" },
+      { bundle_name: "team-api-contracts", version: 2, mode: "enforce" },
+    ],
+  },
+  {
+    env: "staging",
+    deployed_version: 4,
+    deployed_at: "2026-02-27T06:45:00Z",
+    deployed_by: "admin@example.com",
+    agents_total: 3,
+    agents_online: 3,
+    agents_on_version: { 4: 3 },
+    composition: [
+      { bundle_name: "org-base-contracts", version: 4, mode: "enforce" },
+      { bundle_name: "team-api-contracts", version: 2, mode: "enforce" },
+      { bundle_name: "candidate-pii-detection", version: 1, mode: "observe_alongside" },
+    ],
+  },
+  {
+    env: "development",
+    deployed_version: 5,
+    deployed_at: "2026-02-27T08:10:00Z",
+    deployed_by: "admin@example.com",
+    agents_total: 1,
+    agents_online: 1,
+    agents_on_version: { 5: 1 },
+    composition: [
+      { bundle_name: "org-base-contracts", version: 5, mode: "enforce" },
+    ],
+  },
+]
+
+export const LATEST_VERSION = MOCK_BUNDLES[0]!.version
+
+// ── Shared tab bar labels (for all contracts redesign mockups) ──
+
+export const CONTRACT_TABS = [
+  { id: "deployments", label: "Deployments" },
+  { id: "versions", label: "Versions" },
+  { id: "diff", label: "Diff" },
+  { id: "playground", label: "Playground" },
+] as const
+
+export type ContractTab = (typeof CONTRACT_TABS)[number]["id"]
+
+// ── Tab bar for v2 redesign (Contracts-first landing) ──
+
+export const CONTRACT_TABS_V2 = [
+  { id: "contracts", label: "Contracts" },
+  { id: "versions", label: "Versions" },
+  { id: "diff", label: "Diff" },
+  { id: "playground", label: "Playground" },
+] as const
+
+export type ContractTabV2 = (typeof CONTRACT_TABS_V2)[number]["id"]
+
+// ── Parsed contract types ──
+
+export type ContractType = "pre" | "post" | "session" | "sandbox"
+export type ContractEffect = "deny" | "approve" | "warn" | "redact"
+export type ContractMode = "enforce" | "observe"
+
+export interface ParsedContract {
+  id: string
+  type: ContractType
+  tool: string
+  mode: ContractMode
+  effect: ContractEffect
+  summary: string
+  message: string
+  tags: string[]
+  sandbox?: {
+    within?: string[]
+    not_within?: string[]
+    commands?: string[]
+    domains?: string[]
+  }
+  limits?: {
+    max_tool_calls?: number
+    max_attempts?: number
+    max_calls_per_tool?: Record<string, number>
+  }
+}
+
+export interface BundleMeta {
+  name: string
+  description: string
+  version: number
+  revision_hash: string
+  defaults_mode: ContractMode
+  uploaded_by: string
+  created_at: string
+  deployed_envs: string[]
+  contract_count: number
+  types: Record<ContractType, number>
+}
+
+export interface VersionContext {
+  env: string
+  version: number
+}
+
+// ── DevOps agent example bundle (8 contracts across 4 types) ──
+
+export const MOCK_YAML_DEVOPS = `apiVersion: edictum/v1
+kind: ContractBundle
+metadata:
+  name: devops-agent
+  description: "Governance for CI/CD and infrastructure agents."
+defaults:
+  mode: enforce
+tools:
+  read_file:
+    side_effect: read
+  bash:
+    side_effect: irreversible
+  deploy_service:
+    side_effect: irreversible
+  call_api:
+    side_effect: write
+  send_notification:
+    side_effect: write
+contracts:
+  - id: block-sensitive-reads
+    type: pre
+    tool: read_file
+    when:
+      args.path:
+        contains_any: [".env", ".secret", "kubeconfig", "credentials", ".pem", "id_rsa"]
+    then:
+      effect: deny
+      message: "Sensitive file '{args.path}' denied. Skip and continue."
+      tags: [secrets, dlp]
+
+  - id: block-destructive-bash
+    type: pre
+    tool: bash
+    when:
+      any:
+        - args.command: { matches: '\\\\brm\\\\s+(-rf?|--recursive)\\\\b' }
+        - args.command: { matches: '\\\\bmkfs\\\\b' }
+        - args.command: { matches: '\\\\bdd\\\\s+' }
+        - args.command: { contains: '> /dev/' }
+    then:
+      effect: deny
+      message: "Destructive command denied: '{args.command}'. Use a safer alternative."
+      tags: [destructive, safety]
+
+  - id: prod-deploy-requires-senior
+    type: pre
+    tool: deploy_service
+    when:
+      all:
+        - environment: { equals: production }
+        - principal.role: { not_in: [senior_engineer, sre, admin] }
+    then:
+      effect: deny
+      message: "Production deploys require senior role (sre/admin)."
+      tags: [change-control, production]
+
+  - id: prod-requires-ticket
+    type: pre
+    tool: deploy_service
+    when:
+      all:
+        - environment: { equals: production }
+        - principal.ticket_ref: { exists: false }
+    then:
+      effect: deny
+      message: "Production changes require a ticket reference."
+      tags: [change-control, compliance]
+
+  - id: pii-in-output
+    type: post
+    tool: "*"
+    when:
+      output.text:
+        matches_any:
+          - '\\\\b\\\\d{3}-\\\\d{2}-\\\\d{4}\\\\b'
+          - '\\\\b[A-Z]{2}\\\\d{2}\\\\s?\\\\d{4}\\\\s?\\\\d{4}\\\\s?\\\\d{4}\\\\s?\\\\d{4}\\\\s?\\\\d{0,2}\\\\b'
+    then:
+      effect: warn
+      message: "PII pattern detected in output. Redact before using."
+      tags: [pii, compliance]
+
+  - id: file-sandbox
+    type: sandbox
+    tools: [read_file, bash]
+    within:
+      - /opt/app
+      - /tmp
+    not_within:
+      - /opt/app/.git
+      - /opt/app/.env
+    outside: deny
+    message: "File access outside allowed directories: {args.path}"
+
+  - id: exec-sandbox
+    type: sandbox
+    tool: bash
+    allows:
+      commands: [git, npm, pnpm, node, python, pytest, ruff, ls, cat, grep]
+    outside: deny
+    message: "Command not in allowlist: {args.command}"
+
+  - id: session-limits
+    type: session
+    limits:
+      max_tool_calls: 50
+      max_attempts: 120
+      max_calls_per_tool:
+        deploy_service: 3
+        send_notification: 10
+    then:
+      effect: deny
+      message: "Session limit reached. Summarize progress and stop."
+      tags: [rate-limit]`
+
+// Pre-parsed contracts for mockup rendering (avoids needing js-yaml in mockups)
+export const MOCK_PARSED_CONTRACTS: ParsedContract[] = [
+  {
+    id: "block-sensitive-reads",
+    type: "pre",
+    tool: "read_file",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Denies read_file when path contains .env, .secret, kubeconfig, credentials, .pem, id_rsa",
+    message: "Sensitive file '{args.path}' denied. Skip and continue.",
+    tags: ["secrets", "dlp"],
+  },
+  {
+    id: "block-destructive-bash",
+    type: "pre",
+    tool: "bash",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Denies bash when command matches rm -rf, mkfs, dd, or writes to /dev/",
+    message: "Destructive command denied: '{args.command}'. Use a safer alternative.",
+    tags: ["destructive", "safety"],
+  },
+  {
+    id: "prod-deploy-requires-senior",
+    type: "pre",
+    tool: "deploy_service",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Denies deploy_service in production when role is not senior_engineer, sre, or admin",
+    message: "Production deploys require senior role (sre/admin).",
+    tags: ["change-control", "production"],
+  },
+  {
+    id: "prod-requires-ticket",
+    type: "pre",
+    tool: "deploy_service",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Denies deploy_service in production when no ticket reference is provided",
+    message: "Production changes require a ticket reference.",
+    tags: ["change-control", "compliance"],
+  },
+  {
+    id: "pii-in-output",
+    type: "post",
+    tool: "*",
+    mode: "enforce",
+    effect: "warn",
+    summary: "Warns on all tools when output matches SSN or IBAN patterns",
+    message: "PII pattern detected in output. Redact before using.",
+    tags: ["pii", "compliance"],
+  },
+  {
+    id: "file-sandbox",
+    type: "sandbox",
+    tool: "read_file, bash",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Restricts read_file and bash to /opt/app and /tmp, excluding .git and .env",
+    message: "File access outside allowed directories: {args.path}",
+    tags: [],
+    sandbox: {
+      within: ["/opt/app", "/tmp"],
+      not_within: ["/opt/app/.git", "/opt/app/.env"],
+    },
+  },
+  {
+    id: "exec-sandbox",
+    type: "sandbox",
+    tool: "bash",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Restricts bash to allowlisted commands: git, npm, pnpm, node, python, pytest, ruff, ls, cat, grep",
+    message: "Command not in allowlist: {args.command}",
+    tags: [],
+    sandbox: {
+      commands: ["git", "npm", "pnpm", "node", "python", "pytest", "ruff", "ls", "cat", "grep"],
+    },
+  },
+  {
+    id: "session-limits",
+    type: "session",
+    tool: "all tools",
+    mode: "enforce",
+    effect: "deny",
+    summary: "Max 50 tool calls, 120 attempts. Per-tool: deploy_service ≤3, send_notification ≤10",
+    message: "Session limit reached. Summarize progress and stop.",
+    tags: ["rate-limit"],
+    limits: {
+      max_tool_calls: 50,
+      max_attempts: 120,
+      max_calls_per_tool: { deploy_service: 3, send_notification: 10 },
+    },
+  },
+]
+
+// Bundle metadata for header rendering
+export const MOCK_BUNDLE_META: BundleMeta = {
+  name: "devops-agent",
+  description: "Governance for CI/CD and infrastructure agents.",
+  version: 5,
+  revision_hash: "sha256:e7f2a1...",
+  defaults_mode: "enforce",
+  uploaded_by: "admin@example.com",
+  created_at: "2026-02-27T08:00:00Z",
+  deployed_envs: ["development"],
+  contract_count: 8,
+  types: { pre: 4, post: 1, session: 1, sandbox: 2 },
+}
+
+// Version deployment context for badges
+export const MOCK_VERSION_CONTEXT: VersionContext[] = [
+  { env: "production", version: 3 },
+  { env: "staging", version: 4 },
+  { env: "development", version: 5 },
+]
+
+// Type color mappings
+export const TYPE_COLORS: Record<ContractType, { bg: string; text: string; border: string }> = {
+  pre: {
+    bg: "bg-blue-500/15",
+    text: "text-blue-400",
+    border: "border-blue-500/30",
+  },
+  post: {
+    bg: "bg-purple-500/15",
+    text: "text-purple-400",
+    border: "border-purple-500/30",
+  },
+  session: {
+    bg: "bg-cyan-500/15",
+    text: "text-cyan-400",
+    border: "border-cyan-500/30",
+  },
+  sandbox: {
+    bg: "bg-orange-500/15",
+    text: "text-orange-400",
+    border: "border-orange-500/30",
+  },
+}
+
+export const EFFECT_COLORS: Record<ContractEffect, { bg: string; text: string; border: string }> = {
+  deny: {
+    bg: "bg-red-500/15",
+    text: "text-red-400",
+    border: "border-red-500/30",
+  },
+  approve: {
+    bg: "bg-amber-500/15",
+    text: "text-amber-400",
+    border: "border-amber-500/30",
+  },
+  warn: {
+    bg: "bg-yellow-500/15",
+    text: "text-yellow-400",
+    border: "border-yellow-500/30",
+  },
+  redact: {
+    bg: "bg-pink-500/15",
+    text: "text-pink-400",
+    border: "border-pink-500/30",
+  },
+}
+
+export const MODE_COLORS: Record<ContractMode, { bg: string; text: string; border: string }> = {
+  enforce: {
+    bg: "bg-amber-500/15",
+    text: "text-amber-400",
+    border: "border-amber-500/30",
+  },
+  observe: {
+    bg: "bg-blue-500/15",
+    text: "text-blue-400",
+    border: "border-blue-500/30",
+  },
+}
+
+// Contract groups by type
+export function groupContractsByType(contracts: ParsedContract[]): Record<ContractType, ParsedContract[]> {
+  return contracts.reduce(
+    (acc, contract) => {
+      acc[contract.type].push(contract)
+      return acc
+    },
+    { pre: [], post: [], session: [], sandbox: [] } as Record<ContractType, ParsedContract[]>,
+  )
+}
+
+// Type labels
+export const TYPE_LABELS: Record<ContractType, string> = {
+  pre: "Precondition",
+  post: "Postcondition",
+  session: "Session",
+  sandbox: "Sandbox",
+}
+
 // Helper: format relative time from ISO string
 export function relativeTime(iso: string): string {
   const now = new Date("2026-02-27T08:15:00Z")
