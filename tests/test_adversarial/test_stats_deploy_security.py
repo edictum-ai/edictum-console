@@ -61,6 +61,7 @@ async def test_deployments_tenant_isolation(
         Deployment(
             tenant_id=TENANT_A_ID,
             env="production",
+            bundle_name="devops-agent",
             bundle_version=1,
             deployed_by="test",
             created_at=datetime(2026, 1, 1),

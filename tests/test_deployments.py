@@ -18,12 +18,14 @@ async def _seed_deployment(
     *,
     env: str = "production",
     version: int = 1,
+    bundle_name: str = "devops-agent",
     at: datetime = _T0,
 ) -> None:
     db.add(
         Deployment(
             tenant_id=TENANT_A_ID,
             env=env,
+            bundle_name=bundle_name,
             bundle_version=version,
             deployed_by="test",
             created_at=at,
@@ -33,7 +35,7 @@ async def _seed_deployment(
 
 
 async def test_list_deployments_empty(client: AsyncClient) -> None:
-    """No deployments → empty list."""
+    """No deployments -> empty list."""
     resp = await client.get("/api/v1/deployments")
     assert resp.status_code == 200
     assert resp.json() == []

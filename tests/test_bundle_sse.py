@@ -7,7 +7,20 @@ from httpx import AsyncClient
 from edictum_server.push.manager import PushManager
 from tests.conftest import TENANT_A_ID
 
-SAMPLE_YAML = "rules:\n  - name: test\n    tool: shell\n    verdict: deny\n"
+SAMPLE_YAML = """\
+apiVersion: edictum/v1
+kind: ContractBundle
+
+metadata:
+  name: devops-agent
+
+contracts:
+  - id: test
+    type: pre
+    tool: shell
+    then:
+      effect: deny
+"""
 
 
 async def test_upload_fires_bundle_uploaded_sse(
@@ -26,6 +39,7 @@ async def test_upload_fires_bundle_uploaded_sse(
     # The event should be in the queue
     event = queue.get_nowait()
     assert event["type"] == "bundle_uploaded"
+    assert event["bundle_name"] == "devops-agent"
     assert event["version"] == 1
     assert "revision_hash" in event
     assert event["uploaded_by"] == "user_test_123"

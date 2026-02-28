@@ -16,7 +16,20 @@ from tests.conftest import TENANT_A_ID
 
 pytestmark = pytest.mark.security
 
-SAMPLE_YAML = "rules:\n  - name: test\n    tool: shell\n    verdict: deny\n"
+SAMPLE_YAML = """\
+apiVersion: edictum/v1
+kind: ContractBundle
+
+metadata:
+  name: devops-agent
+
+contracts:
+  - id: test
+    type: pre
+    tool: shell
+    then:
+      effect: deny
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +76,7 @@ async def test_bundle_not_visible_across_tenants(
     await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML})
 
     set_auth_tenant_b()
-    resp = await client.get("/api/v1/bundles/1")
+    resp = await client.get("/api/v1/bundles/devops-agent/1")
     assert resp.status_code == 404
 
 
@@ -84,11 +97,11 @@ async def test_get_yaml_cross_tenant(
     client: AsyncClient,
     set_auth_tenant_b: Callable[[], None],
 ) -> None:
-    """GET /bundles/{version}/yaml as wrong tenant -> 404."""
+    """GET /bundles/{name}/{version}/yaml as wrong tenant -> 404."""
     await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML})
 
     set_auth_tenant_b()
-    resp = await client.get("/api/v1/bundles/1/yaml")
+    resp = await client.get("/api/v1/bundles/devops-agent/1/yaml")
     assert resp.status_code == 404
 
 
@@ -101,7 +114,7 @@ async def test_deploy_bundle_cross_tenant(
 
     set_auth_tenant_b()
     resp = await client.post(
-        "/api/v1/bundles/1/deploy",
+        "/api/v1/bundles/devops-agent/1/deploy",
         json={"env": "production"},
     )
     assert resp.status_code == 422
@@ -118,6 +131,7 @@ async def test_get_current_bundle_cross_tenant(
         Deployment(
             tenant_id=TENANT_A_ID,
             env="production",
+            bundle_name="devops-agent",
             bundle_version=1,
             deployed_by="test",
         )
@@ -126,10 +140,37 @@ async def test_get_current_bundle_cross_tenant(
 
     set_auth_tenant_b()
     resp = await client.get(
-        "/api/v1/bundles/current",
+        "/api/v1/bundles/devops-agent/current",
         params={"env": "production"},
     )
     assert resp.status_code == 404
+
+
+async def test_bundle_versions_not_visible_across_tenants(
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
+) -> None:
+    """Upload as A, list versions as B -> 404."""
+    await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML})
+
+    set_auth_tenant_b()
+    resp = await client.get("/api/v1/bundles/devops-agent")
+    assert resp.status_code == 404
+
+
+async def test_deploy_cross_tenant_bundle_by_name(
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
+) -> None:
+    """Deploy A's bundle as B using name-scoped route -> 422."""
+    await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML})
+
+    set_auth_tenant_b()
+    resp = await client.post(
+        "/api/v1/bundles/devops-agent/1/deploy",
+        json={"env": "production"},
+    )
+    assert resp.status_code == 422
 
 
 # ---------------------------------------------------------------------------

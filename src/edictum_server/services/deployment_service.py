@@ -17,6 +17,7 @@ from edictum_server.services.signing_service import sign_bundle
 async def deploy_bundle(
     db: AsyncSession,
     tenant_id: uuid.UUID,
+    bundle_name: str,
     version: int,
     env: str,
     deployed_by: str,
@@ -30,21 +31,23 @@ async def deploy_bundle(
     3. Creates a deployment record.
     4. Pushes the new bundle to connected agents via SSE.
     """
-    bundle = await get_bundle_by_version(db, tenant_id, version)
+    bundle = await get_bundle_by_version(db, tenant_id, version, bundle_name=bundle_name)
     if bundle is None:
-        raise ValueError(f"Bundle version {version} not found")
+        raise ValueError(f"Bundle '{bundle_name}' version {version} not found")
+
+    # Always fetch the active signing key — needed for signing and SSE public_key
+    result = await db.execute(
+        select(SigningKey)
+        .where(
+            SigningKey.tenant_id == tenant_id,
+            SigningKey.active.is_(True),
+        )
+        .limit(1)
+    )
+    signing_key_row = result.scalar_one_or_none()
 
     # Sign the bundle if it hasn't been signed yet
     if bundle.signature is None:
-        result = await db.execute(
-            select(SigningKey)
-            .where(
-                SigningKey.tenant_id == tenant_id,
-                SigningKey.active.is_(True),
-            )
-            .limit(1)
-        )
-        signing_key_row = result.scalar_one_or_none()
         if signing_key_row is None:
             raise ValueError("No active signing key for tenant")
 
@@ -59,22 +62,27 @@ async def deploy_bundle(
     deployment = Deployment(
         tenant_id=tenant_id,
         env=env,
+        bundle_name=bundle_name,
         bundle_version=version,
         deployed_by=deployed_by,
     )
     db.add(deployment)
     await db.flush()
 
+    public_key_hex = signing_key_row.public_key.hex() if signing_key_row else None
+
     # Push to all connected agents for this environment
     # SDK expects event type "contract_update" (not "bundle_deployed")
     contract_data = {
         "type": "contract_update",
+        "bundle_name": bundle_name,
         "version": version,
         "revision_hash": bundle.revision_hash,
         "signature": bundle.signature.hex() if bundle.signature else None,
+        "public_key": public_key_hex,
         "yaml_bytes": base64.b64encode(bundle.yaml_bytes).decode(),
     }
-    push_manager.push_to_env(env, contract_data)
+    push_manager.push_to_env(env, contract_data, tenant_id=tenant_id)
     push_manager.push_to_dashboard(tenant_id, contract_data)
 
     return deployment
