@@ -14,6 +14,10 @@ import { ApprovalsQueue } from "@/pages/approvals-queue"
 import { ContractsPage } from "@/pages/contracts"
 import { MockupGallery } from "@/pages/mockups/index"
 
+// Lazy-load page views
+const ApiKeysPage = lazy(() => import("@/pages/api-keys"))
+const SettingsPage = lazy(() => import("@/pages/settings"))
+
 // Lazy-load mockup variations — View 3: Dashboard Home
 const DashboardV1 = lazy(() => import("@/pages/mockups/dashboard-v1"))
 const DashboardV2 = lazy(() => import("@/pages/mockups/dashboard-v2"))
@@ -139,8 +143,8 @@ export function App() {
             <Route path="events" element={<EventsFeed />} />
             <Route path="approvals" element={<ApprovalsQueue />} />
             <Route path="contracts" element={<ContractsPage />} />
-            <Route path="keys" element={<PlaceholderPage title="API Keys" />} />
-            <Route path="settings" element={<PlaceholderPage title="Settings" />} />
+            <Route path="keys" element={<L><ApiKeysPage /></L>} />
+            <Route path="settings" element={<L><SettingsPage /></L>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
