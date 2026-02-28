@@ -28,7 +28,9 @@ from edictum_server.routes import (
     events,
     health,
     keys,
+    notifications,
     sessions,
+    settings,
     setup,
     stats,
     stream,
@@ -231,3 +233,5 @@ app.include_router(approvals.router)
 app.include_router(stats.router)
 app.include_router(telegram.router)
 app.include_router(agents.router)
+app.include_router(notifications.router)
+app.include_router(settings.router)

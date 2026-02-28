@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, LargeBinary, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, LargeBinary, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -157,3 +157,20 @@ class Approval(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     decision_reason: Mapped[str | None] = mapped_column(String, nullable=True)
     decided_via: Mapped[str | None] = mapped_column(String, nullable=True)
+
+
+class NotificationChannel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Configuration for a notification channel (e.g. Telegram, Slack)."""
+
+    __tablename__ = "notification_channels"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    name: Mapped[str] = mapped_column(String)
+    channel_type: Mapped[str] = mapped_column(String)
+    config: Mapped[dict] = mapped_column(JSON)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_test_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    last_test_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)

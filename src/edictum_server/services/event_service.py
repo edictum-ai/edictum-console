@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Event
@@ -92,3 +92,25 @@ async def query_events(
     stmt = stmt.order_by(Event.timestamp.desc()).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def purge_events(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    older_than_days: int,
+) -> tuple[int, datetime]:
+    """Delete events older than the specified number of days.
+
+    Returns (deleted_count, cutoff_datetime). Caller commits.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=older_than_days)
+    stmt = (
+        delete(Event)
+        .where(
+            Event.tenant_id == tenant_id,
+            Event.created_at < cutoff,
+        )
+    )
+    result = await db.execute(stmt)
+    await db.flush()
+    return result.rowcount, cutoff  # type: ignore[return-value]

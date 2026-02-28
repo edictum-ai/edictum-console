@@ -6,7 +6,7 @@ import asyncio
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Request
@@ -31,7 +31,7 @@ class AgentConnection:
     bundle_name: str | None
     policy_version: str | None
     agent_id: str
-    connected_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    connected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class PushManager:
