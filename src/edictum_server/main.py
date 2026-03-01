@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -253,7 +254,7 @@ app.include_router(notifications.router)
 app.include_router(settings.router)
 
 # --- SPA serving (dashboard) ---------------------------------------------------
-_STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dashboard"
+_STATIC_DIR = Path(os.environ.get("EDICTUM_STATIC_DIR", "/app/static/dashboard"))
 
 
 @app.get("/dashboard/{full_path:path}", response_model=None)
