@@ -28,6 +28,7 @@ from edictum_server.routes import (
     auth,
     bundles,
     deployments,
+    discord,
     evaluate,
     events,
     health,
@@ -247,6 +248,7 @@ app.include_router(sessions.router)
 app.include_router(approvals.router)
 app.include_router(stats.router)
 app.include_router(telegram.router)
+app.include_router(discord.router)
 app.include_router(slack.router)
 app.include_router(agents.router)
 app.include_router(notifications.router)

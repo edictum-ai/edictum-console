@@ -26,6 +26,7 @@ REQUIRED_CONFIG: dict[str, list[str]] = {
         "from_address",
         "to_addresses",
     ],
+    "discord": ["bot_token", "public_key", "discord_channel_id"],
 }
 
 _UNSET = object()

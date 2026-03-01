@@ -132,6 +132,20 @@ def _build_channel(
             redis=redis,
         )
 
+    if row.channel_type == "discord":
+        from edictum_server.notifications.discord import DiscordChannel
+
+        return DiscordChannel(
+            bot_token=config["bot_token"],
+            public_key=config["public_key"],
+            discord_channel_id=config["discord_channel_id"],
+            base_url=base_url,
+            channel_name=row.name,
+            channel_id=channel_id,
+            filters=filters,
+            redis=redis,
+        )
+
     if row.channel_type == "webhook":
         from edictum_server.notifications.webhook import WebhookChannel
 

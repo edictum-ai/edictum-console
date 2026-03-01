@@ -1,4 +1,4 @@
-import { Send, Hash, Webhook, Mail, Zap, MoreHorizontal, Pencil, Trash2, Power, PowerOff } from "lucide-react"
+import { Send, Hash, Webhook, Mail, Zap, Gamepad2, MoreHorizontal, Pencil, Trash2, Power, PowerOff } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -31,6 +31,7 @@ const TYPE_META: Record<string, { icon: typeof Send; label: string }> = {
   slack_app: { icon: Zap, label: "Slack (Interactive)" },
   webhook: { icon: Webhook, label: "Webhook" },
   email: { icon: Mail, label: "Email" },
+  discord: { icon: Gamepad2, label: "Discord" },
 }
 
 interface ChannelTableProps {

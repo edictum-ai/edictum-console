@@ -41,6 +41,15 @@ async def test_http_channel(
             return False, f"Slack API error: {data.get('error', 'unknown')}"
         return True, f"Slack App connected as @{data.get('user', 'unknown')}."
 
+    if channel_type == "discord":
+        resp = await client.get(
+            "https://discord.com/api/v10/users/@me",
+            headers={"Authorization": f"Bot {config['bot_token']}"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        return True, f"Discord bot connected as @{data.get('username', 'unknown')}."
+
     if channel_type == "webhook":
         resp = await client.post(
             config["url"],

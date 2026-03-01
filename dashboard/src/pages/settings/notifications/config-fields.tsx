@@ -30,6 +30,7 @@ export const EMPTY_CONFIG: Record<ChannelType, Record<string, string>> = {
     from_address: "",
     to_addresses: "",
   },
+  discord: { bot_token: "", public_key: "", discord_channel_id: "" },
 }
 
 export function ConfigFields({ type, config, onChange }: ConfigFieldsProps) {
@@ -62,6 +63,15 @@ export function ConfigFields({ type, config, onChange }: ConfigFieldsProps) {
       <>
         <Field id="cfg-url" label="URL" value={config.url} onChange={(v) => f("url", v)} placeholder="https://example.com/webhook" />
         <Field id="cfg-secret" label="Secret (optional)" type="password" value={config.secret} onChange={(v) => f("secret", v)} hint="HMAC-SHA256 signature sent in X-Signature header." />
+      </>
+    )
+
+  if (type === "discord")
+    return (
+      <>
+        <Field id="cfg-bot-token" label="Bot Token" type="password" value={config.bot_token} onChange={(v) => f("bot_token", v)} placeholder="MTIzNDU2Nzg5MDEy..." />
+        <Field id="cfg-public-key" label="Public Key" value={config.public_key} onChange={(v) => f("public_key", v)} placeholder="Hex-encoded Ed25519 key" hint="Found in Discord Developer Portal → General Information → Public Key." />
+        <Field id="cfg-discord-channel" label="Channel ID" value={config.discord_channel_id} onChange={(v) => f("discord_channel_id", v)} placeholder="1234567890123456789" hint="Right-click channel → Copy Channel ID (enable Developer Mode in Discord settings)." />
       </>
     )
 

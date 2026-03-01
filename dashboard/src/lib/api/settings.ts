@@ -2,7 +2,7 @@ import { request, requestVoid } from "./client"
 
 // --- Notification Channels ---
 
-export type ChannelType = "telegram" | "slack" | "slack_app" | "webhook" | "email"
+export type ChannelType = "telegram" | "slack" | "slack_app" | "webhook" | "email" | "discord"
 
 export interface ChannelFilters {
   environments?: string[]

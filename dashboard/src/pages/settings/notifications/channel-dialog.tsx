@@ -39,6 +39,7 @@ function isValid(name: string, type: ChannelType, config: Record<string, string>
   if (type === "slack_app") return !!config.bot_token && !!config.signing_secret && !!config.slack_channel
   if (type === "webhook") return !!config.url
   if (type === "email") return !!config.smtp_host && !!config.from_address && !!config.to_addresses
+  if (type === "discord") return !!config.bot_token && !!config.public_key && !!config.discord_channel_id
   return false
 }
 
@@ -115,8 +116,17 @@ export function ChannelDialog({ open, onOpenChange, channel, onSaved }: ChannelD
                 <SelectItem value="slack_app">Slack (Interactive)</SelectItem>
                 <SelectItem value="webhook">Webhook</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="discord">Discord</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              {type === "slack" && "Sends notifications with a deep link to the approval in the dashboard."}
+              {type === "slack_app" && "Sends notifications with interactive Approve/Deny buttons directly in Slack."}
+              {type === "telegram" && "Sends notifications with interactive Approve/Deny buttons in Telegram."}
+              {type === "webhook" && "POSTs JSON to your endpoint with optional HMAC signature."}
+              {type === "email" && "Sends email notifications via SMTP."}
+              {type === "discord" && "Sends notifications with interactive Approve/Deny buttons directly in Discord."}
+            </p>
           </div>
 
           <div className="space-y-3 rounded-md border p-3">
