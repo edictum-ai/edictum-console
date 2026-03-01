@@ -38,10 +38,14 @@ async def test_create_channel(client: AsyncClient) -> None:
     data = await _create_channel(client)
     assert data["name"] == "ops-telegram"
     assert data["channel_type"] == "telegram"
-    assert data["config"] == TELEGRAM_CONFIG
+    # Config includes auto-generated webhook_secret for Telegram DB channels
+    assert data["config"]["bot_token"] == TELEGRAM_CONFIG["bot_token"]
+    assert data["config"]["chat_id"] == TELEGRAM_CONFIG["chat_id"]
+    assert "webhook_secret" in data["config"]
     assert data["enabled"] is True
     assert data["last_test_at"] is None
     assert data["last_test_ok"] is None
+    assert data["filters"] is None
 
 
 async def test_list_channels(client: AsyncClient) -> None:
@@ -115,6 +119,14 @@ async def test_invalid_config_missing_bot_token(client: AsyncClient) -> None:
 
 
 async def test_invalid_channel_type(client: AsyncClient) -> None:
+    resp = await client.post(
+        CHANNELS_URL,
+        json={"name": "bad", "channel_type": "fax", "config": {}},
+    )
+    assert resp.status_code == 422
+
+
+async def test_email_channel_missing_config(client: AsyncClient) -> None:
     resp = await client.post(
         CHANNELS_URL,
         json={"name": "bad", "channel_type": "email", "config": {}},
