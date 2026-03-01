@@ -42,7 +42,9 @@ export function ExpressionTree({ expr, depth }: { expr: Expression; depth: numbe
   // Leaf
   const entries = Object.entries(expr as Record<string, Record<string, unknown>>)
   if (entries.length === 0) return null
-  const [selector, ops] = entries[0]
+  const entry = entries[0]
+  if (!entry) return null
+  const [selector, ops] = entry
   const opStr = Object.entries(ops)
     .map(([op, val]) => {
       if (op === "exists") return val ? "is set" : "is not set"

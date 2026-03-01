@@ -54,13 +54,14 @@ export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps)
 
   // Reset sourceVersion when selected bundle changes
   useEffect(() => {
-    if (sorted.length > 0) {
-      setSourceVersion(String(sorted[0]!.version))
+    const latest = [...bundles].sort((a, b) => b.version - a.version)
+    if (latest.length > 0) {
+      setSourceVersion(String(latest[0]!.version))
     } else {
       setSourceVersion("")
       setYamlContent("")
     }
-  }, [selectedBundle]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedBundle, bundles])
 
   // Auto-load YAML when source version or bundle changes in deployed mode
   useEffect(() => {

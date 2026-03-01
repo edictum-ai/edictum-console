@@ -49,9 +49,9 @@ export function DashboardHome() {
       void refreshStats()
     },
     new_event: (raw) => {
-      const event = raw as EventResponse
-      if (event?.id) {
-        setEvents((prev) => [event, ...prev].slice(0, 100))
+      const event = raw as Record<string, unknown>
+      if (typeof event?.id === "string" && typeof event?.tool_name === "string") {
+        setEvents((prev) => [event as unknown as EventResponse, ...prev].slice(0, 100))
       }
     },
     approval_update: () => {
@@ -83,7 +83,7 @@ export function DashboardHome() {
 
       {/* Two-column layout: triage + activity (resizable horizontally) */}
       <div className="mt-4 h-[50vh] min-h-[300px]">
-        <ResizablePanelGroup direction="horizontal" autoSaveId="edictum-overview-cols" className="h-full">
+        <ResizablePanelGroup orientation="horizontal" className="h-full">
           <ResizablePanel defaultSize={40} minSize={25}>
             <div className="h-full overflow-auto border-r border-border">
               <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />

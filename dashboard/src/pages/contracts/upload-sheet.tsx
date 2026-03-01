@@ -24,7 +24,7 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const validation = yaml.trim() ? validateBundle(yaml) : null
 

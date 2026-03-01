@@ -46,10 +46,6 @@ import {
   toLocalISOString,
 } from "@/lib/histogram"
 
-// Re-export types used by events-feed.tsx
-export type { TimeWindow, PresetKey }
-export { DEFAULT_TIME_WINDOW, resolveWindow }
-
 // -- Component -------------------------------------------------------------
 
 interface EventListProps {

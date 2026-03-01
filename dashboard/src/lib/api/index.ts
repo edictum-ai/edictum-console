@@ -1,4 +1,4 @@
-export { ApiError } from "./client"
+export { ApiError, requestVoid } from "./client"
 export { getHealth, login, logout, getMe, setup, listKeys, createKey, deleteKey } from "./auth"
 export { listEvents } from "./events"
 export { listApprovals, getApproval, submitDecision } from "./approvals"

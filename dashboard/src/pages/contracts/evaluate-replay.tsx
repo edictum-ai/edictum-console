@@ -34,10 +34,11 @@ export function EvaluateReplay({ bundles, selectedBundle }: EvaluateReplayProps)
   const [showErrors, setShowErrors] = useState(false)
   // Reset versions when selected bundle changes
   useEffect(() => {
-    setTestVersion(sorted[0]?.version ? String(sorted[0].version) : "")
-    setBaselineVersion(sorted[1]?.version ? String(sorted[1].version) : "")
+    const latest = [...bundles].sort((a, b) => b.version - a.version)
+    setTestVersion(latest[0]?.version ? String(latest[0].version) : "")
+    setBaselineVersion(latest[1]?.version ? String(latest[1].version) : "")
     setState({ status: "idle" })
-  }, [selectedBundle]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedBundle, bundles])
   const runReplay = useCallback(async () => {
     if (!selectedBundle || !testVersion || !baselineVersion) return
     setState({ status: "running", progress: 0, total: 0 })

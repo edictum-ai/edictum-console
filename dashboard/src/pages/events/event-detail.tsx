@@ -12,32 +12,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { EventResponse } from "@/lib/api"
 import { extractProvenance, isObserveFinding } from "@/lib/payload-helpers"
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
+import { DetailRow } from "@/components/detail-row"
 import { DecisionContextCard } from "./detail-decision-context"
 import { ToolArgsCard } from "./detail-tool-args"
 import { ContractsEvaluatedCard } from "./detail-contracts-evaluated"
-
-function DetailRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="shrink-0 text-[11px] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={`min-w-0 truncate text-right text-[11px] text-foreground ${mono ? "font-mono" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
 
 interface EventDetailProps {
   event: EventResponse

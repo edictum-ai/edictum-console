@@ -2,17 +2,11 @@ import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
 import { useState } from "react"
+import { CONTRACT_TYPE_COLORS } from "@/lib/contract-colors"
 import type { ContractDiff } from "./types"
 
 interface DiffSummaryProps {
   diff: ContractDiff
-}
-
-const TYPE_COLORS: Record<string, string> = {
-  pre: "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30",
-  post: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30",
-  session: "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30",
-  sandbox: "bg-orange-500/15 text-orange-700 dark:text-orange-400 border-orange-500/30",
 }
 
 export function DiffSummary({ diff }: DiffSummaryProps) {
@@ -40,7 +34,7 @@ export function DiffSummary({ diff }: DiffSummaryProps) {
           <div key={c.id} className="flex items-center gap-2 text-sm">
             <span className="font-medium text-emerald-600 dark:text-emerald-400">+</span>
             <span className="font-mono text-sm">{c.id}</span>
-            <Badge variant="outline" className={TYPE_COLORS[c.type]}>
+            <Badge variant="outline" className={CONTRACT_TYPE_COLORS[c.type]}>
               {c.type}
             </Badge>
           </div>
@@ -50,7 +44,7 @@ export function DiffSummary({ diff }: DiffSummaryProps) {
           <div key={c.id} className="flex items-center gap-2 text-sm">
             <span className="font-medium text-red-600 dark:text-red-400">-</span>
             <span className="font-mono text-sm line-through text-muted-foreground">{c.id}</span>
-            <Badge variant="outline" className={TYPE_COLORS[c.type]}>
+            <Badge variant="outline" className={CONTRACT_TYPE_COLORS[c.type]}>
               {c.type}
             </Badge>
           </div>

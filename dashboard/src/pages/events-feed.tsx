@@ -3,12 +3,8 @@ import { useSearchParams } from "react-router"
 import { listEvents, type EventResponse } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { EventFilterPanel } from "./events/event-filter-panel"
-import {
-  EventList,
-  type TimeWindow,
-  DEFAULT_TIME_WINDOW,
-  resolveWindow,
-} from "./events/event-list"
+import { EventList } from "./events/event-list"
+import { type TimeWindow, DEFAULT_TIME_WINDOW, resolveWindow } from "@/lib/histogram"
 import { EventDetail } from "./events/event-detail"
 import { Loader2 } from "lucide-react"
 

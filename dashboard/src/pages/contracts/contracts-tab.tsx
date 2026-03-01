@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { BundleSummary, BundleWithDeployments, ContractCoverage } from "@/lib/api"
+import { CONTRACT_TYPE_COLORS } from "@/lib/contract-colors"
 import type { ContractBundle, ContractType } from "./types"
 import { BundleHeader } from "./bundle-header"
 import { ContractRow } from "./contract-row"
@@ -26,12 +27,6 @@ interface ContractsTabProps {
 
 const TYPE_ORDER: ContractType[] = ["pre", "post", "session", "sandbox"]
 const TYPE_LABELS: Record<ContractType, string> = { pre: "Preconditions", post: "Postconditions", session: "Session Limits", sandbox: "Sandboxes" }
-const TYPE_BADGE: Record<ContractType, string> = {
-  pre: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  post: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  session: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  sandbox: "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30",
-}
 const TYPE_DESC: Record<ContractType, string> = { pre: "before execution", post: "after execution", session: "aggregate limits", sandbox: "restrict operations" }
 
 export function ContractsTab({
@@ -164,7 +159,7 @@ export function ContractsTab({
           {nonEmptyTypes.map((type, i) => (
             <span key={type} className="flex items-center gap-1">
               {i > 0 && <Separator orientation="vertical" className="mx-1 h-3" />}
-              <Badge variant="outline" className={`text-[10px] ${TYPE_BADGE[type]}`}>
+              <Badge variant="outline" className={`text-[10px] ${CONTRACT_TYPE_COLORS[type]}`}>
                 {grouped[type].length}
               </Badge>
               {TYPE_LABELS[type]}
@@ -185,7 +180,7 @@ export function ContractsTab({
             <AccordionItem key={type} value={type} className="border-b-0 mb-1">
               <AccordionTrigger className="rounded-md bg-muted/30 px-3 py-2 text-sm hover:bg-muted/50 hover:no-underline">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className={`text-[10px] ${TYPE_BADGE[type]}`}>
+                  <Badge variant="outline" className={`text-[10px] ${CONTRACT_TYPE_COLORS[type]}`}>
                     {stats.total}
                   </Badge>
                   <span className="font-medium">{TYPE_LABELS[type]}</span>

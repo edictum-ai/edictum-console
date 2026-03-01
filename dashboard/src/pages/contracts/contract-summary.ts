@@ -80,11 +80,11 @@ function renderSandboxSummary(c: ParsedContract): string {
 function renderExpression(expr: Expression): string {
   if ("all" in expr) {
     const parts = (expr as { all: Expression[] }).all.map(renderExpression)
-    return parts.length === 1 ? parts[0] : parts.map((s) => `(${s})`).join(" AND ")
+    return parts.length === 1 ? (parts[0] ?? "") : parts.map((s) => `(${s})`).join(" AND ")
   }
   if ("any" in expr) {
     const parts = (expr as { any: Expression[] }).any.map(renderExpression)
-    return parts.length === 1 ? parts[0] : parts.map((s) => `(${s})`).join(" OR ")
+    return parts.length === 1 ? (parts[0] ?? "") : parts.map((s) => `(${s})`).join(" OR ")
   }
   if ("not" in expr) {
     return `NOT (${renderExpression((expr as { not: Expression }).not)})`
@@ -94,7 +94,9 @@ function renderExpression(expr: Expression): string {
   const entries = Object.entries(expr as Record<string, Record<string, unknown>>)
   if (entries.length === 0) return "(empty)"
 
-  const [selector, ops] = entries[0]
+  const entry = entries[0]
+  if (!entry) return "(empty)"
+  const [selector, ops] = entry
   const opParts = Object.entries(ops).map(([op, val]) => renderOperator(op, val))
   return `${selector} ${opParts.join(", ")}`
 }

@@ -62,7 +62,7 @@ export function ChannelTable({ channels, onEdit, onDelete, onToggleEnabled }: Ch
       </TableHeader>
       <TableBody>
         {channels.map((ch) => {
-          const meta = TYPE_META[ch.channel_type] ?? TYPE_META.webhook
+          const meta = TYPE_META[ch.channel_type] ?? { icon: Webhook, label: ch.channel_type }
           const Icon = meta.icon
           const summary = filterSummary(ch.filters)
           return (

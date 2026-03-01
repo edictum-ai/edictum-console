@@ -1,4 +1,4 @@
-import { request } from "./client"
+import { request, requestVoid } from "./client"
 
 // --- Notification Channels ---
 
@@ -60,7 +60,7 @@ export function updateChannel(id: string, data: UpdateChannelRequest) {
 }
 
 export function deleteChannel(id: string) {
-  return request<void>(`/notifications/channels/${id}`, { method: "DELETE" })
+  return requestVoid(`/notifications/channels/${id}`, { method: "DELETE" })
 }
 
 export function testChannel(id: string) {

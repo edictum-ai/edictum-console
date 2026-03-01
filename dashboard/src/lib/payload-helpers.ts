@@ -106,6 +106,18 @@ export function extractArgsPreview(event: {
   return ""
 }
 
+/** Preview from a plain tool_args record (no event wrapper needed). */
+export function argsPreview(toolArgs: Record<string, unknown> | null): string {
+  if (!toolArgs) return "(no arguments)"
+  const entries = Object.entries(toolArgs)
+  if (entries.length === 0) return "(empty)"
+  const preview = entries
+    .slice(0, 2)
+    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
+    .join(", ")
+  return entries.length > 2 ? `${preview} ...` : preview
+}
+
 export function extractUniqueContracts(
   events: Array<{ payload: Record<string, unknown> | null }>,
 ): Map<string, number> {

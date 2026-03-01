@@ -2,9 +2,6 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, Hash, MessageCircle, Monitor, ShieldCheck, ShieldX, Timer } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 
-// Re-export EnvBadge from shared module for backwards compatibility
-export { EnvBadge } from "@/lib/env-colors"
-
 export function StatusBadge({ status }: { status: ApprovalResponse["status"] }) {
   const config = {
     pending: {

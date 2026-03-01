@@ -53,7 +53,7 @@ export function useContractsData() {
   useEffect(() => {
     if (summaries.length === 0) return
     if (selectedBundle && summaries.some((s) => s.name === selectedBundle)) return
-    setSelectedBundle(summaries[0].name)
+    setSelectedBundle(summaries[0]!.name)
   }, [summaries, selectedBundle])
 
   // Fetch versions when selected bundle changes
@@ -74,7 +74,7 @@ export function useContractsData() {
   useEffect(() => {
     if (versions.length === 0) return
     if (selectedVersion && versions.some((v) => v.version === selectedVersion)) return
-    setSelectedVersion(versions[0].version)
+    setSelectedVersion(versions[0]!.version)
   }, [versions, selectedVersion])
 
   // Load YAML when bundle + version changes

@@ -34,6 +34,29 @@ export async function request<T>(
     )
   }
 
-  if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
+}
+
+export async function requestVoid(
+  path: string,
+  options: RequestInit = {},
+): Promise<void> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    ...options,
+  })
+
+  if (!res.ok) {
+    const body = await res.text()
+    const retryAfter = res.headers.get("Retry-After")
+    throw new ApiError(
+      res.status,
+      body,
+      retryAfter ? parseInt(retryAfter, 10) : undefined,
+    )
+  }
 }

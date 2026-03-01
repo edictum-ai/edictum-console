@@ -4,29 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Shield, Copy, Check } from "lucide-react"
 import { formatDecisionSource } from "@/lib/payload-helpers"
-
-function DetailRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string
-  value: string
-  mono?: boolean
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="shrink-0 text-[11px] text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={`min-w-0 truncate text-right text-[11px] text-foreground ${mono ? "font-mono" : ""}`}
-      >
-        {value}
-      </span>
-    </div>
-  )
-}
+import { DetailRow } from "@/components/detail-row"
 
 interface Provenance {
   contractName: string | null

@@ -75,7 +75,7 @@ export function highlightYaml(yaml: string) {
     // Key: value pattern
     const keyMatch = mainPart.match(/^(\s*)([\w][\w.-]*)(:\s*)(.*)$/)
     if (keyMatch) {
-      const [, indent, key, colon, value] = keyMatch
+      const [, indent = "", key = "", colon = "", value = ""] = keyMatch
       return (
         <span key={i}>
           {indent}
@@ -91,7 +91,7 @@ export function highlightYaml(yaml: string) {
     // List item: - value
     const listMatch = mainPart.match(/^(\s*-\s)(.*)$/)
     if (listMatch) {
-      const [, prefix, value] = listMatch
+      const [, prefix = "", value = ""] = listMatch
       return (
         <span key={i}>
           {prefix}

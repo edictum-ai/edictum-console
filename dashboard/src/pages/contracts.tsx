@@ -44,16 +44,20 @@ export function ContractsPage() {
   // SSE handlers
   useDashboardSSE({
     bundle_uploaded: (data: unknown) => {
-      const d = data as { bundle_name: string; version: number }
-      toast.success(`${d.bundle_name} v${d.version} uploaded`)
-      void refreshSummaries()
-      if (d.bundle_name === selectedBundle) void refreshVersions()
+      const d = data as Record<string, unknown>
+      if (typeof d?.bundle_name === "string" && typeof d?.version === "number") {
+        toast.success(`${d.bundle_name} v${d.version} uploaded`)
+        void refreshSummaries()
+        if (d.bundle_name === selectedBundle) void refreshVersions()
+      }
     },
     contract_update: (data: unknown) => {
-      const d = data as { bundle_name: string; version: number; env: string }
-      toast.success(`${d.bundle_name} v${d.version} deployed to ${d.env}`)
-      void refreshSummaries()
-      if (d.bundle_name === selectedBundle) void refreshVersions()
+      const d = data as Record<string, unknown>
+      if (typeof d?.bundle_name === "string" && typeof d?.version === "number" && typeof d?.env === "string") {
+        toast.success(`${d.bundle_name} v${d.version} deployed to ${d.env}`)
+        void refreshSummaries()
+        if (d.bundle_name === selectedBundle) void refreshVersions()
+      }
     },
   })
 

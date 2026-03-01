@@ -18,7 +18,7 @@ import {
   XCircle,
 } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
-import { getArgsPreview } from "@/lib/format"
+import { argsPreview } from "@/lib/payload-helpers"
 import { TimerBar, getTimerState } from "./timer"
 import { EnvBadge } from "@/lib/env-colors"
 import { ExpandedDetail } from "./expanded-detail"
@@ -188,7 +188,7 @@ export function ApprovalsTable({
                   </TableCell>
                   <TableCell className="max-w-xs">
                     <code className="text-xs font-mono text-muted-foreground truncate block max-w-xs">
-                      {getArgsPreview(approval.tool_args)}
+                      {argsPreview(approval.tool_args)}
                     </code>
                   </TableCell>
                   <TableCell>

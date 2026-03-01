@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { purgeEvents } from "@/lib/api/settings"
+import { purgeEvents } from "@/lib/api"
 
 interface PurgeEventsDialogProps {
   open: boolean

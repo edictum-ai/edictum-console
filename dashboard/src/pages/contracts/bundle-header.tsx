@@ -17,6 +17,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { ChevronRight, Clock, User } from "lucide-react"
+import { CONTRACT_MODE_COLORS } from "@/lib/contract-colors"
 import { EnvBadge } from "@/lib/env-colors"
 import { formatRelativeTime } from "@/lib/format"
 import type { BundleWithDeployments, ContractCoverage } from "@/lib/api"
@@ -29,11 +30,6 @@ interface BundleHeaderProps {
   onVersionChange: (version: number) => void
   parsedBundle: ContractBundle
   coverage: ContractCoverage[]
-}
-
-const MODE_STYLES: Record<string, string> = {
-  enforce: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  observe: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
 }
 
 const KNOWN_ENVS = ["production", "staging", "development"] as const
@@ -92,7 +88,7 @@ export function BundleHeader({
               ))}
             </SelectContent>
           </Select>
-          <Badge variant="outline" className={MODE_STYLES[parsedBundle.defaults.mode]}>
+          <Badge variant="outline" className={CONTRACT_MODE_COLORS[parsedBundle.defaults.mode]}>
             {parsedBundle.defaults.mode}
           </Badge>
           {parsedBundle.observe_alongside && (

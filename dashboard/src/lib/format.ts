@@ -57,14 +57,3 @@ export function formatToolArgs(toolArgs: Record<string, unknown> | null): string
   return JSON.stringify(toolArgs, null, 2)
 }
 
-/** Truncated inline preview of tool_args: first 2 entries + "..." */
-export function getArgsPreview(toolArgs: Record<string, unknown> | null): string {
-  if (!toolArgs) return "(no arguments)"
-  const entries = Object.entries(toolArgs)
-  if (entries.length === 0) return "(empty)"
-  const preview = entries
-    .slice(0, 2)
-    .map(([k, v]) => `${k}=${typeof v === "string" ? v : JSON.stringify(v)}`)
-    .join(", ")
-  return entries.length > 2 ? `${preview} ...` : preview
-}

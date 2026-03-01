@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { rotateSigningKey } from "@/lib/api/settings"
+import { rotateSigningKey } from "@/lib/api"
 
 interface RotateKeyDialogProps {
   open: boolean

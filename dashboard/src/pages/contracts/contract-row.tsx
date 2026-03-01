@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/collapsible"
 import { ChevronRight } from "lucide-react"
 import type { ContractCoverage } from "@/lib/api"
+import { CONTRACT_MODE_COLORS } from "@/lib/contract-colors"
 import type { ContractType, Mode, ParsedContract } from "./types"
 import { ContractDetail } from "./contract-detail"
 
@@ -20,11 +21,6 @@ const EFFECT_STYLES: Record<string, string> = {
   warn: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
   approve: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
   redact: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-}
-
-const MODE_STYLES: Record<string, string> = {
-  enforce: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  observe: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
 }
 
 const TYPE_ACCENT: Record<ContractType, string> = {
@@ -61,7 +57,7 @@ export function ContractRow({ contract, coverage, defaultMode }: ContractRowProp
 
         {/* Mode — only show if different from default */}
         {contract.mode && contract.mode !== defaultMode && (
-          <Badge variant="outline" className={`shrink-0 text-[10px] ${MODE_STYLES[mode]}`}>
+          <Badge variant="outline" className={`shrink-0 text-[10px] ${CONTRACT_MODE_COLORS[mode]}`}>
             {mode}
           </Badge>
         )}

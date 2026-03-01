@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
 import { Loader2, Package } from "lucide-react"
 import { getBundleYaml, type BundleWithDeployments } from "@/lib/api"
 import { EnvBadge, ENV_COLORS } from "@/lib/env-colors"
@@ -23,7 +22,7 @@ export function VersionsTab({ bundleName, bundles, onRefresh }: VersionsTabProps
   // Auto-select latest version
   useEffect(() => {
     if (bundles.length > 0 && (!selectedVersion || !bundles.some((b) => b.version === selectedVersion))) {
-      setSelectedVersion(bundles[0].version)
+      setSelectedVersion(bundles[0]!.version)
     }
   }, [bundles, selectedVersion])
 

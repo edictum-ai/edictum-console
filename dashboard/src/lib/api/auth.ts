@@ -1,4 +1,4 @@
-import { request } from "./client"
+import { request, requestVoid } from "./client"
 
 // --- Health ---
 
@@ -93,5 +93,5 @@ export function createKey(env: string, label?: string) {
 }
 
 export function deleteKey(keyId: string) {
-  return request<void>(`/keys/${keyId}`, { method: "DELETE" })
+  return requestVoid(`/keys/${keyId}`, { method: "DELETE" })
 }

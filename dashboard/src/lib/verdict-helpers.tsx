@@ -12,16 +12,7 @@ import {
 
 /** Badge-style classes for verdict (bg + text + border). Light/dark safe. */
 export function verdictColor(v: string): string {
-  switch (v) {
-    case "allowed":
-      return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-    case "denied":
-      return "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30"
-    case "pending":
-      return "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
-    default:
-      return "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30"
-  }
+  return VERDICT_STYLES[v] ?? VERDICT_STYLES["timeout"] ?? ""
 }
 
 /** Small shield icon colored by verdict. Light/dark safe. */
@@ -40,10 +31,10 @@ export function VerdictIcon({ verdict, className = "h-3.5 w-3.5" }: { verdict: s
 
 /** Full badge styling record (bg + text + border). Light/dark safe. */
 export const VERDICT_STYLES: Record<string, string> = {
-  allowed: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
-  denied: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/25",
-  pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
-  timeout: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/25",
+  allowed: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  denied: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30",
+  pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  timeout: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
 }
 
 /** Dot color class for verdict filter indicators. */
