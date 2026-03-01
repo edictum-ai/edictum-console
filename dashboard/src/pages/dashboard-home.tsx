@@ -16,16 +16,22 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from "@/components/ui/resizable"
-import { Loader2 } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { AlertCircle } from "lucide-react"
+import { toast } from "sonner"
 
 export function DashboardHome() {
   const { data: stats, loading: statsLoading, refresh: refreshStats } = useStats()
   const [events, setEvents] = useState<EventResponse[]>([])
   const [approvals, setApprovals] = useState<ApprovalResponse[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     try {
+      setError(null)
       const [eventsData, approvalsData] = await Promise.all([
         listEvents({ limit: 100 }),
         listApprovals({ status: "pending", limit: 50 }),
@@ -33,7 +39,8 @@ export function DashboardHome() {
       setEvents(eventsData)
       setApprovals(approvalsData)
     } catch {
-      // Stats hook handles its own errors; data fetching failures are non-fatal
+      setError("Failed to load dashboard data")
+      toast.error("Failed to load dashboard data")
     } finally {
       setLoading(false)
     }
@@ -55,19 +62,42 @@ export function DashboardHome() {
       }
     },
     approval_update: () => {
+      // Background sync — SSE will retry; don't toast on transient failures
       void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
     },
   })
 
   function handleDecisionMade() {
     void refreshStats()
+    // Decision already succeeded; this is a background sync
     void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
   }
 
   if (loading && statsLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="flex flex-col p-4">
+        {/* Stats bar skeleton */}
+        <div className="-mx-4 -mt-4 mb-0 border-b border-border bg-card/30 px-6 py-3">
+          <div className="flex items-center gap-6">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-4 w-24" />
+            ))}
+          </div>
+        </div>
+        {/* Two column skeleton */}
+        <div className="mt-4 grid grid-cols-[2fr_3fr] gap-4 h-[50vh]">
+          <div className="space-y-3 p-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-lg" />
+            ))}
+          </div>
+          <div className="space-y-2 p-4">
+            <Skeleton className="h-[120px] w-full rounded-lg" />
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -80,6 +110,19 @@ export function DashboardHome() {
           <StatsBar stats={stats} loading={statsLoading} />
         </div>
       </div>
+
+      {/* Error banner — below stats bar, doesn't hide stale data */}
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            {error}
+            <Button variant="outline" size="sm" onClick={() => { setError(null); void fetchData() }}>
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Two-column layout: triage + activity (resizable horizontally) */}
       <div className="mt-4 h-[50vh] min-h-[300px]">

@@ -3,14 +3,16 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+  AlertCircle,
   LayoutGrid,
   List,
-  Loader2,
   Shield,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "sonner"
 import {
   listApprovals,
   submitDecision,
@@ -34,22 +36,30 @@ export function ApprovalsQueue() {
   const [loadingPending, setLoadingPending] = useState(true)
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [acting, setActing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>("auto")
 
   // Fetch pending approvals
-  const fetchPending = useCallback(async () => {
+  // silent: true for SSE-triggered background refreshes (no toast, no error banner)
+  const fetchPending = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false
     try {
+      if (!silent) setError(null)
       const data = await listApprovals({ status: "pending" })
       setPending(data)
+      setError(null) // auto-clear on successful refresh
     } catch {
-      // Silently handle — SSE will retry
+      if (!silent) {
+        setError("Failed to load pending approvals")
+        toast.error("Failed to load pending approvals")
+      }
     } finally {
       setLoadingPending(false)
     }
   }, [])
 
   // Fetch history (approved + denied + timeout, last 50)
-  const fetchHistory = useCallback(async () => {
+  const fetchHistory = useCallback(async (opts?: { silent?: boolean }) => {
     try {
       const [approved, denied, timeout] = await Promise.all([
         listApprovals({ status: "approved", limit: 20 }),
@@ -61,7 +71,7 @@ export function ApprovalsQueue() {
       )
       setHistory(combined)
     } catch {
-      // Silently handle
+      if (!opts?.silent) toast.error("Failed to load approval history")
     } finally {
       setLoadingHistory(false)
     }
@@ -73,11 +83,11 @@ export function ApprovalsQueue() {
     void fetchHistory()
   }, [fetchPending, fetchHistory])
 
-  // SSE for real-time updates
+  // SSE for real-time updates — silent refresh, no toast on transient failures
   useDashboardSSE({
-    approval_created: () => { void fetchPending() },
-    approval_decided: () => { void fetchPending(); void fetchHistory() },
-    approval_timeout: () => { void fetchPending(); void fetchHistory() },
+    approval_created: () => { void fetchPending({ silent: true }) },
+    approval_decided: () => { void fetchPending({ silent: true }); void fetchHistory({ silent: true }) },
+    approval_timeout: () => { void fetchPending({ silent: true }); void fetchHistory({ silent: true }) },
   })
 
   // Approve a single approval
@@ -86,9 +96,9 @@ export function ApprovalsQueue() {
     try {
       await submitDecision(id, true, user?.email)
       setPending((prev) => prev.filter((a) => a.id !== id))
-      void fetchHistory()
+      void fetchHistory({ silent: true }) // action succeeded; history refresh is background
     } catch {
-      // Error handling — could add toast later
+      toast.error("Failed to approve request")
     } finally {
       setActing(false)
     }
@@ -100,9 +110,9 @@ export function ApprovalsQueue() {
     try {
       await submitDecision(id, false, user?.email, reason)
       setPending((prev) => prev.filter((a) => a.id !== id))
-      void fetchHistory()
+      void fetchHistory({ silent: true })
     } catch {
-      // Error handling
+      toast.error("Failed to deny request")
     } finally {
       setActing(false)
     }
@@ -114,9 +124,9 @@ export function ApprovalsQueue() {
     try {
       await Promise.all(ids.map((id) => submitDecision(id, true, user?.email)))
       setPending((prev) => prev.filter((a) => !ids.includes(a.id)))
-      void fetchHistory()
+      void fetchHistory({ silent: true })
     } catch {
-      // Error handling
+      toast.error("Failed to approve selected requests")
     } finally {
       setActing(false)
     }
@@ -128,9 +138,9 @@ export function ApprovalsQueue() {
     try {
       await Promise.all(ids.map((id) => submitDecision(id, false, user?.email, reason)))
       setPending((prev) => prev.filter((a) => !ids.includes(a.id)))
-      void fetchHistory()
+      void fetchHistory({ silent: true })
     } catch {
-      // Error handling
+      toast.error("Failed to deny selected requests")
     } finally {
       setActing(false)
     }
@@ -146,14 +156,49 @@ export function ApprovalsQueue() {
 
   if (loadingPending) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <Skeleton className="h-8 w-20" />
+        </div>
+        <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-16" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="flex gap-2 pt-2">
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-24" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6 p-6">
+      {/* Error banner */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            {error}
+            <Button variant="outline" size="sm" onClick={() => { setError(null); void fetchPending() }}>
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

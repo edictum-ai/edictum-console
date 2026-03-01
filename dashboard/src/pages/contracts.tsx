@@ -1,7 +1,8 @@
 import { useEffect, useCallback } from "react"
 import { useSearchParams } from "react-router"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, ScrollText, FileText, History, GitCompare, FlaskConical } from "lucide-react"
+import { ScrollText, FileText, History, GitCompare, FlaskConical } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -63,8 +64,31 @@ export function ContractsPage() {
 
   if (loading && summaries.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <Skeleton className="h-9 w-24" />
+        </div>
+        {/* Tab bar skeleton */}
+        <div className="flex gap-4 border-b border-border pb-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-4 w-20" />
+          ))}
+        </div>
+        {/* Content skeleton */}
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-4">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-4 w-16 ml-auto" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }

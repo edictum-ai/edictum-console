@@ -60,8 +60,8 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
 
   const approvalRate =
     stats.events_24h > 0
-      ? (((stats.events_24h - stats.denials_24h) / stats.events_24h) * 100).toFixed(1)
-      : "100"
+      ? `${(((stats.events_24h - stats.denials_24h) / stats.events_24h) * 100).toFixed(1)}%`
+      : "—"
 
   return (
     <div className="shrink-0 px-6 py-3">
@@ -95,8 +95,8 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
           label="Denials (24h)"
           value={stats.denials_24h}
           subtext={
-            stats.denials_24h > 0
-              ? `${(100 - Number(approvalRate)).toFixed(1)}% rate`
+            stats.denials_24h > 0 && stats.events_24h > 0
+              ? `${((stats.denials_24h / stats.events_24h) * 100).toFixed(1)}% rate`
               : undefined
           }
         />
@@ -104,7 +104,7 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
         <StatItem
           icon={<BarChart3 className="size-4 text-muted-foreground" />}
           label="Approval Rate"
-          value={`${approvalRate}%`}
+          value={approvalRate}
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem

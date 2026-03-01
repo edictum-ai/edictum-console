@@ -6,7 +6,8 @@ import { EventFilterPanel } from "./events/event-filter-panel"
 import { EventList } from "./events/event-list"
 import { type TimeWindow, DEFAULT_TIME_WINDOW, resolveWindow } from "@/lib/histogram"
 import { EventDetail } from "./events/event-detail"
-import { Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 
 function applyClientFilters(
   events: EventResponse[],
@@ -254,16 +255,38 @@ export function EventsFeed() {
 
   if (loading && events.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <div className="flex h-full">
+        {/* Filter panel skeleton */}
+        <div className="w-[220px] shrink-0 border-r border-border p-4 space-y-4">
+          <Skeleton className="h-8 w-full" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-4 w-20" />
+              {Array.from({ length: 3 }).map((_, j) => (
+                <Skeleton key={j} className="h-4 w-full" />
+              ))}
+            </div>
+          ))}
+        </div>
+        {/* Event list skeleton */}
+        <div className="flex-1 p-4 space-y-3">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-[80px] w-full rounded-lg" />
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
       </div>
     )
   }
 
   if (error && events.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={() => void fetchEvents()}>
+          Retry
+        </Button>
       </div>
     )
   }
