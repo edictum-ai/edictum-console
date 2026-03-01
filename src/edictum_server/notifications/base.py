@@ -116,10 +116,16 @@ class NotificationManager:
         tenant_id: str,
         contract_name: str | None = None,
     ) -> None:
-        for channel in self.channels_for_tenant(tenant_id):
+        channels = self.channels_for_tenant(tenant_id)
+        logger.info(
+            "notify_approval_request: tenant=%s channels=%d approval=%s",
+            tenant_id, len(channels), approval_id,
+        )
+        for channel in channels:
             if not _matches_filters(
                 channel, env=env, agent_id=agent_id, contract_name=contract_name
             ):
+                logger.info("Channel %s filtered out for approval %s", channel.name, approval_id)
                 continue
             try:
                 await channel.send_approval_request(

@@ -54,24 +54,6 @@ async def _reload_manager(request: Request, db: AsyncSession) -> None:
     await mgr.reload(channels_by_tenant)
 
 
-async def _register_telegram_webhook(
-    request: Request, channel_id: str
-) -> None:
-    """Find the just-loaded Telegram channel and register its webhook."""
-    from edictum_server.notifications.telegram import TelegramChannel
-
-    mgr: NotificationManager = request.app.state.notification_manager
-    settings = get_settings()
-    for ch in mgr.channels:
-        if isinstance(ch, TelegramChannel) and ch.channel_id == channel_id:
-            try:
-                await ch.register_webhook(settings.base_url)
-            except Exception:
-                logger.exception(
-                    "Failed to register Telegram webhook for %s", channel_id
-                )
-            break
-
 
 @router.get("", response_model=list[ChannelResponse])
 async def list_channels(
@@ -112,11 +94,6 @@ async def create_channel(
     await db.commit()
     await db.refresh(channel)
     await _reload_manager(request, db)
-
-    # Register Telegram webhook for new channel
-    if body.channel_type == "telegram":
-        await _register_telegram_webhook(request, str(channel.id))
-
     return _to_response(channel)
 
 

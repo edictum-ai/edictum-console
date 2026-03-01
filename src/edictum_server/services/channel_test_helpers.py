@@ -32,23 +32,31 @@ async def test_http_channel(
 
     if channel_type == "slack_app":
         resp = await client.post(
-            "https://slack.com/api/auth.test",
+            "https://slack.com/api/chat.postMessage",
             headers={"Authorization": f"Bearer {config['bot_token']}"},
+            json={
+                "channel": config["slack_channel"],
+                "text": "Edictum test notification — Slack App channel is working.",
+            },
         )
         resp.raise_for_status()
         data = resp.json()
         if not data.get("ok"):
-            return False, f"Slack API error: {data.get('error', 'unknown')}"
-        return True, f"Slack App connected as @{data.get('user', 'unknown')}."
+            error = data.get("error", "unknown")
+            needed = data.get("needed")
+            if needed:
+                return False, f"Slack API error: {error} (add '{needed}' scope in OAuth & Permissions, then reinstall the app)"
+            return False, f"Slack API error: {error}"
+        return True, "Slack App message sent successfully."
 
     if channel_type == "discord":
-        resp = await client.get(
-            "https://discord.com/api/v10/users/@me",
+        resp = await client.post(
+            f"https://discord.com/api/v10/channels/{config['discord_channel_id']}/messages",
             headers={"Authorization": f"Bot {config['bot_token']}"},
+            json={"content": "Edictum test notification — Discord channel is working."},
         )
         resp.raise_for_status()
-        data = resp.json()
-        return True, f"Discord bot connected as @{data.get('username', 'unknown')}."
+        return True, "Discord message sent successfully."
 
     if channel_type == "webhook":
         resp = await client.post(

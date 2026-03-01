@@ -109,10 +109,6 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
 async def _bootstrap_admin(_app: FastAPI) -> None:
     """Create default tenant + admin user on first run if no users exist."""
     settings = get_settings()
-    if not settings.admin_email or not settings.admin_password:
-        logger.info("No admin credentials configured -- skipping bootstrap")
-        return
-
     from edictum_server.auth.local import LocalAuthProvider
     from edictum_server.db.models import Tenant, User
 
@@ -121,7 +117,22 @@ async def _bootstrap_admin(_app: FastAPI) -> None:
         user_count = result.scalar() or 0
 
         if user_count > 0:
-            logger.info("Users already exist -- skipping bootstrap")
+            return
+
+        # No users yet — check if env-var bootstrap is configured
+        if not settings.admin_email or not settings.admin_password:
+            logger.warning(
+                "No admin account exists. "
+                "Visit /dashboard/setup to create one, or set "
+                "EDICTUM_ADMIN_EMAIL and EDICTUM_ADMIN_PASSWORD and restart."
+            )
+            return
+
+        if len(settings.admin_password) < 12:
+            logger.error(
+                "EDICTUM_ADMIN_PASSWORD must be at least 12 characters. "
+                "Bootstrap aborted — visit /dashboard/setup instead."
+            )
             return
 
         # Create default tenant
@@ -177,19 +188,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             await notification_mgr.reload(channels_by_tenant)
             total = sum(len(chs) for chs in channels_by_tenant.values())
             logger.info("Loaded %d notification channel(s) from DB", total)
-            # Register Telegram webhooks on startup
-            from edictum_server.notifications.telegram import TelegramChannel
-
-            for chs in channels_by_tenant.values():
-                for ch in chs:
-                    if isinstance(ch, TelegramChannel):
-                        try:
-                            await ch.register_webhook(settings.base_url)
-                        except Exception:
-                            logger.exception(
-                                "Failed to register Telegram webhook for %s",
-                                ch.channel_id,
-                            )
     except Exception:
         logger.exception("Failed to load notification channels from DB")
 

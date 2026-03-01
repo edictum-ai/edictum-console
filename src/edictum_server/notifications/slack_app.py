@@ -17,7 +17,16 @@ _STATUS_EMOJI = {"approved": "\u2705", "denied": "\u274c", "timeout": "\u23f0"}
 
 
 class SlackAppChannel(NotificationChannel):
-    """Interactive Slack App channel using Bot API + action buttons."""
+    """Interactive Slack App channel using Bot API + action buttons.
+
+    NOTE: Slack requires an HTTPS URL to deliver interactive payloads (button
+    clicks). The Request URL configured in the Slack app under
+    "Interactivity & Shortcuts" must point to an HTTPS endpoint:
+        https://<your-domain>/api/v1/notifications/slack/interactive
+    In local development, use a tunnel such as ngrok to expose an HTTPS URL
+    and update both EDICTUM_BASE_URL and the Slack app's Request URL.
+    Sending notifications works without HTTPS; only button interactions require it.
+    """
 
     def __init__(
         self,

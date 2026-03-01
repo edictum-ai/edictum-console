@@ -50,7 +50,13 @@ async def require_api_key(
     Looks up the key by its 12-char prefix, then verifies with bcrypt.
     """
     raw_key = _extract_bearer(authorization)
-    prefix = raw_key[:12]
+    # Key format: edk_{env}_{random} — extract env and first 8 random chars.
+    # This must match how generate_api_key() computes the prefix.
+    parts = raw_key.split("_", 2)
+    if len(parts) == 3:
+        prefix = f"edk_{parts[1]}_{parts[2][:8]}"
+    else:
+        prefix = raw_key[:12]  # fallback for malformed keys (will fail verification)
 
     result = await db.execute(
         select(ApiKey).where(

@@ -22,8 +22,8 @@ def generate_api_key(env: str) -> tuple[str, str, str]:
     Returns:
         Tuple of (full_key, prefix, bcrypt_hash).
         The full key is shown once to the user. The prefix (first 12 chars)
-        is stored in plaintext for efficient DB lookup. The bcrypt hash
-        is stored for verification.
+        is stored in plaintext for display. The bcrypt hash is stored for
+        verification.
     """
     valid_envs = ("production", "staging", "development")
     if env not in valid_envs:
@@ -32,7 +32,9 @@ def generate_api_key(env: str) -> tuple[str, str, str]:
 
     random_part = secrets.token_urlsafe(32)
     full_key = f"edk_{env}_{random_part}"
-    prefix = full_key[:12]
+    # Prefix must include random chars to be unique per key.
+    # Format: "edk_{env}_{first8}" e.g. "edk_production_xe2KnP2S"
+    prefix = f"edk_{env}_{random_part[:8]}"
     key_hash = bcrypt.hashpw(_prehash(full_key), bcrypt.gensalt(rounds=12)).decode()
 
     return full_key, prefix, key_hash

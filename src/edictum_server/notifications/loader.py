@@ -52,8 +52,22 @@ async def load_db_channels(
 async def _register_webhook_if_telegram(
     ch: NotificationChannel, base_url: str
 ) -> None:
-    """Register Telegram webhook so callback queries reach our endpoint."""
+    """Register Telegram webhook so callback queries reach our endpoint.
+
+    NOTE: Telegram's Bot API requires an HTTPS URL for webhooks. Interactive
+    buttons (approve/deny) will not work unless EDICTUM_BASE_URL is an HTTPS
+    endpoint reachable by Telegram's servers. In local development, use a
+    tunnel such as ngrok to expose an HTTPS URL.
+    """
     if not hasattr(ch, "register_webhook"):
+        return
+    if not base_url.startswith("https://"):
+        logger.warning(
+            "Skipping Telegram webhook registration for channel %s — "
+            "EDICTUM_BASE_URL must be HTTPS for interactive buttons (got %s)",
+            ch.name,
+            base_url,
+        )
         return
     try:
         await ch.register_webhook(base_url)  # type: ignore[attr-defined]

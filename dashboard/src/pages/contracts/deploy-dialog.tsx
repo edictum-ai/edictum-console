@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog"
@@ -7,9 +7,9 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Loader2, Rocket } from "lucide-react"
+import { Loader2, Rocket, Wifi, WifiOff } from "lucide-react"
 import { toast } from "sonner"
-import { deployBundle, type BundleWithDeployments } from "@/lib/api"
+import { deployBundle, getAgentStatus, type BundleWithDeployments } from "@/lib/api"
 import { EnvBadge } from "@/lib/env-colors"
 
 interface DeployDialogProps {
@@ -20,19 +20,25 @@ interface DeployDialogProps {
   onSuccess: () => void
 }
 
-const ENVS = ["staging", "development", "production"] as const
+const ENVS = ["production", "staging", "development"] as const
 
 export function DeployDialog({
   bundleName, version, allBundles, changeSummary, onSuccess,
 }: DeployDialogProps) {
   const [open, setOpen] = useState(false)
-  const [selectedEnv, setSelectedEnv] = useState<string>("staging")
+  const [selectedEnv, setSelectedEnv] = useState<string>("production")
   const [deploying, setDeploying] = useState(false)
+  const [agents, setAgents] = useState<{ agent_id: string; env: string }[]>([])
 
-  // Find currently deployed version for the selected env
-  const currentlyDeployed = allBundles.find((b) =>
-    b.deployed_envs.includes(selectedEnv),
-  )
+  const currentlyDeployed = allBundles.find((b) => b.deployed_envs.includes(selectedEnv))
+  const envAgents = agents.filter((a) => a.env === selectedEnv)
+
+  useEffect(() => {
+    if (!open) return
+    getAgentStatus(bundleName)
+      .then((s) => setAgents(s.agents))
+      .catch(() => setAgents([]))
+  }, [open, bundleName])
 
   const handleDeploy = async () => {
     setDeploying(true)
@@ -58,42 +64,69 @@ export function DeployDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Deploy v{version} to environment</DialogTitle>
-          <DialogDescription>Choose a target environment for this bundle version.</DialogDescription>
+          <DialogTitle>Deploy v{version}</DialogTitle>
+          <DialogDescription>
+            All agents connected to the target environment will receive the updated contracts live.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Environment</Label>
+            <Label>Target environment</Label>
             <Select value={selectedEnv} onValueChange={setSelectedEnv}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {ENVS.map((env) => (
-                  <SelectItem key={env} value={env}>{env}</SelectItem>
+                  <SelectItem key={env} value={env}>
+                    <div className="flex items-center gap-2">
+                      <EnvBadge env={env} />
+                      <span className="text-xs text-muted-foreground">
+                        {agents.filter((a) => a.env === env).length} connected
+                      </span>
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-1 text-sm">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              Currently deployed:
-              {currentlyDeployed ? (
-                <span className="font-mono font-medium text-foreground">
-                  v{currentlyDeployed.version}
-                </span>
-              ) : (
-                <span className="italic">None</span>
-              )}
-            </div>
+          {/* Currently deployed version */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Current version:</span>
+            {currentlyDeployed ? (
+              <span className="font-mono font-medium text-foreground">v{currentlyDeployed.version}</span>
+            ) : (
+              <span className="italic">not deployed</span>
+            )}
             {changeSummary && (
-              <div className="text-muted-foreground">Changes: {changeSummary}</div>
+              <span className="text-xs">· {changeSummary}</span>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground">Target:</span>
-            <EnvBadge env={selectedEnv} />
+          {/* Connected agents */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {envAgents.length > 0
+                ? `${envAgents.length} agent${envAgents.length !== 1 ? "s" : ""} will receive this update`
+                : "No agents currently connected to this environment"}
+            </Label>
+            {envAgents.length > 0 ? (
+              <div className="max-h-32 space-y-1 overflow-y-auto rounded-md border p-2">
+                {envAgents.map((a) => (
+                  <div key={a.agent_id} className="flex items-center gap-2 text-xs">
+                    <Wifi className="size-3 shrink-0 text-emerald-500" />
+                    <span className="font-mono text-muted-foreground">{a.agent_id}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-md border border-dashed p-3 text-xs text-muted-foreground">
+                <WifiOff className="size-3.5 shrink-0" />
+                <span>
+                  The bundle will still deploy — agents will pick it up when they connect.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

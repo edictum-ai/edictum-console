@@ -9,6 +9,8 @@ import {
   Settings,
   LogOut,
   Shield,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -80,18 +82,16 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
         <div
           className={cn(
             "flex items-center border-b border-sidebar-border",
-            collapsed ? "justify-center px-2 py-3.5" : "gap-3 px-4 py-3.5",
+            collapsed ? "flex-col gap-2 px-2 py-3" : "gap-3 px-4 py-3.5",
           )}
         >
-          <button
-            onClick={() => setCollapsed((p) => !p)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
+          {/* Logo — not a toggle */}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
             <Shield className="h-4 w-4 text-white" />
-          </button>
+          </div>
+
           {!collapsed && (
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="text-[13px] font-semibold leading-none text-sidebar-foreground">
                 Edictum
               </div>
@@ -100,6 +100,25 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
               </div>
             </div>
           )}
+
+          {/* Dedicated toggle button — always visible */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setCollapsed((p) => !p)}
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed
+                  ? <PanelLeftOpen className="h-4 w-4" />
+                  : <PanelLeftClose className="h-4 w-4" />
+                }
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Navigation */}
