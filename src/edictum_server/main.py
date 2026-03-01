@@ -7,15 +7,19 @@ import contextlib
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import sqlalchemy as sa
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from edictum_server.config import get_settings
 from edictum_server.db.engine import async_session_factory, get_engine, init_engine
 from edictum_server.notifications.base import NotificationManager
+from edictum_server.notifications.loader import load_db_channels
 from edictum_server.push.manager import PushManager
 from edictum_server.redis.client import create_redis_client
 from edictum_server.routes import (
@@ -80,19 +84,21 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                             item["env"], timeout_data, tenant_id=item["tenant_id"]
                         )
                         push.push_to_dashboard(item["tenant_id"], timeout_data)
-                    # Notify via telegram channel if available
-                    mgr: NotificationManager | None = getattr(
-                        app.state,
-                        "notification_manager",
-                        None,
-                    )
-                    if mgr:
-                        for ch in mgr.channels:
+                    # Group expired items by tenant for tenant-scoped notification
+                    mgr: NotificationManager = app.state.notification_manager
+                    by_tenant: dict[str, list[dict]] = {}
+                    for item in expired:
+                        tid = str(item["tenant_id"])
+                        by_tenant.setdefault(tid, []).append(item)
+                    for tid, tenant_items in by_tenant.items():
+                        for ch in mgr.channels_for_tenant(tid):
                             if hasattr(ch, "update_expired"):
                                 try:
-                                    await ch.update_expired(expired)
+                                    await ch.update_expired(tenant_items)
                                 except Exception:
-                                    logger.exception("Failed to update expired notifications")
+                                    logger.exception(
+                                        "Failed to update expired notifications"
+                                    )
         except Exception:
             logger.exception("Approval timeout worker error")
         await asyncio.sleep(10)
@@ -156,29 +162,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Push manager (SSE)
     app.state.push_manager = PushManager()
 
-    # Notification manager
+    # Notification manager (tenant-keyed, all channels from DB)
     notification_mgr = NotificationManager()
-
-    # Telegram (optional)
-    tg_channel = None
-    if settings.telegram_bot_token:
-        from edictum_server.notifications.telegram import TelegramChannel, TelegramClient
-
-        tg_client = TelegramClient(settings.telegram_bot_token)
-        tg_channel = TelegramChannel(
-            client=tg_client,
-            chat_id=settings.telegram_chat_id,
-            redis=app.state.redis,
-        )
-        notification_mgr.add_channel(tg_channel)
-        webhook_url = f"{settings.base_url.rstrip('/')}/api/v1/telegram/webhook"
-        try:
-            await tg_client.set_webhook(webhook_url, settings.telegram_webhook_secret)
-            logger.info("Telegram webhook registered at %s", webhook_url)
-        except Exception:
-            logger.exception("Failed to register Telegram webhook")
-
     app.state.notification_manager = notification_mgr
+
+    # Load DB-configured notification channels and register Telegram webhooks
+    try:
+        async with async_session_factory()() as db:
+            channels_by_tenant = await load_db_channels(
+                db, app.state.redis, settings.base_url
+            )
+            await notification_mgr.reload(channels_by_tenant)
+            total = sum(len(chs) for chs in channels_by_tenant.values())
+            logger.info("Loaded %d notification channel(s) from DB", total)
+            # Register Telegram webhooks on startup
+            from edictum_server.notifications.telegram import TelegramChannel
+
+            for chs in channels_by_tenant.values():
+                for ch in chs:
+                    if isinstance(ch, TelegramChannel):
+                        try:
+                            await ch.register_webhook(settings.base_url)
+                        except Exception:
+                            logger.exception(
+                                "Failed to register Telegram webhook for %s",
+                                ch.channel_id,
+                            )
+    except Exception:
+        logger.exception("Failed to load notification channels from DB")
 
     # Bootstrap admin on first run
     await _bootstrap_admin(app)
@@ -196,8 +207,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await timeout_task
     with contextlib.suppress(asyncio.CancelledError):
         await partition_task
-    if tg_channel is not None:
-        await tg_channel.client.close()
+    for ch in notification_mgr.channels:
+        try:
+            await ch.close()
+        except Exception:
+            logger.exception("Error closing notification channel %s", ch.name)
     await app.state.redis.aclose()
     await engine.dispose()
 
@@ -235,3 +249,35 @@ app.include_router(telegram.router)
 app.include_router(agents.router)
 app.include_router(notifications.router)
 app.include_router(settings.router)
+
+# --- SPA serving (dashboard) ---------------------------------------------------
+_STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "dashboard"
+
+
+@app.get("/dashboard/{full_path:path}", response_model=None)
+async def serve_spa(request: Request, full_path: str) -> FileResponse | HTMLResponse:  # noqa: ARG001
+    """Serve the React SPA — static files or index.html for client-side routing."""
+    file_path = (_STATIC_DIR / full_path).resolve()
+    if (
+        full_path
+        and file_path.is_file()
+        and str(file_path).startswith(str(_STATIC_DIR.resolve()))
+    ):
+        return FileResponse(file_path)
+    index = _STATIC_DIR / "index.html"
+    if index.is_file():
+        return FileResponse(index)
+    return HTMLResponse(
+        "<h1>Dashboard not built</h1>"
+        "<p>Run <code>cd dashboard && pnpm build</code> or use the Vite dev server.</p>",
+        status_code=404,
+    )
+
+
+_ASSETS_DIR = _STATIC_DIR / "assets"
+if _ASSETS_DIR.is_dir():
+    app.mount(
+        "/dashboard/assets",
+        StaticFiles(directory=str(_ASSETS_DIR)),
+        name="dashboard-assets",
+    )

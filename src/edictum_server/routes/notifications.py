@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
+from edictum_server.config import get_settings
 from edictum_server.db.engine import get_db
+from edictum_server.notifications.base import NotificationManager
+from edictum_server.notifications.loader import load_db_channels
 from edictum_server.schemas.notifications import (
     ChannelResponse,
     CreateChannelRequest,
@@ -16,6 +20,8 @@ from edictum_server.schemas.notifications import (
     UpdateChannelRequest,
 )
 from edictum_server.services import notification_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/v1/notifications/channels",
@@ -31,10 +37,40 @@ def _to_response(ch) -> ChannelResponse:  # noqa: ANN001
         channel_type=ch.channel_type,
         config=ch.config,
         enabled=ch.enabled,
+        filters=ch.filters,
         created_at=ch.created_at,
         last_test_at=ch.last_test_at,
         last_test_ok=ch.last_test_ok,
     )
+
+
+async def _reload_manager(request: Request, db: AsyncSession) -> None:
+    """Reload notification manager with fresh DB channels."""
+    mgr: NotificationManager = request.app.state.notification_manager
+    settings = get_settings()
+    channels_by_tenant = await load_db_channels(
+        db, request.app.state.redis, settings.base_url
+    )
+    await mgr.reload(channels_by_tenant)
+
+
+async def _register_telegram_webhook(
+    request: Request, channel_id: str
+) -> None:
+    """Find the just-loaded Telegram channel and register its webhook."""
+    from edictum_server.notifications.telegram import TelegramChannel
+
+    mgr: NotificationManager = request.app.state.notification_manager
+    settings = get_settings()
+    for ch in mgr.channels:
+        if isinstance(ch, TelegramChannel) and ch.channel_id == channel_id:
+            try:
+                await ch.register_webhook(settings.base_url)
+            except Exception:
+                logger.exception(
+                    "Failed to register Telegram webhook for %s", channel_id
+                )
+            break
 
 
 @router.get("", response_model=list[ChannelResponse])
@@ -54,6 +90,7 @@ async def list_channels(
 )
 async def create_channel(
     body: CreateChannelRequest,
+    request: Request,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
@@ -65,6 +102,7 @@ async def create_channel(
             name=body.name,
             channel_type=body.channel_type,
             config=body.config,
+            filters=body.filters.model_dump() if body.filters else None,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -73,6 +111,12 @@ async def create_channel(
         ) from exc
     await db.commit()
     await db.refresh(channel)
+    await _reload_manager(request, db)
+
+    # Register Telegram webhook for new channel
+    if body.channel_type == "telegram":
+        await _register_telegram_webhook(request, str(channel.id))
+
     return _to_response(channel)
 
 
@@ -80,18 +124,24 @@ async def create_channel(
 async def update_channel(
     channel_id: uuid.UUID,
     body: UpdateChannelRequest,
+    request: Request,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
     """Update a notification channel."""
+    kwargs: dict = {}
+    if body.name is not None:
+        kwargs["name"] = body.name
+    if body.config is not None:
+        kwargs["config"] = body.config
+    if body.enabled is not None:
+        kwargs["enabled"] = body.enabled
+    if "filters" in body.model_fields_set:
+        kwargs["filters"] = body.filters.model_dump() if body.filters else None
+
     try:
         channel = await notification_service.update_channel(
-            db,
-            auth.tenant_id,
-            channel_id,
-            name=body.name,
-            config=body.config,
-            enabled=body.enabled,
+            db, auth.tenant_id, channel_id, **kwargs
         )
     except ValueError as exc:
         raise HTTPException(
@@ -106,12 +156,14 @@ async def update_channel(
         )
     await db.commit()
     await db.refresh(channel)
+    await _reload_manager(request, db)
     return _to_response(channel)
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_channel(
     channel_id: uuid.UUID,
+    request: Request,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -123,6 +175,7 @@ async def delete_channel(
             detail="Notification channel not found.",
         )
     await db.commit()
+    await _reload_manager(request, db)
 
 
 @router.post("/{channel_id}/test", response_model=TestResult)

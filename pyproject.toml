@@ -21,6 +21,7 @@ dependencies = [
     "sse-starlette>=2.0",
     "pydantic-settings>=2.0",
     "bcrypt>=4.0",
+    "aiosmtplib>=2.0,<3.0",
 ]
 
 [project.optional-dependencies]

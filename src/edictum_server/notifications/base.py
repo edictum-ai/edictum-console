@@ -1,7 +1,13 @@
-"""Notification channel protocol and manager for HITL approvals."""
+"""Notification channel protocol and manager for HITL approvals.
+
+Currently only approval_requested and approval_decided events are supported.
+Future: add event_type/verdict/severity filters for tool-call events,
+deployments, agent status changes, etc.
+"""
 
 from __future__ import annotations
 
+import fnmatch
 import logging
 from abc import ABC, abstractmethod
 from typing import Any
@@ -12,7 +18,7 @@ logger = logging.getLogger(__name__)
 class NotificationChannel(ABC):
     """Protocol for pluggable notification backends.
 
-    Implementations: TelegramChannel (first), Slack (planned).
+    Implementations: TelegramChannel, SlackChannel, EmailChannel, WebhookChannel.
     """
 
     @abstractmethod
@@ -28,6 +34,7 @@ class NotificationChannel(ABC):
         timeout_seconds: int,
         timeout_effect: str,
         tenant_id: str,
+        contract_name: str | None = None,
     ) -> None: ...
 
     @abstractmethod
@@ -50,30 +57,135 @@ class NotificationChannel(ABC):
         """Whether this channel supports interactive decisions."""
         ...
 
+    @property
+    def filters(self) -> dict[str, list[str]] | None:
+        """Routing filters for this channel. None = receive everything."""
+        return None
+
+    async def close(self) -> None:  # noqa: B027
+        """Clean up resources (e.g. httpx clients). Override if needed."""
+
 
 class NotificationManager:
-    """Fan-out notification manager. Sends to all registered channels."""
+    """Tenant-keyed fan-out notification manager.
 
-    def __init__(self, channels: list[NotificationChannel] | None = None) -> None:
-        self._channels: list[NotificationChannel] = channels or []
+    All channels are DB-configured and scoped to a tenant.
+    On fan-out, only channels belonging to the approval's tenant are
+    considered — zero cross-tenant leak by construction.
+    """
 
-    def add_channel(self, channel: NotificationChannel) -> None:
-        self._channels.append(channel)
+    def __init__(self) -> None:
+        self._channels: dict[str, list[NotificationChannel]] = {}
+
+    async def reload(
+        self, channels_by_tenant: dict[str, list[NotificationChannel]]
+    ) -> None:
+        """Replace all channels, closing old ones first."""
+        for tenant_channels in self._channels.values():
+            for ch in tenant_channels:
+                try:
+                    await ch.close()
+                except Exception:
+                    logger.exception("Error closing channel %s", ch.name)
+        self._channels = channels_by_tenant
 
     @property
     def channels(self) -> list[NotificationChannel]:
-        return list(self._channels)
+        """All channels across all tenants (for introspection/shutdown)."""
+        return [
+            ch
+            for tenant_channels in self._channels.values()
+            for ch in tenant_channels
+        ]
 
-    async def notify_approval_request(self, **kwargs: Any) -> None:
-        for channel in self._channels:
-            try:
-                await channel.send_approval_request(**kwargs)
-            except Exception:
-                logger.exception("Failed to send approval request via %s", channel.name)
+    def channels_for_tenant(self, tenant_id: str) -> list[NotificationChannel]:
+        """Channels belonging to a specific tenant."""
+        return list(self._channels.get(tenant_id, []))
 
-    async def notify_approval_decided(self, **kwargs: Any) -> None:
-        for channel in self._channels:
+    async def notify_approval_request(
+        self,
+        *,
+        approval_id: str,
+        agent_id: str,
+        tool_name: str,
+        tool_args: dict[str, Any] | None,
+        message: str,
+        env: str,
+        timeout_seconds: int,
+        timeout_effect: str,
+        tenant_id: str,
+        contract_name: str | None = None,
+    ) -> None:
+        for channel in self.channels_for_tenant(tenant_id):
+            if not _matches_filters(
+                channel, env=env, agent_id=agent_id, contract_name=contract_name
+            ):
+                continue
             try:
-                await channel.send_approval_decided(**kwargs)
+                await channel.send_approval_request(
+                    approval_id=approval_id,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    tool_args=tool_args,
+                    message=message,
+                    env=env,
+                    timeout_seconds=timeout_seconds,
+                    timeout_effect=timeout_effect,
+                    tenant_id=tenant_id,
+                    contract_name=contract_name,
+                )
             except Exception:
-                logger.exception("Failed to send approval decision via %s", channel.name)
+                logger.exception(
+                    "Failed to send approval request via %s", channel.name
+                )
+
+    async def notify_approval_decided(
+        self,
+        *,
+        approval_id: str,
+        status: str,
+        decided_by: str | None,
+        reason: str | None,
+        tenant_id: str,
+    ) -> None:
+        for channel in self.channels_for_tenant(tenant_id):
+            try:
+                await channel.send_approval_decided(
+                    approval_id=approval_id,
+                    status=status,
+                    decided_by=decided_by,
+                    reason=reason,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to send approval decision via %s", channel.name
+                )
+
+
+def _matches_filters(
+    channel: NotificationChannel,
+    *,
+    env: str,
+    agent_id: str,
+    contract_name: str | None,
+) -> bool:
+    """Check if an approval matches a channel's routing filters.
+
+    All non-empty filter dimensions are AND-ed.
+    Empty/null filters = receive everything.
+    """
+    filters = channel.filters
+    if not filters:
+        return True
+    envs = filters.get("environments")
+    if envs and env not in envs:
+        return False
+    agent_patterns = filters.get("agent_patterns")
+    if agent_patterns and not any(
+        fnmatch.fnmatchcase(agent_id, p) for p in agent_patterns
+    ):
+        return False
+    contract_patterns = filters.get("contract_names")
+    if contract_patterns and contract_name:
+        return any(fnmatch.fnmatchcase(contract_name, p) for p in contract_patterns)
+    return True

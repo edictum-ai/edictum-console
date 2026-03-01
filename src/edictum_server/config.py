@@ -52,10 +52,8 @@ class Settings(BaseSettings):
     # Runtime environment
     env_name: str = "development"
 
-    # Telegram bot integration (optional)
-    telegram_bot_token: str = ""
-    telegram_chat_id: int = 0
-    telegram_webhook_secret: str = ""
+    # Telegram env-var config removed — all notification channels
+    # are now DB-configured via Settings → Notifications in the dashboard.
 
 
 @lru_cache

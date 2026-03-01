@@ -86,6 +86,7 @@ async def create_approval(
                 timeout_seconds=approval.timeout_seconds,
                 timeout_effect=approval.timeout_effect,
                 tenant_id=str(approval.tenant_id),
+                contract_name=approval.contract_name,
             )
         )
 
@@ -163,6 +164,7 @@ async def submit_decision(
                 status=approval.status,
                 decided_by=approval.decided_by,
                 reason=approval.decision_reason,
+                tenant_id=str(auth.tenant_id),
             )
         )
 

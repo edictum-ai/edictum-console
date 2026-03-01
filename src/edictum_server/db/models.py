@@ -174,3 +174,4 @@ class NotificationChannel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=True,
     )
     last_test_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    filters: Mapped[dict | None] = mapped_column(JSON, nullable=True)
