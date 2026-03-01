@@ -1,0 +1,8 @@
+Found 2 known vulnerabilities in 1 package
+Name Version ID            Fix Versions
+---- ------- ------------- ------------
+pip  25.0.1  CVE-2025-8869 25.3
+pip  25.0.1  CVE-2026-1703 26.0
+Name            Skip Reason
+--------------- ------------------------------------------------------------------------------
+edictum-console Dependency not found on PyPI and could not be audited: edictum-console (0.1.0)

@@ -1,0 +1,69 @@
+=== COMPREHENSIVE LIVE PENTEST ===
+Started: Sun Mar  1 22:53:36 UTC 2026
+
+--- ENDPOINT ENUMERATION ---
+GET /api/v1/health
+POST /api/v1/setup
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+GET /api/v1/auth/me
+GET /api/v1/keys
+POST /api/v1/keys
+DELETE /api/v1/keys/{key_id}
+GET /api/v1/bundles
+POST /api/v1/bundles
+GET /api/v1/bundles/{name}/current
+GET /api/v1/bundles/{name}
+GET /api/v1/bundles/{name}/{version}
+GET /api/v1/bundles/{name}/{version}/yaml
+POST /api/v1/bundles/{name}/{version}/deploy
+POST /api/v1/bundles/evaluate
+GET /api/v1/deployments
+GET /api/v1/stream
+GET /api/v1/stream/dashboard
+POST /api/v1/events
+GET /api/v1/events
+GET /api/v1/sessions/{key}
+PUT /api/v1/sessions/{key}
+DELETE /api/v1/sessions/{key}
+POST /api/v1/sessions/{key}/increment
+POST /api/v1/approvals
+GET /api/v1/approvals
+GET /api/v1/approvals/{approval_id}
+PUT /api/v1/approvals/{approval_id}
+GET /api/v1/stats/overview
+GET /api/v1/stats/contracts
+POST /api/v1/telegram/webhook/{channel_id}
+POST /api/v1/discord/interactions
+POST /api/v1/slack/interactions
+GET /api/v1/slack/manifest
+GET /api/v1/agents/status
+GET /api/v1/notifications/channels
+POST /api/v1/notifications/channels
+PUT /api/v1/notifications/channels/{channel_id}
+DELETE /api/v1/notifications/channels/{channel_id}
+POST /api/v1/notifications/channels/{channel_id}/test
+POST /api/v1/settings/rotate-signing-key
+DELETE /api/v1/settings/purge-events
+GET /dashboard/{full_path}
+-e 
+--- INPUT FUZZING ---
+Login result: {"detail":"Invalid email or password."}
+-e 
+Testing label: A=0...
+{"detail":"Not authenticated."}
+-e 
+Testing label: A'--...
+{"detail":"Not authenticated."}
+-e 
+Testing label: <script>alert(1)</script>...
+{"detail":"Not authenticated."}
+-e 
+Testing label: {{template}}...
+{"detail":"Not authenticated."}
+-e 
+Testing label: ../../../etc/passwd...
+{"detail":"Not authenticated."}
+-e 
+Testing label: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...
+{"detail":"Not authenticated."}

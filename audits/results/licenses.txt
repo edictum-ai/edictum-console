@@ -1,0 +1,84 @@
+ Name                       Version          License                              
+ CacheControl               0.14.4           Apache-2.0                           
+ Mako                       1.3.10           MIT License                          
+ MarkupSafe                 3.0.3            BSD-3-Clause                         
+ PyNaCl                     1.6.2            Apache Software License              
+ PyYAML                     6.0.3            MIT License                          
+ Pygments                   2.19.2           BSD License                          
+ SQLAlchemy                 2.0.47           MIT                                  
+ aiosmtplib                 2.0.2            MIT License                          
+ aiosqlite                  0.22.1           MIT License                          
+ alembic                    1.18.4           MIT                                  
+ annotated-doc              0.0.4            MIT                                  
+ annotated-types            0.7.0            MIT License                          
+ anyio                      4.12.1           MIT                                  
+ asyncpg                    0.31.0           Apache-2.0                           
+ attrs                      25.4.0           MIT                                  
+ bcrypt                     5.0.0            Apache Software License              
+ boolean.py                 5.0              BSD-2-Clause                         
+ certifi                    2026.2.25        Mozilla Public License 2.0 (MPL 2.0) 
+ cffi                       2.0.0            MIT                                  
+ charset-normalizer         3.4.4            MIT                                  
+ click                      8.3.1            BSD-3-Clause                         
+ coverage                   7.13.4           Apache-2.0                           
+ cyclonedx-python-lib       11.6.0           Apache Software License              
+ defusedxml                 0.7.1            Python Software Foundation License   
+ edictum                    0.11.3           MIT                                  
+ edictum-console            0.1.0            Apache-2.0                           
+ fakeredis                  2.34.1           BSD-3-Clause                         
+ fastapi                    0.135.1          MIT                                  
+ filelock                   3.25.0           MIT                                  
+ greenlet                   3.3.2            MIT AND PSF-2.0                      
+ h11                        0.16.0           MIT License                          
+ hiredis                    3.3.0            MIT License                          
+ httpcore                   1.0.9            BSD-3-Clause                         
+ httptools                  0.7.1            MIT                                  
+ httpx                      0.28.1           BSD License                          
+ idna                       3.11             BSD-3-Clause                         
+ iniconfig                  2.3.0            MIT                                  
+ jsonschema                 4.26.0           MIT                                  
+ jsonschema-specifications  2025.9.1         MIT                                  
+ librt                      0.8.1            MIT License                          
+ license-expression         30.4.4           Apache-2.0                           
+ markdown-it-py             4.0.0            MIT License                          
+ mdurl                      0.1.2            MIT License                          
+ msgpack                    1.1.2            Apache-2.0                           
+ mypy                       1.19.1           MIT License                          
+ mypy_extensions            1.1.0            MIT                                  
+ packageurl-python          0.17.6           MIT License                          
+ packaging                  26.0             Apache-2.0 OR BSD-2-Clause           
+ pathspec                   1.0.4            Mozilla Public License 2.0 (MPL 2.0) 
+ pip-api                    0.0.34           Apache Software License              
+ pip-requirements-parser    32.0.1           MIT                                  
+ pip_audit                  2.10.0           Apache Software License              
+ platformdirs               4.9.2            MIT                                  
+ pluggy                     1.6.0            MIT License                          
+ py-serializable            2.1.0            Apache Software License              
+ pycparser                  3.0              BSD-3-Clause                         
+ pydantic                   2.12.5           MIT                                  
+ pydantic-settings          2.13.1           MIT                                  
+ pydantic_core              2.41.5           MIT                                  
+ pyparsing                  3.3.2            MIT                                  
+ pytest                     9.0.2            MIT                                  
+ pytest-asyncio             1.3.0            Apache-2.0                           
+ pytest-cov                 7.0.0            MIT                                  
+ python-dotenv              1.2.2            BSD-3-Clause                         
+ redis                      7.2.1            MIT                                  
+ referencing                0.37.0           MIT                                  
+ requests                   2.32.5           Apache Software License              
+ rich                       14.3.3           MIT License                          
+ rpds-py                    0.30.0           MIT                                  
+ ruff                       0.15.4           MIT License                          
+ sortedcontainers           2.4.0            Apache Software License              
+ sse-starlette              3.3.2            BSD-3-Clause                         
+ starlette                  0.52.1           BSD-3-Clause                         
+ tomli                      2.4.0            MIT                                  
+ tomli_w                    1.2.0            MIT License                          
+ types-PyYAML               6.0.12.20250915  Apache-2.0                           
+ typing-inspection          0.4.2            MIT                                  
+ typing_extensions          4.15.0           PSF-2.0                              
+ urllib3                    2.6.3            MIT                                  
+ uvicorn                    0.41.0           BSD-3-Clause                         
+ uvloop                     0.22.1           Apache Software License; MIT License 
+ watchfiles                 1.1.1            MIT License                          
+ websockets                 16.0             BSD-3-Clause                         

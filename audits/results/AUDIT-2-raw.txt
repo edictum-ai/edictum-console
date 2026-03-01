@@ -1,0 +1,345 @@
+=== AUDIT 2: TENANT ISOLATION RED TEAM ===
+Started: Sun Mar  1 22:50:14 UTC 2026
+-e 
+--- Route Files ---
+src/edictum_server/routes/stream.py
+src/edictum_server/routes/stats.py
+src/edictum_server/routes/auth.py
+src/edictum_server/routes/telegram.py
+src/edictum_server/routes/keys.py
+src/edictum_server/routes/__init__.py
+src/edictum_server/routes/health.py
+src/edictum_server/routes/evaluate.py
+src/edictum_server/routes/sessions.py
+src/edictum_server/routes/deployments.py
+src/edictum_server/routes/approvals.py
+src/edictum_server/routes/slack.py
+src/edictum_server/routes/settings.py
+src/edictum_server/routes/agents.py
+src/edictum_server/routes/setup.py
+src/edictum_server/routes/bundles.py
+src/edictum_server/routes/events.py
+src/edictum_server/routes/discord.py
+src/edictum_server/routes/notifications.py
+-e 
+--- Checking current_tenant/require_dashboard_auth usage ---
+-e 
+=== src/edictum_server/routes/__init__.py ===
+NO 'tenant' found
+-e 
+=== src/edictum_server/routes/agents.py ===
+24:    """Return live status of all connected agents for the tenant."""
+25:    connections = push.get_agent_connections(auth.tenant_id, bundle_name=bundle_name)
+32:                db, auth.tenant_id, conn.policy_version, conn.env
+-e 
+=== src/edictum_server/routes/approvals.py ===
+28:    get_current_tenant,
+76:    approval = await approval_service.create_approval(db, auth.tenant_id, body, env=env)
+86:    push.push_to_env(env, event_data, tenant_id=auth.tenant_id)
+87:    push.push_to_dashboard(auth.tenant_id, event_data)
+101:            tenant_id=str(approval.tenant_id),
+111:    auth: AuthContext = Depends(get_current_tenant),
+115:    approval = await approval_service.get_approval(db, auth.tenant_id, approval_id)
+126:    auth: AuthContext = Depends(get_current_tenant),
+130:    stmt = select(Approval).where(Approval.tenant_id == auth.tenant_id)
+144:    auth: AuthContext = Depends(get_current_tenant),
+151:        auth.tenant_id,
+168:    push.push_to_env(approval.env, decided_data, tenant_id=auth.tenant_id)
+169:    push.push_to_dashboard(auth.tenant_id, decided_data)
+178:            tenant_id=str(auth.tenant_id),
+-e 
+=== src/edictum_server/routes/auth.py ===
+33:    tenant_id: str
+76:        tenant_id=user.tenant_id,
+107:        tenant_id=str(ctx.tenant_id),
+-e 
+=== src/edictum_server/routes/bundles.py ===
+10:    get_current_tenant,
+42:        tenant_id=bundle.tenant_id,
+65:            tenant_id=auth.tenant_id,
+75:    push.push_to_dashboard(auth.tenant_id, {
+92:    names = await list_bundle_names(db, auth.tenant_id)
+97:        envs_map = await get_deployed_envs_map(db, auth.tenant_id, entry["name"])
+115:    auth: AuthContext = Depends(get_current_tenant),
+122:    bundle = await get_current_bundle(db, auth.tenant_id, env, bundle_name=name)
+138:    bundles = await list_bundle_versions(db, auth.tenant_id, name)
+141:    envs_map = await get_deployed_envs_map(db, auth.tenant_id, name)
+155:    auth: AuthContext = Depends(get_current_tenant),
+159:    bundle = await get_bundle_by_version(db, auth.tenant_id, version, bundle_name=name)
+171:    auth: AuthContext = Depends(get_current_tenant),
+175:    bundle = await get_bundle_by_version(db, auth.tenant_id, version, bundle_name=name)
+206:            tenant_id=auth.tenant_id,
+-e 
+=== src/edictum_server/routes/deployments.py ===
+25:    """List deployments for the tenant, newest first."""
+28:        .where(Deployment.tenant_id == auth.tenant_id)
+-e 
+=== src/edictum_server/routes/discord.py ===
+117:    tenant_id_str = await redis.get(f"discord:tenant:{channel_id}:{approval_id}")
+120:    if tenant_id_str is None:
+129:    tenant_id = uuid.UUID(tenant_id_str)
+137:        tenant_id,
+163:    push.push_to_env(approval.env, decided_data, tenant_id=tenant_id)
+164:    push.push_to_dashboard(tenant_id, decided_data)
+174:            tenant_id=str(tenant_id),
+-e 
+=== src/edictum_server/routes/evaluate.py ===
+NO 'tenant' found
+-e 
+=== src/edictum_server/routes/events.py ===
+12:    get_current_tenant,
+39:    Duplicate events (same ``tenant_id`` + ``call_id``) are silently ignored.
+41:    accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events)
+58:    auth: AuthContext = Depends(get_current_tenant),
+64:        auth.tenant_id,
+-e 
+=== src/edictum_server/routes/health.py ===
+NO 'tenant' found
+-e 
+=== src/edictum_server/routes/keys.py ===
+31:    """Create a new API key for the authenticated tenant.
+45:        tenant_id=auth.tenant_id,
+70:    """List all non-revoked API keys for the authenticated tenant."""
+73:            ApiKey.tenant_id == auth.tenant_id,
+99:    Only the owning tenant (via dashboard auth) can revoke their keys.
+104:            ApiKey.tenant_id == auth.tenant_id,
+-e 
+=== src/edictum_server/routes/notifications.py ===
+51:    channels_by_tenant = await load_db_channels(
+54:    await mgr.reload(channels_by_tenant)
+63:    """List all notification channels for the authenticated tenant."""
+64:    channels = await notification_service.list_channels(db, auth.tenant_id)
+83:            auth.tenant_id,
+121:            db, auth.tenant_id, channel_id, **kwargs
+148:    deleted = await notification_service.delete_channel(db, auth.tenant_id, channel_id)
+167:            db, auth.tenant_id, channel_id
+-e 
+=== src/edictum_server/routes/sessions.py ===
+44:    value = await get_session_value(r, auth.tenant_id, key)
+62:    await set_session_value(r, auth.tenant_id, key, body.value)
+78:    new_value = await increment_session_value(r, auth.tenant_id, key, body.amount)
+93:    await delete_session_value(r, auth.tenant_id, key)
+-e 
+=== src/edictum_server/routes/settings.py ===
+24:    """Rotate the tenant's Ed25519 signing key and re-sign active deployments."""
+26:    result = await rotate_signing_key(db, auth.tenant_id, signing_secret)
+42:    deleted_count, cutoff = await purge_events(db, auth.tenant_id, older_than_days)
+-e 
+=== src/edictum_server/routes/setup.py ===
+26:    tenant_name: str | None = None
+40:    tenant_id: str
+52:    """Create the first admin user and tenant.
+66:    tenant = Tenant(name=body.tenant_name or "Default")
+67:    db.add(tenant)
+72:        tenant_id=tenant.id,
+85:        tenant_id=str(tenant.id),
+-e 
+=== src/edictum_server/routes/slack.py ===
+117:    # Look up tenant from Redis
+119:    tenant_id_raw = await redis.get(f"slack:tenant:{channel_id}:{approval_id}")
+120:    if tenant_id_raw is None:
+136:    tenant_id = uuid.UUID(tenant_id_raw)
+142:        tenant_id,
+175:    push.push_to_env(approval.env, decided_data, tenant_id=tenant_id)
+176:    push.push_to_dashboard(tenant_id, decided_data)
+187:                tenant_id=str(tenant_id),
+-e 
+=== src/edictum_server/routes/stats.py ===
+12:    get_current_tenant,
+28:    auth: AuthContext = Depends(get_current_tenant),
+32:    return await get_overview(db, auth.tenant_id)
+50:    return await get_contract_stats(db, auth.tenant_id, effective_since, effective_until)
+-e 
+=== src/edictum_server/routes/stream.py ===
+54:        tenant_id=auth.tenant_id,
+77:    Uses cookie auth. Subscribes to ALL environments for the tenant.
+81:    queue = push.subscribe_dashboard(auth.tenant_id)
+88:            push.unsubscribe_dashboard(auth.tenant_id, queue)
+-e 
+=== src/edictum_server/routes/telegram.py ===
+58:    # Resolve tenant from Redis (namespaced by channel_id)
+60:    tenant_id_str = await redis.get(
+61:        f"telegram:tenant:{channel_id}:{approval_id}"
+64:    if tenant_id_str is None:
+74:    tenant_id = uuid.UUID(tenant_id_str)
+82:        tenant_id,
+108:    push.push_to_env(approval.env, decided_data, tenant_id=tenant_id)
+109:    push.push_to_dashboard(tenant_id, decided_data)
+119:            tenant_id=str(tenant_id),
+-e 
+
+--- Checking for queries without tenant filter ---
+src/edictum_server/routes/auth.py:11:from sqlalchemy import select
+src/edictum_server/routes/auth.py:64:    result = await db.execute(select(User).where(User.email == body.email))
+src/edictum_server/routes/telegram.py:12:from sqlalchemy import select
+src/edictum_server/routes/telegram.py:154:        select(ChannelModel).where(
+src/edictum_server/routes/keys.py:9:from sqlalchemy import select, update
+src/edictum_server/routes/keys.py:72:        select(ApiKey).where(
+src/edictum_server/routes/keys.py:102:        select(ApiKey).where(
+src/edictum_server/routes/health.py:8:from sqlalchemy import func, select, text
+src/edictum_server/routes/health.py:25:    result = await db.execute(select(func.count()).select_from(User))
+src/edictum_server/routes/health.py:30:    await db.execute(text("SELECT 1"))
+src/edictum_server/routes/deployments.py:6:from sqlalchemy import select
+src/edictum_server/routes/deployments.py:27:        select(Deployment)
+src/edictum_server/routes/approvals.py:23:from sqlalchemy import select
+src/edictum_server/routes/approvals.py:130:    stmt = select(Approval).where(Approval.tenant_id == auth.tenant_id)
+src/edictum_server/routes/slack.py:16:from sqlalchemy import select
+src/edictum_server/routes/slack.py:67:        select(ChannelModel).where(
+src/edictum_server/routes/setup.py:9:from sqlalchemy import func, select
+src/edictum_server/routes/setup.py:57:    result = await db.execute(select(func.count()).select_from(User))
+src/edictum_server/routes/discord.py:14:from sqlalchemy import select
+src/edictum_server/routes/discord.py:58:        select(ChannelModel).where(
+=== Checking services layer for tenant filtering ===
+-e 
+=== src/edictum_server/services/__init__.py ===
+NO tenant references
+-e 
+=== src/edictum_server/services/approval_service.py ===
+42:    tenant_id: uuid.UUID,
+49:        tenant_id=tenant_id,
+68:    tenant_id: uuid.UUID,
+71:    """Get a single approval by ID, scoped to tenant."""
+75:            Approval.tenant_id == tenant_id,
+83:    tenant_id: uuid.UUID,
+85:    """List all pending approvals for a tenant."""
+88:        .where(Approval.tenant_id == tenant_id, Approval.status == "pending")
+96:    tenant_id: uuid.UUID,
+107:    approval = await get_approval(db, tenant_id, approval_id)
+130:            Approval.tenant_id,
+153:            "tenant_id": row.tenant_id,
+-e 
+=== src/edictum_server/services/bundle_service.py ===
+18:    tenant_id: uuid.UUID,
+44:    # Determine next version number for this tenant + name
+47:        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+55:        tenant_id=tenant_id,
+71:    tenant_id: uuid.UUID,
+83:            (Deployment.tenant_id == Bundle.tenant_id)
+87:        .where(Deployment.tenant_id == tenant_id, Deployment.env == env)
+96:async def list_tenant_bundles(
+98:    tenant_id: uuid.UUID,
+100:    """Return all bundles for a tenant, ordered by version DESC."""
+102:        select(Bundle).where(Bundle.tenant_id == tenant_id).order_by(Bundle.version.desc())
+109:    tenant_id: uuid.UUID,
+119:        .where(Bundle.tenant_id == tenant_id)
+136:    tenant_id: uuid.UUID,
+142:        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+150:    tenant_id: uuid.UUID,
+154:    filters = [Deployment.tenant_id == tenant_id]
+188:    tenant_id: uuid.UUID,
+192:    """Return a specific bundle version for a tenant."""
+193:    filters = [Bundle.tenant_id == tenant_id, Bundle.version == version]
+-e 
+=== src/edictum_server/services/channel_test_helpers.py ===
+NO tenant references
+-e 
+=== src/edictum_server/services/deployment_service.py ===
+19:    tenant_id: uuid.UUID,
+34:    bundle = await get_bundle_by_version(db, tenant_id, version, bundle_name=bundle_name)
+42:            SigningKey.tenant_id == tenant_id,
+52:            raise ValueError("No active signing key for tenant")
+63:        tenant_id=tenant_id,
+85:    push_manager.push_to_env(env, contract_data, tenant_id=tenant_id)
+86:    push_manager.push_to_dashboard(tenant_id, contract_data)
+-e 
+=== src/edictum_server/services/drift_service.py ===
+15:    tenant_id: uuid.UUID,
+23:        tenant_id: Owning tenant UUID.
+35:        .where(Deployment.tenant_id == tenant_id, Deployment.env == env)
+46:            Bundle.tenant_id == tenant_id,
+-e 
+=== src/edictum_server/services/evaluate_service.py ===
+NO tenant references
+-e 
+=== src/edictum_server/services/event_service.py ===
+17:    tenant_id: uuid.UUID,
+34:            "tenant_id": tenant_id,
+52:            pg_insert(Event).values(rows).on_conflict_do_nothing(constraint="uq_event_tenant_call")
+69:    tenant_id: uuid.UUID,
+79:    stmt = select(Event).where(Event.tenant_id == tenant_id)
+99:    tenant_id: uuid.UUID,
+110:            Event.tenant_id == tenant_id,
+-e 
+=== src/edictum_server/services/notification_service.py ===
+47:    tenant_id: uuid.UUID,
+49:    """List all notification channels for a tenant."""
+52:        .where(NotificationChannel.tenant_id == tenant_id)
+60:    tenant_id: uuid.UUID,
+63:    """Get a single channel, scoped to tenant. Returns None if not found."""
+67:            NotificationChannel.tenant_id == tenant_id,
+75:    tenant_id: uuid.UUID,
+88:        tenant_id=tenant_id,
+101:    tenant_id: uuid.UUID,
+110:    channel = await get_channel(db, tenant_id, channel_id)
+130:    tenant_id: uuid.UUID,
+134:    channel = await get_channel(db, tenant_id, channel_id)
+144:    tenant_id: uuid.UUID,
+151:    channel = await get_channel(db, tenant_id, channel_id)
+-e 
+=== src/edictum_server/services/session_service.py ===
+10:def _key(tenant_id: uuid.UUID, key: str) -> str:
+12:    return f"edictum:{tenant_id}:session:{key}"
+17:    tenant_id: uuid.UUID,
+21:    value = await r.get(_key(tenant_id, key))
+27:    tenant_id: uuid.UUID,
+32:    await r.set(_key(tenant_id, key), value)
+37:    tenant_id: uuid.UUID,
+42:    return float(await r.incrbyfloat(_key(tenant_id, key), amount))
+47:    tenant_id: uuid.UUID,
+51:    removed = await r.delete(_key(tenant_id, key))
+-e 
+=== src/edictum_server/services/signing_service.py ===
+78:    tenant_id: uuid.UUID,
+81:    """Rotate the tenant's signing key.
+93:            SigningKeyModel.tenant_id == tenant_id,
+103:        tenant_id=tenant_id,
+123:        .where(Deployment.tenant_id == tenant_id)
+136:                Bundle.tenant_id == tenant_id,
+-e 
+=== src/edictum_server/services/stats_service.py ===
+19:async def get_overview(db: AsyncSession, tenant_id: uuid.UUID) -> StatsOverviewResponse:
+20:    """Compute dashboard overview stats for a tenant.
+22:    All queries are scoped to ``tenant_id``.
+32:        .where(Approval.tenant_id == tenant_id, Approval.status == "pending")
+39:        .where(Event.tenant_id == tenant_id, Event.timestamp >= one_hour_ago)
+46:        .where(Event.tenant_id == tenant_id)
+54:        .where(Event.tenant_id == tenant_id, Event.timestamp >= twenty_four_hours_ago)
+63:            Event.tenant_id == tenant_id,
+75:            Event.tenant_id == tenant_id,
+89:            Event.tenant_id == tenant_id,
+109:    tenant_id: uuid.UUID,
+130:            Event.tenant_id == tenant_id,
+157:            Event.tenant_id == tenant_id,
+-e 
+
+=== Potentially risky queries (select without tenant in same line) ===
+src/edictum_server/auth/dependencies.py:62:        select(ApiKey).where(
+src/edictum_server/notifications/loader.py:33:        select(ChannelModel).where(ChannelModel.enabled == True)  # noqa: E712
+src/edictum_server/services/signing_service.py:92:        select(SigningKeyModel).where(
+src/edictum_server/services/signing_service.py:113:        select(
+src/edictum_server/services/signing_service.py:127:        select(ranked.c.bundle_name, ranked.c.bundle_version).where(ranked.c.rn == 1)
+src/edictum_server/services/signing_service.py:135:            select(Bundle).where(
+src/edictum_server/services/bundle_service.py:46:        select(Bundle.version)
+src/edictum_server/services/bundle_service.py:80:        select(Bundle)
+src/edictum_server/services/bundle_service.py:113:        select(
+src/edictum_server/services/bundle_service.py:141:        select(Bundle)
+src/edictum_server/services/bundle_service.py:160:        select(
+src/edictum_server/services/bundle_service.py:175:        select(ranked.c.bundle_version, ranked.c.env).where(ranked.c.rn == 1)
+src/edictum_server/services/bundle_service.py:196:    result = await db.execute(select(Bundle).where(*filters))
+src/edictum_server/services/stats_service.py:30:        select(func.count())
+src/edictum_server/services/stats_service.py:38:        select(func.count(func.distinct(Event.agent_id)))
+src/edictum_server/services/stats_service.py:45:        select(func.count(func.distinct(Event.agent_id)))
+src/edictum_server/services/stats_service.py:52:        select(func.count())
+src/edictum_server/services/stats_service.py:60:        select(func.count())
+src/edictum_server/services/stats_service.py:72:        select(func.count())
+src/edictum_server/services/stats_service.py:85:        select(func.count(func.distinct(
+src/edictum_server/services/stats_service.py:120:        select(
+src/edictum_server/services/stats_service.py:154:        select(func.count())
+src/edictum_server/services/deployment_service.py:40:        select(SigningKey)
+src/edictum_server/services/notification_service.py:51:        select(NotificationChannel)
+src/edictum_server/services/notification_service.py:65:        select(NotificationChannel).where(
+src/edictum_server/services/drift_service.py:34:        select(Deployment)
+src/edictum_server/services/drift_service.py:45:        select(Bundle.revision_hash).where(
+src/edictum_server/services/approval_service.py:73:        select(Approval).where(
+src/edictum_server/services/approval_service.py:87:        select(Approval)
+src/edictum_server/services/approval_service.py:128:        select(

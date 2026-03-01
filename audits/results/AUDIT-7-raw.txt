@@ -1,0 +1,172 @@
+=== AUDIT 7: INFRASTRUCTURE & SECRETS ===
+-e 
+--- Dockerfile Analysis ---
+# -- Stage 1: Frontend build ---------------------------------------------------
+FROM node:20-slim AS frontend
+WORKDIR /app/dashboard
+COPY dashboard/package.json dashboard/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY dashboard/ .
+RUN pnpm build
+
+# -- Stage 2: Python build -------------------------------------------------------
+FROM python:3.12-slim AS builder
+
+WORKDIR /app
+
+COPY pyproject.toml ./
+COPY src/ src/
+
+RUN pip install --no-cache-dir build \
+    && python -m build --wheel --outdir /app/dist
+
+# -- Stage 3: Runtime ------------------------------------------------------------
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN addgroup --system app && adduser --system --ingroup app app
+
+COPY --from=builder /app/dist/*.whl /tmp/
+RUN pip install --no-cache-dir /tmp/*.whl && rm /tmp/*.whl
+
+COPY alembic.ini ./
+COPY alembic/ alembic/
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+COPY --from=frontend /app/dashboard/dist static/dashboard/
+
+USER app
+
+EXPOSE 8000
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+-e 
+
+--- Checking for hardcoded secrets in codebase ---
+src/edictum_server/notifications/email.py:        self._smtp_password = smtp_password
+src/edictum_server/notifications/email.py:            password=self._smtp_password,
+src/edictum_server/notifications/loader.py:            smtp_password=config["smtp_password"],
+src/edictum_server/services/channel_test_helpers.py:        password=config["smtp_password"],
+src/edictum_server/notifications/telegram.py:        self._webhook_secret = webhook_secret
+src/edictum_server/notifications/webhook.py:        self._secret = secret
+src/edictum_server/notifications/slack_app.py:        self._signing_secret = signing_secret
+src/edictum_server/notifications/loader.py:            webhook_secret=config.get("webhook_secret", ""),
+src/edictum_server/notifications/loader.py:            signing_secret=config["signing_secret"],
+src/edictum_server/notifications/loader.py:            secret=config.get("secret"),
+src/edictum_server/services/signing_service.py:                secret=secret,
+src/edictum_server/services/deployment_service.py:            secret=signing_secret,
+src/edictum_server/routes/telegram.py:    expected_secret = db_channel.config.get("webhook_secret", "")
+src/edictum_server/routes/telegram.py:    actual_secret = request.headers.get("x-telegram-bot-api-secret-token", "")
+src/edictum_server/routes/slack.py:        secret = ch.config.get("signing_secret", "")
+src/edictum_server/routes/settings.py:    signing_secret = bytes.fromhex(settings.signing_key_secret)
+src/edictum_server/routes/bundles.py:    signing_secret = bytes.fromhex(settings.signing_key_secret)
+src/edictum_server/routes/bundles.py:            signing_secret=signing_secret,
+src/edictum_server/auth/dependencies.py:    api_key = result.scalar_one_or_none()
+src/edictum_server/routes/keys.py:    api_key = ApiKey(
+src/edictum_server/routes/keys.py:    api_key = result.scalar_one_or_none()
+-e 
+
+--- Checking .env.example ---
+# Database (Postgres)
+EDICTUM_DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/edictum
+
+# Redis
+EDICTUM_REDIS_URL=redis://localhost:6379/0
+
+# Secret key for session token signing (required, no default)
+# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+EDICTUM_SECRET_KEY=
+
+# Admin bootstrap (required on first run — creates admin user)
+EDICTUM_ADMIN_EMAIL=admin@example.com
+EDICTUM_ADMIN_PASSWORD=
+
+# Auth provider (local is the only option for now)
+EDICTUM_AUTH_PROVIDER=local
+
+# Public base URL (for webhooks, CORS)
+EDICTUM_BASE_URL=http://localhost:8000
+
+# Session TTL in hours (default: 24)
+EDICTUM_SESSION_TTL_HOURS=24
+
+# Ed25519 signing-key encryption secret (32-byte hex string)
+# Generate with: python -c "import secrets; print(secrets.token_hex(32))"
+EDICTUM_SIGNING_KEY_SECRET=
+
+# CORS allowed origins (comma-separated)
+EDICTUM_CORS_ORIGINS=http://localhost:8000,http://localhost:3000
+
+# Runtime environment (development | staging | production)
+EDICTUM_ENV_NAME=development
+
+# Telegram bot integration (optional — HITL approval notifications)
+# EDICTUM_TELEGRAM_BOT_TOKEN=
+# EDICTUM_TELEGRAM_CHAT_ID=0
+# EDICTUM_TELEGRAM_WEBHOOK_SECRET=
+-e 
+
+--- Checking docker-compose.yml ---
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: edictum
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+
+  server:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      EDICTUM_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/edictum
+      EDICTUM_REDIS_URL: redis://redis:6379/0
+      EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:-changeme-generate-a-real-secret}
+      EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-admin@example.com}
+      EDICTUM_ADMIN_PASSWORD: ${EDICTUM_ADMIN_PASSWORD:-}
+      EDICTUM_BASE_URL: ${EDICTUM_BASE_URL:-http://localhost:8000}
+      EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:-}
+
+volumes:
+  pgdata:
+-e 
+
+--- Checking render.yaml ---
+services:
+  - type: web
+    name: edictum-console
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    branch: master
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: EDICTUM_DATABASE_URL
+        sync: false
+      - key: EDICTUM_REDIS_URL
+        sync: false
+      - key: EDICTUM_SECRET_KEY
+        sync: false
+      - key: EDICTUM_SIGNING_KEY_SECRET
+        sync: false
+      - key: EDICTUM_ADMIN_EMAIL
+        sync: false
+      - key: EDICTUM_ADMIN_PASSWORD
+        sync: false
+      - key: EDICTUM_BASE_URL
+        sync: false
+      - key: EDICTUM_CORS_ORIGINS
+        sync: false
+      - key: EDICTUM_ENV_NAME
+        value: production

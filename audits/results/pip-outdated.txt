@@ -1,0 +1,8 @@
+Package       Version Latest Type
+------------- ------- ------ -----
+aiosmtplib    2.0.2   5.1.0  wheel
+pip           25.0.1  26.0.1 wheel
+pydantic_core 2.41.5  2.42.0 wheel
+
+[notice] A new release of pip is available: 25.0.1 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip

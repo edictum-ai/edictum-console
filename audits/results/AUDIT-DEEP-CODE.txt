@@ -1,0 +1,549 @@
+=== COMPREHENSIVE CODE SECURITY AUDIT ===
+Date: Sun Mar  1 22:54:32 UTC 2026
+-e 
+=== INPUT VECTORS ===
+--- All Pydantic schemas (input validation) ---
+src/edictum_server/schemas/stats.py
+src/edictum_server/schemas/keys.py
+src/edictum_server/schemas/evaluate.py
+src/edictum_server/schemas/sessions.py
+src/edictum_server/schemas/common.py
+src/edictum_server/schemas/approvals.py
+src/edictum_server/schemas/settings.py
+src/edictum_server/schemas/agents.py
+src/edictum_server/schemas/bundles.py
+src/edictum_server/schemas/events.py
+src/edictum_server/schemas/notifications.py
+src/edictum_server/routes/auth.py
+src/edictum_server/routes/setup.py
+-e 
+=== SCHEMA VALIDATION ANALYSIS ===
+-e 
+--- src/edictum_server/schemas/__init__.py ---
+No patterns
+-e 
+--- src/edictum_server/schemas/agents.py ---
+class AgentStatusEntry(BaseModel):
+    agent_id: str
+    env: str
+    bundle_name: str | None
+    policy_version: str | None
+    status: str  # "current", "drift", "unknown"
+class AgentFleetStatusResponse(BaseModel):
+-e 
+--- src/edictum_server/schemas/approvals.py ---
+class CreateApprovalRequest(BaseModel):
+    agent_id: str
+    tool_name: str
+    message: str
+    timeout: int = Field(default=300, ge=1, le=86400)
+    decision_source: str | None = None
+    contract_name: str | None = None
+class ApprovalResponse(BaseModel):
+    id: str
+    status: str
+    agent_id: str
+    tool_name: str
+    message: str
+    env: str
+    timeout_seconds: int
+    timeout_effect: str
+    decision_source: str | None = None
+    contract_name: str | None = None
+    decided_by: str | None = None
+    decision_reason: str | None = None
+    decided_via: str | None = None
+class SubmitDecisionRequest(BaseModel):
+    decided_by: str | None = None
+    reason: str | None = None
+    decided_via: str | None = None
+-e 
+--- src/edictum_server/schemas/bundles.py ---
+class BundleUploadRequest(BaseModel):
+    yaml_content: str
+class BundleResponse(BaseModel):
+    name: str
+    version: int
+    revision_hash: str
+    signature_hex: str | None = None
+    source_hub_slug: str | None = None
+    source_hub_revision: str | None = None
+    uploaded_by: str
+class BundleWithDeploymentsResponse(BundleResponse):
+class BundleSummaryResponse(BaseModel):
+    name: str
+    latest_version: int
+    version_count: int
+class DeployRequest(BaseModel):
+    env: str
+class DeploymentResponse(BaseModel):
+    env: str
+    bundle_name: str
+    bundle_version: int
+    deployed_by: str
+-e 
+--- src/edictum_server/schemas/common.py ---
+class ErrorResponse(BaseModel):
+    detail: str
+    code: str
+-e 
+--- src/edictum_server/schemas/evaluate.py ---
+class PrincipalInput(BaseModel):
+    user_id: str | None = None
+    role: str | None = None
+class EvaluateRequest(BaseModel):
+    yaml_content: str = Field(..., description="YAML contract bundle to evaluate against")
+    tool_name: str = Field(..., description="Tool name to simulate")
+    environment: str = Field(default="production", description="Environment context")
+    agent_id: str = Field(default="test-agent", description="Simulated agent ID")
+class ContractEvaluation(BaseModel):
+    id: str
+    type: str
+    effect: str | None = None
+    message: str | None = None
+class EvaluateResponse(BaseModel):
+    verdict: str
+    mode: str
+    deciding_contract: str | None = None
+    policy_version: str
+-e 
+--- src/edictum_server/schemas/events.py ---
+class EventPayload(BaseModel):
+    call_id: str = Field(..., description="Globally unique call identifier for dedup")
+    agent_id: str = Field(..., description="Identifier of the reporting agent")
+    tool_name: str = Field(..., description="Tool that was called")
+    verdict: str = Field(..., description="Contract verdict (allow, deny, etc.)")
+    mode: str = Field(..., description="Evaluation mode (enforce, observe, etc.)")
+class EventBatchRequest(BaseModel):
+    events: list[EventPayload] = Field(..., min_length=1, description="One or more audit events")
+class EventResponse(BaseModel):
+    id: str
+    call_id: str
+    agent_id: str
+    tool_name: str
+    verdict: str
+    mode: str
+class EventIngestResponse(BaseModel):
+    accepted: int = Field(..., description="Number of newly stored events")
+    duplicates: int = Field(..., description="Number of events skipped (already ingested)")
+-e 
+--- src/edictum_server/schemas/keys.py ---
+class CreateKeyRequest(BaseModel):
+    env: str
+    label: str | None = None
+class CreateKeyResponse(BaseModel):
+    id: str
+    key: str
+    prefix: str
+    env: str
+    label: str | None
+class ApiKeyInfo(BaseModel):
+    id: str
+    prefix: str
+    env: str
+    label: str | None
+-e 
+--- src/edictum_server/schemas/notifications.py ---
+class RoutingFilters(BaseModel):
+class CreateChannelRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+class UpdateChannelRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+class ChannelResponse(BaseModel):
+    name: str
+    channel_type: str
+class TestResult(BaseModel):
+    message: str
+-e 
+--- src/edictum_server/schemas/sessions.py ---
+class SessionValueResponse(BaseModel):
+    value: str | None
+class SetValueRequest(BaseModel):
+    value: str = Field(..., description="The string value to store")
+class IncrementRequest(BaseModel):
+class IncrementResponse(BaseModel):
+-e 
+--- src/edictum_server/schemas/settings.py ---
+class RotateKeyResponse(BaseModel):
+    public_key: str
+    deployments_re_signed: int
+class PurgeEventsResponse(BaseModel):
+    deleted_count: int
+-e 
+--- src/edictum_server/schemas/stats.py ---
+class StatsOverviewResponse(BaseModel):
+    pending_approvals: int = Field(..., description="Number of pending approval requests")
+    active_agents: int = Field(..., description="Distinct agents seen in the last hour")
+    total_agents: int = Field(..., description="Distinct agents seen all-time")
+    events_24h: int = Field(..., description="Total events in the last 24 hours")
+    denials_24h: int = Field(..., description="Events with verdict=denied in the last 24 hours")
+    observe_findings_24h: int = Field(
+    contracts_triggered_24h: int = Field(
+class ContractCoverage(BaseModel):
+    decision_name: str = Field(..., description="Name of the contract")
+    total_evaluations: int = Field(..., description="Total evaluation events")
+    total_denials: int = Field(..., description="Events with verdict=denied")
+    total_warnings: int = Field(..., description="Events with verdict=call_would_deny")
+    last_triggered: str | None = Field(None, description="ISO timestamp of last event")
+class ContractStatsResponse(BaseModel):
+    total_events: int = Field(..., description="Total events in the time window")
+    period_start: str = Field(..., description="ISO timestamp of window start")
+    period_end: str = Field(..., description="ISO timestamp of window end")
+-e 
+
+=== SQL QUERY ANALYSIS ===
+src/edictum_server/auth/dependencies.py:62:        select(ApiKey).where(
+src/edictum_server/notifications/base.py:188:    filters = channel.filters
+src/edictum_server/notifications/loader.py:33:        select(ChannelModel).where(ChannelModel.enabled == True)  # noqa: E712
+src/edictum_server/notifications/loader.py:91:    filters = row.filters
+src/edictum_server/services/signing_service.py:92:        select(SigningKeyModel).where(
+src/edictum_server/services/signing_service.py:113:        select(
+src/edictum_server/services/signing_service.py:123:        .where(Deployment.tenant_id == tenant_id)
+src/edictum_server/services/signing_service.py:127:        select(ranked.c.bundle_name, ranked.c.bundle_version).where(ranked.c.rn == 1)
+src/edictum_server/services/signing_service.py:135:            select(Bundle).where(
+src/edictum_server/services/bundle_service.py:46:        select(Bundle.version)
+src/edictum_server/services/bundle_service.py:47:        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+src/edictum_server/services/bundle_service.py:80:        select(Bundle)
+src/edictum_server/services/bundle_service.py:87:        .where(Deployment.tenant_id == tenant_id, Deployment.env == env)
+src/edictum_server/services/bundle_service.py:90:        query = query.where(Bundle.name == bundle_name)
+src/edictum_server/services/bundle_service.py:102:        select(Bundle).where(Bundle.tenant_id == tenant_id).order_by(Bundle.version.desc())
+src/edictum_server/services/bundle_service.py:113:        select(
+src/edictum_server/services/bundle_service.py:119:        .where(Bundle.tenant_id == tenant_id)
+src/edictum_server/services/bundle_service.py:141:        select(Bundle)
+src/edictum_server/services/bundle_service.py:142:        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+src/edictum_server/services/bundle_service.py:160:        select(
+src/edictum_server/services/bundle_service.py:170:        .where(*filters)
+src/edictum_server/services/bundle_service.py:175:        select(ranked.c.bundle_version, ranked.c.env).where(ranked.c.rn == 1)
+src/edictum_server/services/bundle_service.py:196:    result = await db.execute(select(Bundle).where(*filters))
+src/edictum_server/services/stats_service.py:30:        select(func.count())
+src/edictum_server/services/stats_service.py:32:        .where(Approval.tenant_id == tenant_id, Approval.status == "pending")
+src/edictum_server/services/stats_service.py:38:        select(func.count(func.distinct(Event.agent_id)))
+src/edictum_server/services/stats_service.py:39:        .where(Event.tenant_id == tenant_id, Event.timestamp >= one_hour_ago)
+src/edictum_server/services/stats_service.py:45:        select(func.count(func.distinct(Event.agent_id)))
+src/edictum_server/services/stats_service.py:46:        .where(Event.tenant_id == tenant_id)
+src/edictum_server/services/stats_service.py:52:        select(func.count())
+src/edictum_server/services/stats_service.py:54:        .where(Event.tenant_id == tenant_id, Event.timestamp >= twenty_four_hours_ago)
+src/edictum_server/services/stats_service.py:60:        select(func.count())
+src/edictum_server/services/stats_service.py:62:        .where(
+src/edictum_server/services/stats_service.py:72:        select(func.count())
+src/edictum_server/services/stats_service.py:74:        .where(
+src/edictum_server/services/stats_service.py:85:        select(func.count(func.distinct(
+src/edictum_server/services/stats_service.py:88:        .where(
+src/edictum_server/services/stats_service.py:120:        select(
+src/edictum_server/services/stats_service.py:129:        .where(
+src/edictum_server/services/stats_service.py:154:        select(func.count())
+src/edictum_server/services/stats_service.py:156:        .where(
+src/edictum_server/services/event_service.py:79:    stmt = select(Event).where(Event.tenant_id == tenant_id)
+src/edictum_server/services/event_service.py:82:        stmt = stmt.where(Event.agent_id == agent_id)
+src/edictum_server/services/event_service.py:84:        stmt = stmt.where(Event.tool_name == tool_name)
+src/edictum_server/services/event_service.py:86:        stmt = stmt.where(Event.verdict == verdict)
+src/edictum_server/services/event_service.py:88:        stmt = stmt.where(Event.timestamp >= since)
+src/edictum_server/services/event_service.py:90:        stmt = stmt.where(Event.timestamp <= until)
+src/edictum_server/services/event_service.py:109:        .where(
+src/edictum_server/services/deployment_service.py:40:        select(SigningKey)
+src/edictum_server/services/deployment_service.py:41:        .where(
+-e 
+
+=== RAW SQL CHECK ===
+src/edictum_server/auth/dependencies.py:75:    return AuthContext(
+src/edictum_server/auth/dependencies.py:89:    return AuthContext(
+src/edictum_server/auth/local.py:43:        return DashboardAuthContext(
+src/edictum_server/notifications/telegram_client.py:46:    async def edit_message_text(
+src/edictum_server/notifications/telegram.py:122:        await self.client.edit_message_text(
+src/edictum_server/notifications/telegram.py:144:                await self.client.edit_message_text(
+src/edictum_server/services/stats_service.py:91:            Event.payload["decision_name"] != text("'null'"),
+src/edictum_server/services/stats_service.py:133:            decision_col != text("'null'"),
+src/edictum_server/services/event_service.py:58:        result = await db.execute(sqlite_stmt)
+src/edictum_server/routes/health.py:30:    await db.execute(text("SELECT 1"))
+src/edictum_server/main.py:61:                await db.execute(sa.text("SELECT ensure_event_partitions(3)"))
+-e 
+
+=== DANGEROUS FUNCTIONS ===
+src/edictum_server/auth/dependencies.py:61:    result = await db.execute(
+src/edictum_server/db/models.py:115:    """Audit event from an agent tool call evaluation."""
+src/edictum_server/rate_limit.py:64:    results = await pipe.execute()
+src/edictum_server/notifications/loader.py:32:    result = await db.execute(
+src/edictum_server/schemas/stats.py:28:    total_evaluations: int = Field(..., description="Total evaluation events")
+src/edictum_server/schemas/evaluate.py:1:"""Request and response schemas for the evaluate (playground) endpoint."""
+src/edictum_server/schemas/evaluate.py:11:    """Optional principal context for evaluation."""
+src/edictum_server/schemas/evaluate.py:19:    """Request body for contract evaluation playground."""
+src/edictum_server/schemas/evaluate.py:21:    yaml_content: str = Field(..., description="YAML contract bundle to evaluate against")
+src/edictum_server/schemas/evaluate.py:32:    """Result of evaluating a single contract."""
+src/edictum_server/schemas/evaluate.py:44:    """Response from the evaluate playground endpoint."""
+src/edictum_server/schemas/evaluate.py:48:    contracts_evaluated: list[ContractEvaluation]
+src/edictum_server/schemas/evaluate.py:51:    evaluation_time_ms: float
+src/edictum_server/services/signing_service.py:91:    result = await db.execute(
+src/edictum_server/services/signing_service.py:126:    active_result = await db.execute(
+src/edictum_server/services/signing_service.py:134:        bundle_result = await db.execute(
+src/edictum_server/services/bundle_service.py:1:"""Bundle upload, versioning, and retrieval service."""
+src/edictum_server/services/bundle_service.py:45:    result = await db.execute(
+src/edictum_server/services/bundle_service.py:92:    result = await db.execute(query)
+src/edictum_server/services/bundle_service.py:101:    result = await db.execute(
+src/edictum_server/services/bundle_service.py:112:    result = await db.execute(
+src/edictum_server/services/bundle_service.py:140:    result = await db.execute(
+src/edictum_server/services/bundle_service.py:174:    result = await db.execute(
+src/edictum_server/services/bundle_service.py:196:    result = await db.execute(select(Bundle).where(*filters))
+src/edictum_server/services/stats_service.py:29:    pending_result = await db.execute(
+src/edictum_server/services/stats_service.py:37:    active_result = await db.execute(
+src/edictum_server/services/stats_service.py:44:    total_result = await db.execute(
+src/edictum_server/services/stats_service.py:51:    events_24h_result = await db.execute(
+src/edictum_server/services/stats_service.py:59:    denials_24h_result = await db.execute(
+src/edictum_server/services/stats_service.py:71:    observe_result = await db.execute(
+src/edictum_server/services/stats_service.py:84:    contracts_result = await db.execute(
+src/edictum_server/services/stats_service.py:122:            func.count().label("total_evaluations"),
+src/edictum_server/services/stats_service.py:138:    result = await db.execute(stmt)
+src/edictum_server/services/stats_service.py:144:            total_evaluations=row.total_evaluations,
+src/edictum_server/services/stats_service.py:153:    total_result = await db.execute(
+src/edictum_server/services/event_service.py:54:        result = await db.execute(pg_stmt)
+src/edictum_server/services/event_service.py:58:        result = await db.execute(sqlite_stmt)
+src/edictum_server/services/event_service.py:93:    result = await db.execute(stmt)
+src/edictum_server/services/event_service.py:114:    result = await db.execute(stmt)
+src/edictum_server/services/deployment_service.py:39:    result = await db.execute(
+src/edictum_server/services/notification_service.py:50:    result = await db.execute(
+src/edictum_server/services/notification_service.py:64:    result = await db.execute(
+src/edictum_server/services/drift_service.py:33:    dep_result = await db.execute(
+src/edictum_server/services/drift_service.py:44:    bundle_result = await db.execute(
+src/edictum_server/services/approval_service.py:12:from sqlalchemy.ext.compiler import compiles
+src/edictum_server/services/approval_service.py:26:@compiles(_ApprovalExpired)
+src/edictum_server/services/approval_service.py:31:@compiles(_ApprovalExpired, "sqlite")
+src/edictum_server/services/approval_service.py:72:    result = await db.execute(
+src/edictum_server/services/approval_service.py:86:    result = await db.execute(
+src/edictum_server/services/approval_service.py:127:    result = await db.execute(
+src/edictum_server/services/approval_service.py:144:    await db.execute(
+src/edictum_server/services/evaluate_service.py:1:"""Stateless contract evaluation service (development-time playground)."""
+src/edictum_server/services/evaluate_service.py:11:from edictum_server.schemas.evaluate import (
+src/edictum_server/services/evaluate_service.py:54:        contracts_evaluated=contracts,
+src/edictum_server/services/evaluate_service.py:61:def evaluate_contracts(
+src/edictum_server/services/evaluate_service.py:76:        tool_name: Tool name to evaluate.
+src/edictum_server/services/evaluate_service.py:100:    result: EvaluationResult = edictum_instance.evaluate(
+src/edictum_server/services/evaluate_service.py:112:    response.evaluation_time_ms = round(elapsed_ms, 2)
+src/edictum_server/routes/stats.py:38:    summary="Get per-contract evaluation statistics",
+src/edictum_server/routes/stats.py:46:    """Return per-contract aggregated evaluation stats."""
+src/edictum_server/routes/auth.py:64:    result = await db.execute(select(User).where(User.email == body.email))
+src/edictum_server/routes/telegram.py:153:    result = await db.execute(
+src/edictum_server/routes/keys.py:71:    result = await db.execute(
+src/edictum_server/routes/keys.py:101:    result = await db.execute(
+src/edictum_server/routes/keys.py:116:    await db.execute(
+src/edictum_server/routes/health.py:25:    result = await db.execute(select(func.count()).select_from(User))
+src/edictum_server/routes/health.py:30:    await db.execute(text("SELECT 1"))
+src/edictum_server/routes/evaluate.py:1:"""Evaluate (playground) endpoint — stateless contract evaluation."""
+src/edictum_server/routes/evaluate.py:11:from edictum_server.schemas.evaluate import EvaluateRequest, EvaluateResponse
+src/edictum_server/routes/evaluate.py:12:from edictum_server.services.evaluate_service import evaluate_contracts
+src/edictum_server/routes/evaluate.py:14:router = APIRouter(prefix="/api/v1/bundles", tags=["evaluate"])
+src/edictum_server/routes/evaluate.py:17:@router.post("/evaluate", response_model=EvaluateResponse)
+src/edictum_server/routes/evaluate.py:18:async def evaluate(
+src/edictum_server/routes/evaluate.py:25:    It is never called by agents during production execution.
+src/edictum_server/routes/evaluate.py:28:        return evaluate_contracts(
+src/edictum_server/routes/deployments.py:37:    result = await db.execute(stmt)
+src/edictum_server/routes/approvals.py:134:    result = await db.execute(stmt)
+src/edictum_server/routes/slack.py:66:    result = await db.execute(
+src/edictum_server/routes/setup.py:57:    result = await db.execute(select(func.count()).select_from(User))
+src/edictum_server/routes/discord.py:57:    result = await db.execute(
+src/edictum_server/main.py:33:    evaluate,
+src/edictum_server/main.py:61:                await db.execute(sa.text("SELECT ensure_event_partitions(3)"))
+src/edictum_server/main.py:117:        result = await db.execute(select(func.count()).select_from(User))
+src/edictum_server/main.py:242:app.include_router(evaluate.router)
+-e 
+
+=== MISSING VALIDATION CHECK ===
+--- String fields WITHOUT max_length validation ---
+src/edictum_server/schemas/agents.py:13:    agent_id: str
+src/edictum_server/schemas/agents.py:14:    env: str
+src/edictum_server/schemas/agents.py:15:    bundle_name: str | None
+src/edictum_server/schemas/agents.py:16:    policy_version: str | None
+src/edictum_server/schemas/approvals.py:14:    agent_id: str
+src/edictum_server/schemas/approvals.py:15:    tool_name: str
+src/edictum_server/schemas/approvals.py:17:    message: str
+src/edictum_server/schemas/approvals.py:20:    decision_source: str | None = None
+src/edictum_server/schemas/approvals.py:21:    contract_name: str | None = None
+src/edictum_server/schemas/approvals.py:25:    id: str
+src/edictum_server/schemas/approvals.py:26:    status: str
+src/edictum_server/schemas/approvals.py:27:    agent_id: str
+src/edictum_server/schemas/approvals.py:28:    tool_name: str
+src/edictum_server/schemas/approvals.py:30:    message: str
+src/edictum_server/schemas/approvals.py:31:    env: str
+src/edictum_server/schemas/approvals.py:33:    timeout_effect: str
+src/edictum_server/schemas/approvals.py:34:    decision_source: str | None = None
+src/edictum_server/schemas/approvals.py:35:    contract_name: str | None = None
+src/edictum_server/schemas/approvals.py:36:    decided_by: str | None = None
+src/edictum_server/schemas/approvals.py:38:    decision_reason: str | None = None
+src/edictum_server/schemas/approvals.py:39:    decided_via: str | None = None
+src/edictum_server/schemas/approvals.py:45:    decided_by: str | None = None
+src/edictum_server/schemas/approvals.py:46:    reason: str | None = None
+src/edictum_server/schemas/approvals.py:47:    decided_via: str | None = None
+src/edictum_server/schemas/bundles.py:14:    yaml_content: str
+src/edictum_server/schemas/bundles.py:24:    name: str
+src/edictum_server/schemas/bundles.py:26:    revision_hash: str
+src/edictum_server/schemas/bundles.py:27:    signature_hex: str | None = None
+src/edictum_server/schemas/bundles.py:28:    source_hub_slug: str | None = None
+src/edictum_server/schemas/bundles.py:29:    source_hub_revision: str | None = None
+src/edictum_server/schemas/bundles.py:30:    uploaded_by: str
+src/edictum_server/schemas/bundles.py:43:    name: str
+src/edictum_server/schemas/bundles.py:53:    env: str
+src/edictum_server/schemas/bundles.py:62:    env: str
+src/edictum_server/schemas/bundles.py:63:    bundle_name: str
+src/edictum_server/schemas/bundles.py:65:    deployed_by: str
+src/edictum_server/schemas/common.py:11:    detail: str
+src/edictum_server/schemas/common.py:12:    code: str
+src/edictum_server/schemas/evaluate.py:13:    user_id: str | None = None
+src/edictum_server/schemas/evaluate.py:14:    role: str | None = None
+src/edictum_server/schemas/evaluate.py:21:    yaml_content: str = Field(..., description="YAML contract bundle to evaluate against")
+src/edictum_server/schemas/evaluate.py:22:    tool_name: str = Field(..., description="Tool name to simulate")
+src/edictum_server/schemas/evaluate.py:24:    environment: str = Field(default="production", description="Environment context")
+src/edictum_server/schemas/evaluate.py:25:    agent_id: str = Field(default="test-agent", description="Simulated agent ID")
+src/edictum_server/schemas/evaluate.py:34:    id: str
+src/edictum_server/schemas/evaluate.py:35:    type: str
+src/edictum_server/schemas/evaluate.py:37:    effect: str | None = None
+src/edictum_server/schemas/evaluate.py:38:    message: str | None = None
+src/edictum_server/schemas/evaluate.py:46:    verdict: str
+src/edictum_server/schemas/evaluate.py:47:    mode: str
+src/edictum_server/schemas/evaluate.py:49:    deciding_contract: str | None = None
+src/edictum_server/schemas/evaluate.py:50:    policy_version: str
+src/edictum_server/schemas/events.py:13:    call_id: str = Field(..., description="Globally unique call identifier for dedup")
+src/edictum_server/schemas/events.py:14:    agent_id: str = Field(..., description="Identifier of the reporting agent")
+src/edictum_server/schemas/events.py:15:    tool_name: str = Field(..., description="Tool that was called")
+src/edictum_server/schemas/events.py:16:    verdict: str = Field(..., description="Contract verdict (allow, deny, etc.)")
+src/edictum_server/schemas/events.py:17:    mode: str = Field(..., description="Evaluation mode (enforce, observe, etc.)")
+src/edictum_server/schemas/events.py:33:    id: str
+src/edictum_server/schemas/events.py:34:    call_id: str
+src/edictum_server/schemas/events.py:35:    agent_id: str
+src/edictum_server/schemas/events.py:36:    tool_name: str
+src/edictum_server/schemas/events.py:37:    verdict: str
+src/edictum_server/schemas/events.py:38:    mode: str
+src/edictum_server/schemas/keys.py:13:    env: str
+src/edictum_server/schemas/keys.py:14:    label: str | None = None
+src/edictum_server/schemas/keys.py:20:    id: str
+src/edictum_server/schemas/keys.py:21:    key: str
+src/edictum_server/schemas/keys.py:22:    prefix: str
+src/edictum_server/schemas/keys.py:23:    env: str
+src/edictum_server/schemas/keys.py:24:    label: str | None
+src/edictum_server/schemas/keys.py:31:    id: str
+src/edictum_server/schemas/keys.py:32:    prefix: str
+src/edictum_server/schemas/keys.py:33:    env: str
+src/edictum_server/schemas/keys.py:34:    label: str | None
+src/edictum_server/schemas/notifications.py:42:    name: str
+src/edictum_server/schemas/notifications.py:43:    channel_type: str
+src/edictum_server/schemas/notifications.py:56:    message: str
+src/edictum_server/schemas/sessions.py:11:    value: str | None
+src/edictum_server/schemas/sessions.py:17:    value: str = Field(..., description="The string value to store")
+src/edictum_server/schemas/settings.py:13:    public_key: str
+src/edictum_server/schemas/stats.py:27:    decision_name: str = Field(..., description="Name of the contract")
+src/edictum_server/schemas/stats.py:31:    last_triggered: str | None = Field(None, description="ISO timestamp of last event")
+src/edictum_server/schemas/stats.py:39:    period_start: str = Field(..., description="ISO timestamp of window start")
+src/edictum_server/schemas/stats.py:40:    period_end: str = Field(..., description="ISO timestamp of window end")
+-e 
+
+=== SECRET HANDLING CHECK ===
+-e 
+
+=== ERROR HANDLING CHECK ===
+src/edictum_server/notifications/base.py:88:                except Exception:
+src/edictum_server/notifications/base.py:143:            except Exception:
+src/edictum_server/notifications/base.py:170:            except Exception:
+src/edictum_server/notifications/telegram.py:150:            except Exception:
+src/edictum_server/notifications/slack_app.py:243:            except Exception:
+src/edictum_server/notifications/loader.py:42:        except Exception:
+src/edictum_server/notifications/loader.py:74:    except Exception:
+src/edictum_server/notifications/discord.py:193:            except Exception:
+src/edictum_server/services/signing_service.py:71:    except Exception:  # nacl.exceptions.BadSignatureError
+src/edictum_server/services/notification_service.py:170:    except Exception as exc:
+src/edictum_server/services/evaluate_service.py:97:    except Exception as exc:
+src/edictum_server/routes/telegram.py:70:        except Exception:
+src/edictum_server/routes/telegram.py:94:        except Exception:
+src/edictum_server/routes/telegram.py:127:    except Exception:
+src/edictum_server/routes/telegram.py:134:    except Exception:
+src/edictum_server/routes/health.py:42:    except Exception:
+src/edictum_server/routes/health.py:50:    except Exception:
+src/edictum_server/routes/approvals.py:17:        except Exception:
+src/edictum_server/routes/slack.py:189:        except Exception:
+src/edictum_server/main.py:64:        except Exception:
+-e 
+
+=== FILE ACCESS CHECK ===
+src/edictum_server/auth/local.py:76:            "path": "/",
+src/edictum_server/notifications/telegram_client.py:91:    async def _post(self, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+src/edictum_server/notifications/telegram_client.py:92:        resp = await self._client.post(path, json=payload)
+src/edictum_server/notifications/telegram_client.py:95:            logger.error("Telegram API error on %s: %s", path, data)
+src/edictum_server/routes/auth.py:96:    response.delete_cookie("edictum_session", path="/")
+src/edictum_server/main.py:11:from pathlib import Path
+src/edictum_server/main.py:260:@app.get("/dashboard/{full_path:path}", response_model=None)
+src/edictum_server/main.py:261:async def serve_spa(request: Request, full_path: str) -> FileResponse | HTMLResponse:  # noqa: ARG001
+src/edictum_server/main.py:263:    file_path = (_STATIC_DIR / full_path).resolve()
+src/edictum_server/main.py:265:        full_path
+src/edictum_server/main.py:266:        and file_path.is_file()
+src/edictum_server/main.py:267:        and str(file_path).startswith(str(_STATIC_DIR.resolve()))
+src/edictum_server/main.py:269:        return FileResponse(file_path)
+-e 
+
+=== PATH TRAVERSAL CHECK (CRITICAL) ===
+Dashboard route analysis:
+@app.get("/dashboard/{full_path:path}", response_model=None)
+async def serve_spa(request: Request, full_path: str) -> FileResponse | HTMLResponse:  # noqa: ARG001
+    """Serve the React SPA — static files or index.html for client-side routing."""
+    file_path = (_STATIC_DIR / full_path).resolve()
+    if (
+        full_path
+        and file_path.is_file()
+        and str(file_path).startswith(str(_STATIC_DIR.resolve()))
+    ):
+        return FileResponse(file_path)
+    index = _STATIC_DIR / "index.html"
+-e 
+
+=== HARDCODED SECRETS CHECK ===
+src/edictum_server/auth/api_keys.py:33:    random_part = secrets.token_urlsafe(32)
+src/edictum_server/auth/dependencies.py:67:    api_key = result.scalar_one_or_none()
+src/edictum_server/auth/dependencies.py:76:        tenant_id=api_key.tenant_id,
+src/edictum_server/auth/dependencies.py:77:        auth_type="api_key",
+src/edictum_server/auth/dependencies.py:78:        env=api_key.env,
+src/edictum_server/auth/dependencies.py:104:        return await require_api_key(authorization=authorization, db=db)
+src/edictum_server/auth/dependencies.py:114:        return await require_api_key(authorization=authorization, db=db)
+src/edictum_server/auth/local.py:34:        raw = await self._redis.get(f"{_SESSION_PREFIX}{token}")
+src/edictum_server/auth/local.py:57:        token = secrets.token_urlsafe(32)
+src/edictum_server/auth/local.py:98:        prehashed = LocalAuthProvider._prehash(password)
+src/edictum_server/auth/local.py:104:        prehashed = LocalAuthProvider._prehash(password)
+src/edictum_server/config.py:22:    secret_key: str = ""
+src/edictum_server/config.py:26:    admin_password: str = ""
+src/edictum_server/config.py:38:    signing_key_secret: str = ""
+src/edictum_server/config.py:41:    api_key_prefix_production: str = "edk_production_"
+src/edictum_server/config.py:42:    api_key_prefix_staging: str = "edk_staging_"
+src/edictum_server/config.py:43:    api_key_prefix_development: str = "edk_development_"
+src/edictum_server/notifications/telegram_client.py:26:            base_url=f"https://api.telegram.org/bot{token}",
+src/edictum_server/notifications/telegram.py:33:        webhook_secret: str = "",
+src/edictum_server/notifications/telegram.py:41:        self._webhook_secret = webhook_secret
+src/edictum_server/notifications/webhook.py:24:        secret: str | None = None,
+src/edictum_server/notifications/webhook.py:30:        self._secret = secret
+src/edictum_server/notifications/slack_app.py:43:        self._bot_token = bot_token
+src/edictum_server/notifications/slack_app.py:44:        self._signing_secret = signing_secret
+src/edictum_server/notifications/slack_app.py:135:            headers={"Authorization": f"Bearer {self._bot_token}"},
+src/edictum_server/notifications/slack_app.py:177:                headers={"Authorization": f"Bearer {self._bot_token}"},
+src/edictum_server/notifications/slack_app.py:194:                headers={"Authorization": f"Bearer {self._bot_token}"},
+src/edictum_server/notifications/slack_app.py:230:                    headers={"Authorization": f"Bearer {self._bot_token}"},
+src/edictum_server/notifications/email.py:37:        self._smtp_password = smtp_password
+src/edictum_server/notifications/email.py:116:            password=self._smtp_password,
+-e 
+
+=== SSRF CHECK ===
+src/edictum_server/rate_limit.py:37:    from rejected requests.
+src/edictum_server/notifications/telegram_client.py:8:import httpx
+src/edictum_server/notifications/telegram_client.py:25:        self._client = httpx.AsyncClient(
+src/edictum_server/notifications/base.py:66:        """Clean up resources (e.g. httpx clients). Override if needed."""
+src/edictum_server/notifications/webhook.py:11:import httpx
+src/edictum_server/notifications/webhook.py:34:        self._client = httpx.AsyncClient(timeout=10.0)
+src/edictum_server/notifications/slack_app.py:9:import httpx
+src/edictum_server/notifications/slack_app.py:51:        self._client = httpx.AsyncClient(timeout=10.0)
+src/edictum_server/notifications/slack.py:7:import httpx
+src/edictum_server/notifications/slack.py:30:        self._client = httpx.AsyncClient(timeout=10.0)
+src/edictum_server/notifications/discord.py:9:import httpx
+src/edictum_server/notifications/discord.py:55:        self._client = httpx.AsyncClient(timeout=10.0)
+src/edictum_server/schemas/stats.py:11:    pending_approvals: int = Field(..., description="Number of pending approval requests")
+src/edictum_server/services/notification_service.py:9:import httpx
+src/edictum_server/services/notification_service.py:162:            async with httpx.AsyncClient(timeout=10) as client:
+src/edictum_server/services/notification_service.py:166:    except httpx.HTTPStatusError as exc:
+src/edictum_server/services/notification_service.py:168:    except httpx.RequestError as exc:
+src/edictum_server/services/channel_test_helpers.py:5:import httpx
+src/edictum_server/services/channel_test_helpers.py:9:    client: httpx.AsyncClient,
+src/edictum_server/services/approval_service.py:1:"""Service for managing HITL approval requests."""
+-e 
+
+=== DESERIALIZATION CHECK ===

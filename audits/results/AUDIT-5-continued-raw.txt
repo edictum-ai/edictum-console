@@ -1,0 +1,19 @@
+=== FRONTEND AUDIT (continued) ===
+--- TypeScript strict check ---
+-e 
+--- pnpm audit ---
+No known vulnerabilities found
+-e 
+--- Checking for dangerouslySetInnerHTML ---
+src/components/ui/chart.tsx:      dangerouslySetInnerHTML={{
+-e 
+--- Checking for eval() ---
+None found (good!)
+-e 
+--- Checking localStorage usage ---
+src/components/sidebar.tsx:      return localStorage.getItem(STORAGE_KEY) === "true"
+src/components/sidebar.tsx:      localStorage.setItem(STORAGE_KEY, String(collapsed))
+src/components/sidebar.tsx:      // localStorage unavailable
+src/pages/dashboard-home.tsx:  const wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
+src/hooks/use-theme.ts:  const stored = localStorage.getItem(STORAGE_KEY)
+src/hooks/use-theme.ts:    localStorage.setItem(STORAGE_KEY, theme)

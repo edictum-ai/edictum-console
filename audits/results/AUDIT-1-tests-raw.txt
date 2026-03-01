@@ -1,0 +1,645 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- /root/.nanobot/workspace/edictum-console/.venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /root/.nanobot/workspace/edictum-console
+configfile: pyproject.toml
+plugins: asyncio-1.3.0, cov-7.0.0, anyio-4.12.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 289 items
+
+tests/test_adversarial/test_discord_interaction_security.py::test_wrong_signature_401 PASSED [  0%]
+tests/test_adversarial/test_discord_interaction_security.py::test_missing_signature_header_401 PASSED [  0%]
+tests/test_adversarial/test_discord_interaction_security.py::test_missing_timestamp_header_401 PASSED [  1%]
+tests/test_adversarial/test_discord_interaction_security.py::test_malformed_signature_hex_401 PASSED [  1%]
+tests/test_adversarial/test_discord_interaction_security.py::test_no_discord_channels_401 PASSED [  1%]
+tests/test_adversarial/test_discord_interaction_security.py::test_disabled_channel_401 PASSED [  2%]
+tests/test_adversarial/test_discord_interaction_security.py::test_malformed_public_key_skipped PASSED [  2%]
+tests/test_adversarial/test_discord_interaction_security.py::test_cross_tenant_blocked PASSED [  2%]
+tests/test_adversarial/test_discord_interaction_security.py::test_replay_already_decided PASSED [  3%]
+tests/test_adversarial/test_discord_interaction_security.py::test_invalid_custom_id_no_colon PASSED [  3%]
+tests/test_adversarial/test_discord_interaction_security.py::test_invalid_approval_id_not_uuid PASSED [  3%]
+tests/test_adversarial/test_discord_interaction_security.py::test_expired_redis_tenant_key_returns_expired_embed PASSED [  4%]
+tests/test_adversarial/test_discord_interaction_security.py::test_verify_signature_valid PASSED [  4%]
+tests/test_adversarial/test_discord_interaction_security.py::test_verify_signature_wrong_key PASSED [  4%]
+tests/test_adversarial/test_discord_interaction_security.py::test_verify_signature_malformed_hex PASSED [  5%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_no_auth_rejected PASSED [  5%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_api_key_rejected PASSED [  5%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_yaml_bomb PASSED [  6%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_yaml_python_object PASSED [  6%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_huge_yaml PASSED [  6%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_error_no_stacktrace PASSED [  7%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_empty_tool_name PASSED [  7%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_null_tool_args PASSED [  7%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_special_chars_in_tool_name PASSED [  8%]
+tests/test_adversarial/test_evaluate_security.py::test_evaluate_nested_args PASSED [  8%]
+tests/test_adversarial/test_s1_session_bypass.py::test_forged_cookie_random_string PASSED [  8%]
+tests/test_adversarial/test_s1_session_bypass.py::test_empty_cookie_header PASSED [  9%]
+tests/test_adversarial/test_s1_session_bypass.py::test_expired_session_token PASSED [  9%]
+tests/test_adversarial/test_s1_session_bypass.py::test_tampered_session_payload PASSED [ 10%]
+tests/test_adversarial/test_s1_session_bypass.py::test_sql_injection_in_cookie_value PASSED [ 10%]
+tests/test_adversarial/test_s2_api_key_bypass.py::test_revoked_key_rejected PASSED [ 10%]
+tests/test_adversarial/test_s2_api_key_bypass.py::test_malformed_key_wrong_prefix PASSED [ 11%]
+tests/test_adversarial/test_s2_api_key_bypass.py::test_empty_bearer_header PASSED [ 11%]
+tests/test_adversarial/test_s2_api_key_bypass.py::test_missing_authorization_header PASSED [ 11%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_channels_not_visible_across_tenants PASSED [ 12%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_update_channel_cross_tenant PASSED [ 12%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_delete_channel_cross_tenant PASSED [ 12%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_test_channel_cross_tenant PASSED [ 13%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_rotate_key_tenant_isolation FAILED [ 13%]
+tests/test_adversarial/test_s3_settings_isolation.py::test_purge_events_tenant_isolation PASSED [ 13%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_keys_not_visible_across_tenants PASSED [ 14%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_revoke_key_cross_tenant PASSED [ 14%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_bundle_not_visible_across_tenants PASSED [ 14%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_list_bundles_tenant_isolation PASSED [ 15%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_get_yaml_cross_tenant PASSED [ 15%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_deploy_bundle_cross_tenant PASSED [ 15%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_get_current_bundle_cross_tenant PASSED [ 16%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_bundle_versions_not_visible_across_tenants PASSED [ 16%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_deploy_cross_tenant_bundle_by_name PASSED [ 16%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_events_not_visible_across_tenants PASSED [ 17%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_session_value_not_visible_across_tenants PASSED [ 17%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_approval_not_visible_across_tenants PASSED [ 17%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_list_approvals_tenant_isolation PASSED [ 18%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_submit_decision_cross_tenant PASSED [ 18%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_create_then_access_different_tenant_key PASSED [ 19%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_create_approval_then_list_different_tenant PASSED [ 19%]
+tests/test_adversarial/test_s3_tenant_isolation.py::test_session_increment_cross_tenant PASSED [ 19%]
+tests/test_adversarial/test_s4_approval_state.py::test_double_approve PASSED [ 20%]
+tests/test_adversarial/test_s4_approval_state.py::test_approve_then_deny PASSED [ 20%]
+tests/test_adversarial/test_s4_approval_state.py::test_deny_then_approve PASSED [ 20%]
+tests/test_adversarial/test_s4_approval_state.py::test_approve_nonexistent PASSED [ 21%]
+tests/test_adversarial/test_s4_approval_state.py::test_approve_wrong_tenant PASSED [ 21%]
+tests/test_adversarial/test_s5_sse_channel.py::test_subscribe_without_auth PASSED [ 21%]
+tests/test_adversarial/test_s5_sse_channel.py::test_push_only_to_subscribed_env PASSED [ 22%]
+tests/test_adversarial/test_s5_sse_channel.py::test_event_type_is_contract_update PASSED [ 22%]
+tests/test_adversarial/test_s5_sse_channel.py::test_cross_environment_isolation PASSED [ 22%]
+tests/test_adversarial/test_s6_signature_bypass.py::test_sign_and_verify_round_trip PASSED [ 23%]
+tests/test_adversarial/test_s6_signature_bypass.py::test_tampered_data_fails_verification PASSED [ 23%]
+tests/test_adversarial/test_s6_signature_bypass.py::test_verify_with_wrong_public_key PASSED [ 23%]
+tests/test_adversarial/test_s6_signature_bypass.py::test_wrong_secret_fails_decryption PASSED [ 24%]
+tests/test_adversarial/test_s7_bootstrap_lock.py::test_bootstrap_creates_admin_when_no_users PASSED [ 24%]
+tests/test_adversarial/test_s7_bootstrap_lock.py::test_second_bootstrap_skipped_when_user_exists PASSED [ 24%]
+tests/test_adversarial/test_s7_bootstrap_lock.py::test_bootstrap_without_env_vars_skips PASSED [ 25%]
+tests/test_adversarial/test_s8_rate_limit.py::test_login_endpoint_accessible PASSED [ 25%]
+tests/test_adversarial/test_s8_rate_limit.py::test_burst_login_attempts_throttled PASSED [ 25%]
+tests/test_adversarial/test_s8_rate_limit.py::test_rate_limit_resets_after_window PASSED [ 26%]
+tests/test_adversarial/test_slack_interaction_security.py::test_wrong_signature_rejected PASSED [ 26%]
+tests/test_adversarial/test_slack_interaction_security.py::test_expired_timestamp_rejected PASSED [ 26%]
+tests/test_adversarial/test_slack_interaction_security.py::test_missing_signature_header_rejected PASSED [ 27%]
+tests/test_adversarial/test_slack_interaction_security.py::test_missing_timestamp_header_rejected PASSED [ 27%]
+tests/test_adversarial/test_slack_interaction_security.py::test_no_slack_app_channels_rejects PASSED [ 28%]
+tests/test_adversarial/test_slack_interaction_security.py::test_disabled_channel_not_matched PASSED [ 28%]
+tests/test_adversarial/test_slack_interaction_security.py::test_cross_tenant_blocked PASSED [ 28%]
+tests/test_adversarial/test_slack_interaction_security.py::test_replay_already_decided PASSED [ 29%]
+tests/test_adversarial/test_slack_interaction_security.py::test_expired_approval_no_redis_key PASSED [ 29%]
+tests/test_adversarial/test_stats_deploy_security.py::test_contract_stats_tenant_isolation PASSED [ 29%]
+tests/test_adversarial/test_stats_deploy_security.py::test_deployments_tenant_isolation PASSED [ 30%]
+tests/test_adversarial/test_telegram_webhook_db.py::test_wrong_secret_returns_403 PASSED [ 30%]
+tests/test_adversarial/test_telegram_webhook_db.py::test_nonexistent_channel_returns_404 PASSED [ 30%]
+tests/test_adversarial/test_telegram_webhook_db.py::test_disabled_channel_returns_404 PASSED [ 31%]
+tests/test_adversarial/test_telegram_webhook_db.py::test_missing_callback_query_graceful PASSED [ 31%]
+tests/test_adversarial/test_telegram_webhook_db.py::test_invalid_channel_id_format_returns_404 PASSED [ 31%]
+tests/test_agents.py::test_agent_status_empty PASSED                     [ 32%]
+tests/test_agents.py::test_agent_status_returns_connected_agents PASSED  [ 32%]
+tests/test_agents.py::test_agent_status_tenant_isolation PASSED          [ 32%]
+tests/test_agents.py::test_agent_status_bundle_filter PASSED             [ 33%]
+tests/test_approvals.py::test_create_approval PASSED                     [ 33%]
+tests/test_approvals.py::test_get_approval PASSED                        [ 33%]
+tests/test_approvals.py::test_get_approval_not_found PASSED              [ 34%]
+tests/test_approvals.py::test_list_pending_approvals PASSED              [ 34%]
+tests/test_approvals.py::test_submit_decision_approve PASSED             [ 34%]
+tests/test_approvals.py::test_submit_decision_deny PASSED                [ 35%]
+tests/test_approvals.py::test_submit_decision_already_decided PASSED     [ 35%]
+tests/test_approvals.py::test_expire_approvals PASSED                    [ 35%]
+tests/test_auth_local.py::test_login_valid_credentials PASSED            [ 36%]
+tests/test_auth_local.py::test_login_bad_password PASSED                 [ 36%]
+tests/test_auth_local.py::test_login_nonexistent_email PASSED            [ 37%]
+tests/test_auth_local.py::test_me_with_valid_session PASSED              [ 37%]
+tests/test_auth_local.py::test_me_without_cookie PASSED                  [ 37%]
+tests/test_auth_local.py::test_logout_clears_session PASSED              [ 38%]
+tests/test_auth_local.py::test_session_expiry PASSED                     [ 38%]
+tests/test_auth_provider.py::test_provider_name ERROR                    [ 38%]
+tests/test_auth_provider.py::test_is_subclass_of_auth_provider PASSED    [ 39%]
+tests/test_auth_provider.py::test_create_session_returns_token_and_cookie_params ERROR [ 39%]
+tests/test_auth_provider.py::test_authenticate_with_valid_token ERROR    [ 39%]
+tests/test_auth_provider.py::test_authenticate_missing_cookie ERROR      [ 40%]
+tests/test_auth_provider.py::test_authenticate_expired_token ERROR       [ 40%]
+tests/test_auth_provider.py::test_destroy_session_removes_token ERROR    [ 40%]
+tests/test_auth_provider.py::test_verify_password_round_trip PASSED      [ 41%]
+tests/test_auth_provider.py::test_hash_password_produces_unique_hashes PASSED [ 41%]
+tests/test_bundle_sse.py::test_upload_fires_bundle_uploaded_sse PASSED   [ 41%]
+tests/test_bundles.py::test_upload_extracts_name PASSED                  [ 42%]
+tests/test_bundles.py::test_upload_same_name_increments_version PASSED   [ 42%]
+tests/test_bundles.py::test_upload_different_name_starts_at_v1 PASSED    [ 42%]
+tests/test_bundles.py::test_upload_missing_metadata_name PASSED          [ 43%]
+tests/test_bundles.py::test_upload_invalid_yaml PASSED                   [ 43%]
+tests/test_bundles.py::test_list_bundles_empty PASSED                    [ 43%]
+tests/test_bundles.py::test_list_bundles_returns_summaries PASSED        [ 44%]
+tests/test_bundles.py::test_list_bundles_tenant_isolation PASSED         [ 44%]
+tests/test_bundles.py::test_list_versions_for_bundle PASSED              [ 44%]
+tests/test_bundles.py::test_list_versions_unknown_bundle PASSED          [ 45%]
+tests/test_bundles.py::test_get_bundle_by_name_version PASSED            [ 45%]
+tests/test_bundles.py::test_get_bundle_not_found PASSED                  [ 46%]
+tests/test_bundles.py::test_get_yaml_by_name_version PASSED              [ 46%]
+tests/test_bundles.py::test_get_yaml_not_found PASSED                    [ 46%]
+tests/test_bundles.py::test_deploy_by_name FAILED                        [ 47%]
+tests/test_bundles.py::test_deploy_wrong_name_returns_error PASSED       [ 47%]
+tests/test_bundles.py::test_get_current_bundle_by_name PASSED            [ 47%]
+tests/test_bundles.py::test_current_route_does_not_conflict_with_version_route PASSED [ 48%]
+tests/test_bundles.py::test_deployed_envs_scoped_by_bundle PASSED        [ 48%]
+tests/test_bundles.py::test_list_versions_deployed_envs PASSED           [ 48%]
+tests/test_bundles.py::test_list_versions_redeploy_moves_env PASSED      [ 49%]
+tests/test_bundles.py::test_list_versions_undeployed_has_empty_envs PASSED [ 49%]
+tests/test_contract_stats.py::test_contract_stats_empty PASSED           [ 49%]
+tests/test_contract_stats.py::test_contract_stats_with_events PASSED     [ 50%]
+tests/test_contract_stats.py::test_contract_stats_time_filter PASSED     [ 50%]
+tests/test_deployments.py::test_list_deployments_empty PASSED            [ 50%]
+tests/test_deployments.py::test_list_deployments_filtered PASSED         [ 51%]
+tests/test_deployments.py::test_list_deployments_limit PASSED            [ 51%]
+tests/test_deployments.py::test_list_deployments_ordered_desc PASSED     [ 51%]
+tests/test_drift.py::test_drift_current PASSED                           [ 52%]
+tests/test_drift.py::test_drift_stale PASSED                             [ 52%]
+tests/test_drift.py::test_drift_unknown_hash PASSED                      [ 52%]
+tests/test_drift.py::test_drift_not_deployed PASSED                      [ 53%]
+tests/test_evaluate.py::test_evaluate_deny PASSED                        [ 53%]
+tests/test_evaluate.py::test_evaluate_allow PASSED                       [ 53%]
+tests/test_evaluate.py::test_evaluate_allow_safe_path PASSED             [ 54%]
+tests/test_evaluate.py::test_evaluate_observe_mode PASSED                [ 54%]
+tests/test_evaluate.py::test_evaluate_invalid_yaml PASSED                [ 55%]
+tests/test_evaluate.py::test_evaluate_empty_yaml PASSED                  [ 55%]
+tests/test_evaluate.py::test_evaluate_with_principal PASSED              [ 55%]
+tests/test_evaluate.py::test_evaluate_sandbox_deny PASSED                [ 56%]
+tests/test_evaluate.py::test_evaluate_response_shape PASSED              [ 56%]
+tests/test_evaluate.py::test_evaluate_missing_yaml PASSED                [ 56%]
+tests/test_evaluate.py::test_evaluate_missing_tool_name PASSED           [ 57%]
+tests/test_evaluate.py::test_evaluate_default_environment PASSED         [ 57%]
+tests/test_events.py::test_ingest_single_event PASSED                    [ 57%]
+tests/test_events.py::test_ingest_batch PASSED                           [ 58%]
+tests/test_events.py::test_query_events PASSED                           [ 58%]
+tests/test_events.py::test_query_events_filter_agent PASSED              [ 58%]
+tests/test_events.py::test_query_events_filter_verdict PASSED            [ 59%]
+tests/test_events.py::test_query_events_empty PASSED                     [ 59%]
+tests/test_events.py::test_dedup_ignores_duplicate_events PASSED         [ 59%]
+tests/test_health.py::test_health_returns_metadata PASSED                [ 60%]
+tests/test_health.py::test_health_bootstrap_false_when_no_users PASSED   [ 60%]
+tests/test_health.py::test_health_returns_version_string PASSED          [ 60%]
+tests/test_keys.py::test_create_key PASSED                               [ 61%]
+tests/test_keys.py::test_list_keys PASSED                                [ 61%]
+tests/test_keys.py::test_revoke_key PASSED                               [ 61%]
+tests/test_keys.py::test_list_after_revoke_empty PASSED                  [ 62%]
+tests/test_keys.py::test_create_key_invalid_env PASSED                   [ 62%]
+tests/test_keys.py::test_revoke_nonexistent_key PASSED                   [ 62%]
+tests/test_multi_bundle_verification.py::test_upload_returns_name_and_version_1 PASSED [ 63%]
+tests/test_multi_bundle_verification.py::test_second_upload_same_name_version_2 PASSED [ 63%]
+tests/test_multi_bundle_verification.py::test_different_name_independent_lineage PASSED [ 64%]
+tests/test_multi_bundle_verification.py::test_upload_missing_name_raises PASSED [ 64%]
+tests/test_multi_bundle_verification.py::test_list_bundle_names_aggregates PASSED [ 64%]
+tests/test_multi_bundle_verification.py::test_list_bundle_versions_scoped PASSED [ 65%]
+tests/test_multi_bundle_verification.py::test_deployed_envs_map_scoped PASSED [ 65%]
+tests/test_multi_bundle_verification.py::test_get_current_bundle_with_name PASSED [ 65%]
+tests/test_multi_bundle_verification.py::test_get_bundle_by_version_with_name PASSED [ 66%]
+tests/test_multi_bundle_verification.py::test_drift_current PASSED       [ 66%]
+tests/test_multi_bundle_verification.py::test_drift_mismatch PASSED      [ 66%]
+tests/test_multi_bundle_verification.py::test_drift_unknown_no_deployment PASSED [ 67%]
+tests/test_multi_bundle_verification.py::test_api_upload_returns_name PASSED [ 67%]
+tests/test_multi_bundle_verification.py::test_api_list_returns_name PASSED [ 67%]
+tests/test_notifications/test_discord_channel.py::test_send_approval_request_posts_embed PASSED [ 68%]
+tests/test_notifications/test_discord_channel.py::test_send_approval_request_sets_redis_keys PASSED [ 68%]
+tests/test_notifications/test_discord_channel.py::test_send_approval_decided_patches_approved PASSED [ 68%]
+tests/test_notifications/test_discord_channel.py::test_send_approval_decided_patches_denied PASSED [ 69%]
+tests/test_notifications/test_discord_channel.py::test_send_approval_decided_fallback_post_on_expired_redis PASSED [ 69%]
+tests/test_notifications/test_discord_channel.py::test_update_expired_patches_grey_embed PASSED [ 69%]
+tests/test_notifications/test_discord_channel.py::test_update_expired_continues_on_error PASSED [ 70%]
+tests/test_notifications/test_discord_channel.py::test_supports_interactive PASSED [ 70%]
+tests/test_notifications/test_discord_channel.py::test_close_calls_aclose PASSED [ 70%]
+tests/test_notifications/test_discord_interactions.py::test_ping_pong PASSED [ 71%]
+tests/test_notifications/test_discord_interactions.py::test_button_approve_submits_decision PASSED [ 71%]
+tests/test_notifications/test_discord_interactions.py::test_button_deny_submits_decision PASSED [ 71%]
+tests/test_notifications/test_discord_interactions.py::test_expired_tenant_key_returns_expired_embed PASSED [ 72%]
+tests/test_notifications/test_email_channel.py::test_send_approval_request PASSED [ 72%]
+tests/test_notifications/test_email_channel.py::test_send_approval_decided PASSED [ 73%]
+tests/test_notifications/test_email_channel.py::test_multiple_to_addresses PASSED [ 73%]
+tests/test_notifications/test_email_channel.py::test_close_is_noop PASSED [ 73%]
+tests/test_notifications/test_email_channel.py::test_filters_property PASSED [ 74%]
+tests/test_notifications/test_loader.py::test_loads_all_channel_types PASSED [ 74%]
+tests/test_notifications/test_loader.py::test_disabled_channel_excluded PASSED [ 74%]
+tests/test_notifications/test_loader.py::test_invalid_config_skipped PASSED [ 75%]
+tests/test_notifications/test_loader.py::test_multi_tenant PASSED        [ 75%]
+tests/test_notifications/test_manager.py::test_manager_fans_out_to_tenant_channels PASSED [ 75%]
+tests/test_notifications/test_manager.py::test_manager_isolates_tenants PASSED [ 76%]
+tests/test_notifications/test_manager.py::test_manager_catches_errors_from_channels PASSED [ 76%]
+tests/test_notifications/test_manager.py::test_manager_works_with_empty_channels PASSED [ 76%]
+tests/test_notifications/test_manager.py::test_manager_reload_closes_old_channels PASSED [ 77%]
+tests/test_notifications/test_manager.py::test_manager_notify_decided_fans_out PASSED [ 77%]
+tests/test_notifications/test_manager.py::test_channel_protocol_requires_name PASSED [ 77%]
+tests/test_notifications/test_manager.py::test_channel_protocol_supports_interactive PASSED [ 78%]
+tests/test_notifications/test_manager.py::test_filter_matching_skips_non_matching PASSED [ 78%]
+tests/test_notifications/test_manager_reload.py::test_reload_sets_channels PASSED [ 78%]
+tests/test_notifications/test_manager_reload.py::test_reload_closes_old_channels PASSED [ 79%]
+tests/test_notifications/test_manager_reload.py::test_tenant_isolation PASSED [ 79%]
+tests/test_notifications/test_manager_reload.py::test_channels_property_returns_all PASSED [ 79%]
+tests/test_notifications/test_routing_filters.py::test_empty_filters_matches_everything PASSED [ 80%]
+tests/test_notifications/test_routing_filters.py::test_env_filter_matches PASSED [ 80%]
+tests/test_notifications/test_routing_filters.py::test_env_filter_rejects PASSED [ 80%]
+tests/test_notifications/test_routing_filters.py::test_agent_pattern_matches PASSED [ 81%]
+tests/test_notifications/test_routing_filters.py::test_agent_pattern_rejects PASSED [ 81%]
+tests/test_notifications/test_routing_filters.py::test_contract_pattern_matches PASSED [ 82%]
+tests/test_notifications/test_routing_filters.py::test_contract_pattern_rejects PASSED [ 82%]
+tests/test_notifications/test_routing_filters.py::test_multi_dimension_and PASSED [ 82%]
+tests/test_notifications/test_routing_filters.py::test_null_contract_name_skips_filter PASSED [ 83%]
+tests/test_notifications/test_routing_filters.py::test_glob_mid_pattern PASSED [ 83%]
+tests/test_notifications/test_routing_filters.py::test_manager_routes_by_filter PASSED [ 83%]
+tests/test_notifications/test_slack_app_channel.py::test_send_approval_request_posts_block_kit PASSED [ 84%]
+tests/test_notifications/test_slack_app_channel.py::test_send_approval_request_stores_redis_keys PASSED [ 84%]
+tests/test_notifications/test_slack_app_channel.py::test_send_approval_decided_edits_message PASSED [ 84%]
+tests/test_notifications/test_slack_app_channel.py::test_send_approval_decided_falls_back_to_new_message PASSED [ 85%]
+tests/test_notifications/test_slack_app_channel.py::test_update_expired_edits_messages PASSED [ 85%]
+tests/test_notifications/test_slack_app_channel.py::test_supports_interactive PASSED [ 85%]
+tests/test_notifications/test_slack_app_channel.py::test_close PASSED    [ 86%]
+tests/test_notifications/test_slack_channel.py::test_send_approval_request_block_kit PASSED [ 86%]
+tests/test_notifications/test_slack_channel.py::test_send_approval_decided PASSED [ 86%]
+tests/test_notifications/test_slack_channel.py::test_close_calls_aclose PASSED [ 87%]
+tests/test_notifications/test_slack_channel.py::test_filters_property PASSED [ 87%]
+tests/test_notifications/test_slack_interactions.py::test_slack_interaction_approve PASSED [ 87%]
+tests/test_notifications/test_slack_interactions.py::test_slack_interaction_deny PASSED [ 88%]
+tests/test_notifications/test_slack_interactions.py::test_manifest_endpoint PASSED [ 88%]
+tests/test_notifications/test_webhook_channel.py::test_send_approval_request_payload PASSED [ 88%]
+tests/test_notifications/test_webhook_channel.py::test_hmac_signature_present PASSED [ 89%]
+tests/test_notifications/test_webhook_channel.py::test_no_signature_without_secret PASSED [ 89%]
+tests/test_notifications/test_webhook_channel.py::test_send_approval_decided_payload PASSED [ 89%]
+tests/test_notifications/test_webhook_channel.py::test_close_calls_aclose PASSED [ 90%]
+tests/test_push_manager.py::test_subscribe_returns_agent_connection PASSED [ 90%]
+tests/test_push_manager.py::test_push_to_env_filters_by_tenant PASSED    [ 91%]
+tests/test_push_manager.py::test_push_to_env_filters_by_bundle_name PASSED [ 91%]
+tests/test_push_manager.py::test_push_to_env_no_filter_receives_all PASSED [ 91%]
+tests/test_push_manager.py::test_push_to_env_non_contract_update_ignores_bundle_filter PASSED [ 92%]
+tests/test_push_manager.py::test_get_agent_connections_by_tenant PASSED  [ 92%]
+tests/test_push_manager.py::test_get_agent_connections_by_bundle_name PASSED [ 92%]
+tests/test_push_manager.py::test_unsubscribe_removes_connection PASSED   [ 93%]
+tests/test_sessions.py::test_set_and_get_value PASSED                    [ 93%]
+tests/test_sessions.py::test_get_nonexistent_key PASSED                  [ 93%]
+tests/test_sessions.py::test_increment PASSED                            [ 94%]
+tests/test_sessions.py::test_delete_key PASSED                           [ 94%]
+tests/test_sessions.py::test_increment_default_amount PASSED             [ 94%]
+tests/test_settings/test_event_purging.py::test_purge_old_events[asyncio] PASSED [ 95%]
+tests/test_settings/test_event_purging.py::test_purge_invalid_days[asyncio] PASSED [ 95%]
+tests/test_settings/test_health_enriched.py::test_health_returns_enriched_fields[asyncio] PASSED [ 95%]
+tests/test_settings/test_health_enriched.py::test_health_returns_enriched_fields[asyncio] ERROR [ 95%]
+tests/test_settings/test_notification_channels.py::test_create_channel[asyncio] PASSED [ 96%]
+tests/test_settings/test_notification_channels.py::test_list_channels[asyncio] PASSED [ 96%]
+tests/test_settings/test_notification_channels.py::test_update_channel[asyncio] PASSED [ 96%]
+tests/test_settings/test_notification_channels.py::test_delete_channel[asyncio] PASSED [ 97%]
+tests/test_settings/test_notification_channels.py::test_delete_nonexistent_channel[asyncio] PASSED [ 97%]
+tests/test_settings/test_notification_channels.py::test_test_channel_success[asyncio] PASSED [ 97%]
+tests/test_settings/test_notification_channels.py::test_invalid_config_missing_bot_token[asyncio] PASSED [ 98%]
+tests/test_settings/test_notification_channels.py::test_invalid_channel_type[asyncio] PASSED [ 98%]
+tests/test_settings/test_notification_channels.py::test_email_channel_missing_config[asyncio] PASSED [ 98%]
+tests/test_settings/test_notification_channels.py::test_update_nonexistent[asyncio] PASSED [ 99%]
+tests/test_settings/test_signing_key_rotation.py::test_rotate_key_returns_new_public_key[asyncio] PASSED [ 99%]
+tests/test_settings/test_signing_key_rotation.py::test_rotate_key_twice_different_keys[asyncio] PASSED [100%]
+
+==================================== ERRORS ====================================
+_____________________ ERROR at setup of test_provider_name _____________________
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+____ ERROR at setup of test_create_session_returns_token_and_cookie_params _____
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+_____________ ERROR at setup of test_authenticate_with_valid_token _____________
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+______________ ERROR at setup of test_authenticate_missing_cookie ______________
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+______________ ERROR at setup of test_authenticate_expired_token _______________
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+_____________ ERROR at setup of test_destroy_session_removes_token _____________
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:342: in connect_check_health
+    await self._connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:811: in _connect
+    reader, writer = await asyncio.open_connection(
+/usr/local/lib/python3.12/asyncio/streams.py:48: in open_connection
+    transport, _ = await loop.create_connection(
+/usr/local/lib/python3.12/asyncio/base_events.py:1140: in create_connection
+    raise OSError('Multiple exceptions: {}'.format(
+E   OSError: Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379)
+
+During handling of the above exception, another exception occurred:
+tests/test_auth_provider.py:20: in redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1291: in ensure_connection
+    await connection.connect()
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:324: in connect
+    await self.retry.call_with_retry(
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:55: in call_with_retry
+    raise error
+.venv/lib/python3.12/site-packages/redis/asyncio/retry.py:50: in call_with_retry
+    return await do()
+           ^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:348: in connect_check_health
+    raise ConnectionError(self._error_message(e))
+E   redis.exceptions.ConnectionError: Error Multiple exceptions: [Errno 111] Connect call failed ('::1', 6379, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 6379) connecting to localhost:6379.
+______ ERROR at teardown of test_health_returns_enriched_fields[asyncio] _______
+.venv/lib/python3.12/site-packages/anyio/pytest_plugin.py:121: in wrapper
+    yield from runner.run_asyncgen_fixture(local_func, kwargs)
+.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2276: in run_asyncgen_fixture
+    self.get_loop().run_until_complete(
+/usr/local/lib/python3.12/asyncio/base_events.py:691: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2260: in _call_in_runner_task
+    return await future
+           ^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py:2227: in _run_tests_and_fixtures
+    retval = await coro
+             ^^^^^^^^^^
+tests/conftest.py:77: in test_redis
+    await r.flushdb()
+.venv/lib/python3.12/site-packages/redis/asyncio/client.py:735: in execute_command
+    conn = self.connection or await pool.get_connection()
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/utils.py:227: in async_wrapper
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1259: in get_connection
+    await self.ensure_connection(connection)
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:1297: in ensure_connection
+    if await connection.can_read_destructive():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/asyncio/connection.py:617: in can_read_destructive
+    return await self._parser.can_read_destructive()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/_parsers/hiredis.py:247: in can_read_destructive
+    return await self.read_from_socket()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/redis/_parsers/hiredis.py:252: in read_from_socket
+    buffer = await self._stream.read(self._read_size)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fakeredis/aioredis.py:88: in read
+    return await self._socket.responses.get()  # type:ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/queues.py:155: in get
+    getter = self._get_loop().create_future()
+             ^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.12/asyncio/mixins.py:20: in _get_loop
+    raise RuntimeError(f'{self!r} is bound to a different event loop')
+E   RuntimeError: <Queue at 0x74f6a7ccb470 maxsize=0 tasks=3> is bound to a different event loop
+=================================== FAILURES ===================================
+_______________________ test_rotate_key_tenant_isolation _______________________
+tests/test_adversarial/test_s3_settings_isolation.py:128: in test_rotate_key_tenant_isolation
+    resp = await client.post("/api/v1/settings/rotate-signing-key")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1859: in post
+    return await self.request(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1540: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1629: in send
+    response = await self._send_handling_auth(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1657: in _send_handling_auth
+    response = await self._send_handling_redirects(
+.venv/lib/python3.12/site-packages/httpx/_client.py:1694: in _send_handling_redirects
+    response = await self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_client.py:1730: in _send_single_request
+    response = await transport.handle_async_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/httpx/_transports/asgi.py:170: in handle_async_request
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/applications.py:1160: in __call__
+    await super().__call__(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/applications.py:107: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+.venv/lib/python3.12/site-packages/starlette/middleware/cors.py:87: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:716: in __call__
+    await self.middleware_stack(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:736: in app
+    await route.handle(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/routing.py:290: in handle
+    await self.app(scope, receive, send)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:130: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+.venv/lib/python3.12/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+.venv/lib/python3.12/site-packages/fastapi/routing.py:116: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/fastapi/routing.py:670: in app
+    raw_response = await run_endpoint_function(
+.venv/lib/python3.12/site-packages/fastapi/routing.py:324: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/edictum_server/routes/settings.py:26: in rotate_key
+    result = await rotate_signing_key(db, auth.tenant_id, signing_secret)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/edictum_server/services/signing_service.py:101: in rotate_signing_key
+    public_key_bytes, encrypted_private_key = generate_signing_keypair(secret)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/edictum_server/services/signing_service.py:30: in generate_signing_keypair
+    box = SecretBox(secret)
+          ^^^^^^^^^^^^^^^^^
+.venv/lib/python3.12/site-packages/nacl/secret.py:67: in __init__
+    raise exc.ValueError(
+E   nacl.exceptions.ValueError: The key must be exactly 32 bytes long
+_____________________________ test_deploy_by_name ______________________________
+tests/test_bundles.py:235: in test_deploy_by_name
+    assert resp.status_code == 201
+E   assert 422 == 201
+E    +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+=============================== warnings summary ===============================
+tests/test_settings/test_notification_channels.py::test_invalid_config_missing_bot_token[asyncio]
+tests/test_settings/test_notification_channels.py::test_email_channel_missing_config[asyncio]
+  /root/.nanobot/workspace/edictum-console/.venv/lib/python3.12/site-packages/fastapi/routing.py:324: DeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return await dependant.call(**values)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_adversarial/test_s3_settings_isolation.py::test_rotate_key_tenant_isolation
+FAILED tests/test_bundles.py::test_deploy_by_name - assert 422 == 201
+ERROR tests/test_auth_provider.py::test_provider_name - redis.exceptions.Conn...
+ERROR tests/test_auth_provider.py::test_create_session_returns_token_and_cookie_params
+ERROR tests/test_auth_provider.py::test_authenticate_with_valid_token - redis...
+ERROR tests/test_auth_provider.py::test_authenticate_missing_cookie - redis.e...
+ERROR tests/test_auth_provider.py::test_authenticate_expired_token - redis.ex...
+ERROR tests/test_auth_provider.py::test_destroy_session_removes_token - redis...
+ERROR tests/test_settings/test_health_enriched.py::test_health_returns_enriched_fields[asyncio]
+============= 2 failed, 281 passed, 2 warnings, 7 errors in 55.69s =============

@@ -1,0 +1,17 @@
+=== INPUT VALIDATION & INJECTION TESTING ===
+-e 
+--- SQL Injection in login ---
+{"detail":"Invalid email or password."}
+-e 
+--- NoSQL Injection attempt ---
+{"detail":[{"type":"string_type","loc":["body","email"],"msg":"Input should be a valid string","input":{"$gt":""}},{"type":"string_type","loc":["body","password"],"msg":"Input should be a valid string","input":{"$gt":""}}]}
+-e 
+--- XSS in API key label ---
+{"id":"6740eafd-f33e-4210-94d2-dc6cbc247921","key":"edk_production_5ATpt5aQBgc-cuLUQ0QpDN269c3IB_lA7FI6wCatl1c","prefix":"edk_production_5ATpt5aQ","env":"production","label":"<script>alert(1)</script>","created_at":"2026-03-01T22:42:44.914713Z"}
+Created XSS key with ID: 6740eafd-f33e-4210-94d2-dc6cbc247921 - deleting...
+-e 
+--- Long input test ---
+{"id":"bc47e30b-7088-45ab-99f0-7b59cebb6936","key":"edk_production_08W3lBDdTXHrL660bmfVR8z8YmjDBNydxTwyQEEh8OY","prefix":"edk_production_08W3lBDd","env":"production","label":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+-e 
+--- Path traversal attempt ---
+{"detail":"Not Found"}

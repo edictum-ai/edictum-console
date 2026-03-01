@@ -1,0 +1,16 @@
+=== TENANT ISOLATION TESTING (LIVE) ===
+Our tenant_id: 
+-e 
+--- IDOR Test: Try accessing specific event IDs ---
+Testing with event ID: 
+
+-e 
+Trying fake UUID:
+{"detail":"Not Found"}
+-e 
+--- IDOR Test: Try accessing API key by ID ---
+Testing with key ID: 
+
+-e 
+--- Privilege Escalation: Try creating key with different tenant ---
+{"id":"955de291-c8d6-4bdd-b382-272fda5f0b8f","key":"edk_production_FL6SCgFRyGbkv21wQQqlfzVJFVgkSJkcjqwZ5TCrSpc","prefix":"edk_production_FL6SCgFR","env":"production","label":"test-escalation","created_at":"2026-03-01T22:41:43.317438Z"}

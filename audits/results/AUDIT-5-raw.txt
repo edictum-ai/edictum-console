@@ -1,0 +1,34 @@
+=== AUDIT 5: FRONTEND SECURITY ===
+-e 
+--- TypeScript Check ---
+-e 
+--- ESLint Check ---
+npm warn exec The following package was not found and will be installed: eslint@10.0.2
+
+Oops! Something went wrong! :(
+
+ESLint: 10.0.2
+
+ESLint couldn't find an eslint.config.(js|mjs|cjs) file.
+
+From ESLint v9.0.0, the default configuration file is now eslint.config.js.
+If you are using a .eslintrc.* file, please follow the migration guide
+to update your configuration file to the new format:
+
+https://eslint.org/docs/latest/use/configure/migration-guide
+
+If you still have problems after following the migration guide, please stop by
+https://eslint.org/chat/help to chat with the team.
+
+-e 
+--- npm audit ---
+npm error code ENOLOCK
+npm error audit This command requires an existing lockfile.
+npm error audit Try creating one first with: npm i --package-lock-only
+npm error audit Original error: loadVirtual requires existing shrinkwrap file
+npm error A complete log of this run can be found in: /root/.npm/_logs/2026-03-01T22_44_45_662Z-debug-0.log
+-e 
+--- Checking for hardcoded URLs/APIs ---
+src/pages/settings/notifications/config-fields.tsx:      <Field id="cfg-webhook-url" label="Webhook URL" value={config.webhook_url} onChange={(v) => f("webhook_url", v)} placeholder="https://hooks.slack.com/..." />
+src/pages/settings/notifications/config-fields.tsx:        <Field id="cfg-url" label="URL" value={config.url} onChange={(v) => f("url", v)} placeholder="https://example.com/webhook" />
+src/pages/contracts/contract-tooltips.tsx:const DOCS = "https://docs.edictum.dev"
