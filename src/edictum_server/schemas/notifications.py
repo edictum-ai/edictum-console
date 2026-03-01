@@ -6,7 +6,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from edictum_server.security.validators import sanitize_html
 
 
 class RoutingFilters(BaseModel):
@@ -24,6 +26,12 @@ class CreateChannelRequest(BaseModel):
     channel_type: Literal["telegram", "slack", "slack_app", "webhook", "email", "discord"]
     config: dict
     filters: RoutingFilters | None = None
+    
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        """Sanitize name to prevent XSS. Security: Finding H1, H2."""
+        return sanitize_html(v, max_length=100)
 
 
 class UpdateChannelRequest(BaseModel):
@@ -33,6 +41,14 @@ class UpdateChannelRequest(BaseModel):
     config: dict | None = None
     enabled: bool | None = None
     filters: RoutingFilters | None = None
+    
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v: str | None) -> str | None:
+        """Sanitize name to prevent XSS. Security: Finding H1, H2."""
+        if v is None:
+            return v
+        return sanitize_html(v, max_length=100)
 
 
 class ChannelResponse(BaseModel):

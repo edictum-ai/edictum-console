@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import NotificationChannel
+from edictum_server.security.validators import validate_url, ValidationError as SecurityValidationError
 from edictum_server.services.channel_test_helpers import test_email, test_http_channel
 
 REQUIRED_CONFIG: dict[str, list[str]] = {
@@ -40,6 +41,28 @@ def _validate_config(channel_type: str, config: dict) -> None:  # noqa: ANN001
         raise ValueError(
             f"Missing required config keys for {channel_type}: {', '.join(missing)}"
         )
+
+
+def _validate_webhook_urls(channel_type: str, config: dict) -> None:
+    """Validate webhook URLs to prevent SSRF attacks.
+    
+    Security: Finding C1 (2026-03-01)
+    Prevents access to internal networks and cloud metadata endpoints.
+    """
+    url_fields = {
+        "webhook": ["url"],
+        "slack": ["webhook_url"],
+    }
+    
+    if channel_type not in url_fields:
+        return
+    
+    for field in url_fields[channel_type]:
+        if field in config:
+            try:
+                validate_url(config[field])
+            except SecurityValidationError as e:
+                raise ValueError(f"Invalid {field}: {e}") from e
 
 
 async def list_channels(
@@ -81,6 +104,7 @@ async def create_channel(
 ) -> NotificationChannel:
     """Create a new notification channel. Caller commits."""
     _validate_config(channel_type, config)
+    _validate_webhook_urls(channel_type, config)  # Security: C1
     # Auto-generate webhook_secret for Telegram DB channels
     if channel_type == "telegram" and "webhook_secret" not in config:
         config = {**config, "webhook_secret": secrets.token_urlsafe(32)}
@@ -115,6 +139,7 @@ async def update_channel(
         channel.name = name
     if config is not None:
         _validate_config(channel.channel_type, config)
+        _validate_webhook_urls(channel.channel_type, config)  # Security: C1
         channel.config = config
     if enabled is not None:
         channel.enabled = enabled
