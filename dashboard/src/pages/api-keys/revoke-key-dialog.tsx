@@ -41,7 +41,6 @@ export function RevokeKeyDialog({ keyToRevoke, onOpenChange, onRevoked }: Revoke
     setRevoking(true)
     try {
       await deleteKey(keyToRevoke.id)
-      toast.success("API key revoked")
       setConfirmInput("")
       setRevoking(false)
       onOpenChange(false)

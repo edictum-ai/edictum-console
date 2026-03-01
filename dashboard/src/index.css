@@ -37,6 +37,8 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-section-label: var(--sidebar-section-label);
+  --color-sidebar-muted: var(--sidebar-muted);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -74,14 +76,16 @@
   --ring: #f59e0b;
   --success: #22c55e;
   --warning: #f59e0b;
-  --sidebar: #f1f5f9;
+  --sidebar: #f7f8fa;
   --sidebar-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
+  --sidebar-border: #e4e7ec;
   --sidebar-ring: #f59e0b;
-  --sidebar-accent: #e2e8f0;
+  --sidebar-accent: #ffffff;
   --sidebar-accent-foreground: #0f172a;
   --sidebar-primary: #f59e0b;
   --sidebar-primary-foreground: #000000;
+  --sidebar-section-label: #9ca3af;
+  --sidebar-muted: #9ca3af;
   --chart-1: #f59e0b;
   --chart-2: #22c55e;
   --chart-3: #3b82f6;
@@ -91,11 +95,11 @@
 
 /* Dark mode — navy base, amber accent */
 .dark {
-  --background: #0f172a;
+  --background: #111318;
   --foreground: #f8fafc;
-  --card: #1e293b;
+  --card: #1a1e28;
   --card-foreground: #f8fafc;
-  --popover: #1e293b;
+  --popover: #1a1e28;
   --popover-foreground: #f8fafc;
   --primary: #f59e0b;
   --primary-foreground: #000000;
@@ -107,19 +111,21 @@
   --accent-foreground: #f8fafc;
   --destructive: #ff4444;
   --destructive-foreground: #ffffff;
-  --border: #293548;
-  --input: #293548;
+  --border: #252a35;
+  --input: #252a35;
   --ring: #f59e0b;
   --success: #22c55e;
   --warning: #f59e0b;
-  --sidebar: #0f172a;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-border: #293548;
+  --sidebar: #111318;
+  --sidebar-foreground: #f3f4f6;
+  --sidebar-border: #1e2130;
   --sidebar-ring: #f59e0b;
-  --sidebar-accent: #1e293b;
-  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-accent: #1a1d28;
+  --sidebar-accent-foreground: #f3f4f6;
   --sidebar-primary: #f59e0b;
   --sidebar-primary-foreground: #000000;
+  --sidebar-section-label: #4b5563;
+  --sidebar-muted: #6b7280;
   --chart-1: #f59e0b;
   --chart-2: #22c55e;
   --chart-3: #60a5fa;
@@ -155,4 +161,24 @@
 
 .animate-highlight-fade {
   animation: highlight-fade 2s ease-out forwards;
+}
+
+/* Subtle ambient gradient for main content area */
+.bg-ambient-glow {
+  background-image: radial-gradient(ellipse 80% 60% at 5% 0%, rgba(245, 158, 11, 0.05) 0%, transparent 60%);
+}
+
+.dark .bg-ambient-glow {
+  background-image: radial-gradient(ellipse 80% 60% at 5% 0%, rgba(245, 158, 11, 0.04) 0%, transparent 60%);
+}
+
+/* Card depth — subtle shadows */
+@layer base {
+  [data-slot="card"] {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark [data-slot="card"] {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
 }

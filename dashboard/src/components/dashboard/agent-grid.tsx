@@ -126,9 +126,9 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
           <TooltipTrigger asChild>
             <div className="flex items-center gap-1 rounded-md px-1.5 py-0.5">
               <StatusIcon className={`h-3.5 w-3.5 ${
-                agent.status === "healthy" ? "text-emerald-500"
-                  : agent.status === "degraded" ? "text-amber-500"
-                    : "text-zinc-500"
+                agent.status === "healthy" ? "text-emerald-600 dark:text-emerald-400"
+                  : agent.status === "degraded" ? "text-amber-600 dark:text-amber-400"
+                    : "text-zinc-600 dark:text-zinc-400"
               }`} />
             </div>
           </TooltipTrigger>

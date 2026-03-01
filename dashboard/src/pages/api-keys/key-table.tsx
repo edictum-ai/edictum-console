@@ -38,7 +38,7 @@ export function KeyTable({ keys, onRevoke }: KeyTableProps) {
         </TableHeader>
         <TableBody>
           {keys.map((key) => (
-            <TableRow key={key.id}>
+            <TableRow key={key.id} className="hover:bg-muted/50 transition-colors">
               <TableCell className="font-medium">
                 {key.label ? (
                   key.label

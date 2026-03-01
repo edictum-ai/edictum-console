@@ -100,7 +100,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <ShieldAlert className="size-4 text-amber-500" />
+                <ShieldAlert className="size-4 text-amber-600 dark:text-amber-400" />
                 Triage
                 {pending.length > 0 && (
                   <Badge
@@ -126,7 +126,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
             {pending.length === 0 ? (
               <Card className="py-0 gap-0">
                 <div className="p-4 flex items-center gap-2 text-sm text-muted-foreground">
-                  <CheckCircle className="size-4 text-emerald-500" />
+                  <CheckCircle className="size-4 text-emerald-600 dark:text-emerald-400" />
                   No pending approvals
                 </div>
               </Card>

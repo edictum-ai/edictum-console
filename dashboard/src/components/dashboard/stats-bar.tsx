@@ -48,7 +48,7 @@ interface StatsBarProps {
 export function StatsBar({ stats, loading }: StatsBarProps) {
   if (loading || !stats) {
     return (
-      <div className="shrink-0 border-b border-border bg-card/50 px-6 py-3">
+      <div className="shrink-0 px-6 py-3">
         <div className="flex items-center gap-6 text-sm">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-24" />
@@ -64,17 +64,17 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
       : "100"
 
   return (
-    <div className="shrink-0 border-b border-border bg-card/50 px-6 py-3">
+    <div className="shrink-0 px-6 py-3">
       <div className="flex items-center gap-6 text-sm">
         <StatItem
-          icon={<ShieldAlert className="size-4 text-amber-500" />}
+          icon={<ShieldAlert className="size-4 text-amber-600 dark:text-amber-400" />}
           label="Pending"
           value={stats.pending_approvals}
           highlight={stats.pending_approvals > 0}
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem
-          icon={<Bot className="size-4 text-emerald-500" />}
+          icon={<Bot className="size-4 text-emerald-600 dark:text-emerald-400" />}
           label="Agents"
           value={`${stats.active_agents}/${stats.total_agents}`}
           subtext={
@@ -85,13 +85,13 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem
-          icon={<Activity className="size-4 text-blue-500" />}
+          icon={<Activity className="size-4 text-blue-600 dark:text-blue-400" />}
           label="Events (24h)"
           value={stats.events_24h.toLocaleString()}
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem
-          icon={<ShieldX className="size-4 text-red-500" />}
+          icon={<ShieldX className="size-4 text-red-600 dark:text-red-400" />}
           label="Denials (24h)"
           value={stats.denials_24h}
           subtext={
@@ -108,14 +108,14 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem
-          icon={<Eye className="size-4 text-amber-500" />}
+          icon={<Eye className="size-4 text-amber-600 dark:text-amber-400" />}
           label="Observe Findings"
           value={stats.observe_findings_24h ?? 0}
           highlight={(stats.observe_findings_24h ?? 0) > 0}
         />
         <Separator orientation="vertical" className="h-5" />
         <StatItem
-          icon={<FileText className="size-4 text-violet-500" />}
+          icon={<FileText className="size-4 text-violet-600 dark:text-violet-400" />}
           label="Contracts Triggered"
           value={stats.contracts_triggered_24h ?? 0}
         />

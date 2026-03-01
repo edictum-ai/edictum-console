@@ -84,7 +84,7 @@ export function ApprovalCard({ approval, onApprove, onDeny, acting }: ApprovalCa
         )}
 
         {/* Row 4: Tool arguments */}
-        <div className="rounded-md border border-border bg-muted/50 dark:bg-zinc-950/80 px-3 py-2.5">
+        <div className="rounded-md border border-border bg-muted/50 dark:bg-background/80 px-3 py-2.5">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1.5">Tool Arguments</p>
           <pre className="text-sm font-mono text-card-foreground leading-relaxed break-all whitespace-pre-wrap">
             {formatToolArgs(approval.tool_args)}

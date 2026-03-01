@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
+import { Settings2, Monitor, Bell, AlertTriangle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getHealth, type HealthResponse } from "@/lib/api"
-import { SettingsSidebar } from "./settings/settings-sidebar"
+import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { SystemSection } from "./settings/system-section"
 import { NotificationsSection } from "./settings/notifications-section"
 import { DangerZoneSection } from "./settings/danger-zone-section"
@@ -10,21 +13,12 @@ import { DangerZoneSection } from "./settings/danger-zone-section"
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const activeSection = searchParams.get("section") || "system"
-
-  // Default to ?section=system if no param
-  useEffect(() => {
-    if (!searchParams.get("section")) {
-      setSearchParams({ section: "system" }, { replace: true })
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const setSection = (s: string) => setSearchParams({ section: s }, { replace: true })
 
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
-
-  function setSection(section: string) {
-    setSearchParams({ section }, { replace: true })
-  }
+  const [channelCount, setChannelCount] = useState(0)
 
   const fetchHealth = useCallback(async () => {
     try {
@@ -38,44 +32,77 @@ export default function SettingsPage() {
     }
   }, [])
 
-  // Initial fetch
-  useEffect(() => {
-    void fetchHealth()
-  }, [fetchHealth])
+  useEffect(() => { void fetchHealth() }, [fetchHealth])
 
-  // Auto-refresh every 30s
+  // Silent auto-refresh every 30s
   useEffect(() => {
-    const interval = setInterval(() => {
-      void fetchHealth()
-    }, 30_000)
+    const interval = setInterval(() => { void fetchHealth() }, 30_000)
     return () => clearInterval(interval)
   }, [fetchHealth])
 
-  return (
-    <div className="flex h-full flex-col md:flex-row">
-      {/* Sidebar: horizontal on mobile, vertical on desktop */}
-      <div className="shrink-0 border-b border-border p-4 md:w-48 md:border-b-0 md:border-r">
-        <SettingsSidebar
-          activeSection={activeSection}
-          onSectionChange={setSection}
-        />
-      </div>
+  // SSE subscription
+  useDashboardSSE({
+    signing_key_rotated: () => { void fetchHealth() },
+  })
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="mx-auto max-w-3xl space-y-6">
-          {activeSection === "system" && (
-            <SystemSection
-              health={health}
-              loading={loading}
-              lastChecked={lastChecked}
-              onRefresh={fetchHealth}
-            />
-          )}
-          {activeSection === "notifications" && <NotificationsSection />}
-          {activeSection === "danger" && <DangerZoneSection />}
+  function subtitleForSection(section: string): string {
+    switch (section) {
+      case "system": return "Server health and configuration"
+      case "notifications": return channelCount > 0
+        ? `${channelCount} channel${channelCount !== 1 ? "s" : ""} configured`
+        : "No channels configured"
+      case "danger": return "Irreversible administrative actions"
+      default: return ""
+    }
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+            <Settings2 className="size-5 text-amber-600 dark:text-amber-400" />
+            Settings
+          </h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {subtitleForSection(activeSection)}
+          </p>
         </div>
       </div>
+
+      {/* Tabs */}
+      <Tabs value={activeSection} onValueChange={setSection}>
+        <TabsList variant="line">
+          <TabsTrigger value="system">
+            <Monitor className="mr-2 size-4" />
+            System
+          </TabsTrigger>
+          <TabsTrigger value="notifications">
+            <Bell className="mr-2 size-4" />
+            Notifications
+            {channelCount > 0 && (
+              <Badge variant="outline" className="ml-1.5 h-4 px-1.5 text-[10px]">
+                {channelCount}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="danger">
+            <AlertTriangle className="mr-2 size-4" />
+            Danger Zone
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="system" className="mt-4">
+          <SystemSection health={health} loading={loading} lastChecked={lastChecked} onRefresh={fetchHealth} />
+        </TabsContent>
+        <TabsContent value="notifications" className="mt-4">
+          <NotificationsSection onChannelCountChange={setChannelCount} />
+        </TabsContent>
+        <TabsContent value="danger" className="mt-4">
+          <DangerZoneSection />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

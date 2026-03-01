@@ -73,7 +73,7 @@ export function EventFilterPanel({
   )
 
   return (
-    <div className="h-full border-r border-border bg-card/50">
+    <div className="h-full border-r border-border">
       <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Filters

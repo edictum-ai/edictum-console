@@ -32,7 +32,7 @@ export function KeyFilterBar({
           {FILTERS.map((f) => (
             <TabsTrigger key={f.value} value={f.value}>
               {f.label}
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1.5">
+              <Badge variant="outline" className="ml-1.5 text-[10px] h-4 px-1.5">
                 {counts[f.value] ?? 0}
               </Badge>
             </TabsTrigger>

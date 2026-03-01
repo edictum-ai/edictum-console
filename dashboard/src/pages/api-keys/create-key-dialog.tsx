@@ -142,13 +142,20 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
                   value={createdKey?.key ?? ""}
                   className="font-mono text-xs"
                 />
-                <Button variant="outline" size="icon" onClick={handleCopy}>
-                  {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+                <Button variant="outline" size="sm" onClick={handleCopy} className="transition-all">
+                  {copied ? (
+                    <>
+                      <Check className="mr-2 size-4 text-emerald-600 dark:text-emerald-400" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="mr-2 size-4" />
+                      Copy
+                    </>
+                  )}
                 </Button>
               </div>
-              {copied && (
-                <p className="text-xs text-muted-foreground">Copied!</p>
-              )}
               <pre className="rounded bg-muted p-3 text-xs font-mono overflow-x-auto">
                 {`export EDICTUM_API_KEY=${createdKey?.key ?? ""}`}
               </pre>

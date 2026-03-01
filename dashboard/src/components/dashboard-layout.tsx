@@ -28,7 +28,7 @@ export function DashboardLayout() {
         pendingApprovals={stats?.pending_approvals}
         onLogout={() => void navigate("/dashboard/login")}
       />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto bg-ambient-glow">
         <Outlet />
       </main>
     </div>

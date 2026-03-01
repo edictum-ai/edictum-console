@@ -2,12 +2,21 @@ import { request } from "./client"
 
 // --- Notification Channels ---
 
+export type ChannelType = "telegram" | "slack" | "webhook" | "email"
+
+export interface ChannelFilters {
+  environments?: string[]
+  agent_patterns?: string[]
+  contract_names?: string[]
+}
+
 export interface NotificationChannelInfo {
   id: string
   name: string
-  channel_type: "telegram" | "slack" | "webhook"
+  channel_type: ChannelType
   config: Record<string, unknown>
   enabled: boolean
+  filters: ChannelFilters | null
   created_at: string
   last_test_at: string | null
   last_test_ok: boolean | null
@@ -15,14 +24,16 @@ export interface NotificationChannelInfo {
 
 export interface CreateChannelRequest {
   name: string
-  channel_type: "telegram" | "slack" | "webhook"
+  channel_type: ChannelType
   config: Record<string, unknown>
+  filters?: ChannelFilters | null
 }
 
 export interface UpdateChannelRequest {
   name?: string
   config?: Record<string, unknown>
   enabled?: boolean
+  filters?: ChannelFilters | null
 }
 
 export interface TestChannelResult {

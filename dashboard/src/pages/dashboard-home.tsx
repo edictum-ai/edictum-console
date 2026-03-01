@@ -73,9 +73,13 @@ export function DashboardHome() {
   }
 
   return (
-    <div className="flex flex-col bg-background p-4 h-screen overflow-auto">
+    <div className="flex flex-col p-4 h-screen overflow-auto">
       {/* Top Stats Bar */}
-      <StatsBar stats={stats} loading={statsLoading} />
+      <div className="-mx-4 -mt-4 mb-0 border-b border-border bg-card/30">
+        <div className="px-4 py-0">
+          <StatsBar stats={stats} loading={statsLoading} />
+        </div>
+      </div>
 
       {/* Two-column layout: triage + activity (resizable horizontally) */}
       <div className="mt-4 h-[50vh] min-h-[300px]">

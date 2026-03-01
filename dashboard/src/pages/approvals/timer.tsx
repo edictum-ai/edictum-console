@@ -48,14 +48,14 @@ const zoneTextColor: Record<TimerZone, string> = {
   green: "text-emerald-600 dark:text-emerald-400",
   amber: "text-amber-600 dark:text-amber-400",
   red: "text-red-600 dark:text-red-400",
-  expired: "text-zinc-500",
+  expired: "text-zinc-600 dark:text-zinc-400",
 }
 
 const zoneBadgeStyle: Record<TimerZone, string> = {
   green: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25",
   amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25",
   red: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/25 animate-pulse",
-  expired: "bg-zinc-500/15 text-zinc-500 border-zinc-500/25",
+  expired: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/25",
 }
 
 const zoneIndicatorColor: Record<TimerZone, string> = {

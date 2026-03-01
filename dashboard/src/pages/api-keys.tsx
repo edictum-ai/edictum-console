@@ -3,6 +3,7 @@ import { KeyRound, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { listKeys, type ApiKeyInfo } from "@/lib/api"
+import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { EmptyState } from "./api-keys/empty-state"
 import { KeyFilterBar } from "./api-keys/key-filter-bar"
 import { KeyTable } from "./api-keys/key-table"
@@ -12,6 +13,7 @@ import { RevokeKeyDialog } from "./api-keys/revoke-key-dialog"
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKeyInfo[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [envFilter, setEnvFilter] = useState("all")
   const [search, setSearch] = useState("")
   const [createOpen, setCreateOpen] = useState(false)
@@ -19,9 +21,11 @@ export default function ApiKeysPage() {
 
   const fetchKeys = useCallback(async () => {
     try {
+      setError(null)
       const data = await listKeys()
       setKeys(data)
     } catch {
+      setError("Failed to load API keys")
       toast.error("Failed to load API keys")
     } finally {
       setLoading(false)
@@ -29,6 +33,12 @@ export default function ApiKeysPage() {
   }, [])
 
   useEffect(() => { void fetchKeys() }, [fetchKeys])
+
+  // SSE for real-time updates (future-proof — ready when backend pushes key events)
+  useDashboardSSE({
+    api_key_created: () => { void fetchKeys() },
+    api_key_revoked: () => { void fetchKeys() },
+  })
 
   const filteredKeys = useMemo(() => {
     let result = keys
@@ -60,10 +70,30 @@ export default function ApiKeysPage() {
     return envs.size
   }, [keys])
 
-  if (loading) {
+  const handleRevoked = useCallback(() => {
+    if (revokeTarget) {
+      setKeys((prev) => prev.filter((k) => k.id !== revokeTarget.id))
+    }
+    setRevokeTarget(null)
+    toast.success("API key revoked")
+    void fetchKeys()
+  }, [revokeTarget, fetchKeys])
+
+  if (loading && keys.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (error && keys.length === 0) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <p className="text-sm text-muted-foreground">{error}</p>
+        <Button variant="outline" size="sm" onClick={() => { setError(null); setLoading(true); void fetchKeys() }}>
+          Retry
+        </Button>
       </div>
     )
   }
@@ -73,12 +103,13 @@ export default function ApiKeysPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight flex items-center gap-2">
-            <KeyRound className="size-5 text-muted-foreground" />
+            <KeyRound className="size-5 text-amber-600 dark:text-amber-400" />
             API Keys
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {keys.length} active {keys.length === 1 ? "key" : "keys"} across{" "}
-            {uniqueEnvs} {uniqueEnvs === 1 ? "environment" : "environments"}
+            {keys.length === 0
+              ? "No active keys"
+              : `${keys.length} active key${keys.length !== 1 ? "s" : ""} across ${uniqueEnvs} environment${uniqueEnvs !== 1 ? "s" : ""}`}
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>Create Key</Button>
@@ -107,7 +138,7 @@ export default function ApiKeysPage() {
       <RevokeKeyDialog
         keyToRevoke={revokeTarget}
         onOpenChange={(open) => { if (!open) setRevokeTarget(null) }}
-        onRevoked={fetchKeys}
+        onRevoked={handleRevoked}
       />
     </div>
   )

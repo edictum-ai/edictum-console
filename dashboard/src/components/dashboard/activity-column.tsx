@@ -31,11 +31,11 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 function EventIcon({ verdict }: { verdict: string }) {
   switch (verdict) {
     case "denied":
-      return <ShieldCheck className="size-3.5 text-red-500" />
+      return <ShieldCheck className="size-3.5 text-red-600 dark:text-red-400" />
     case "pending":
-      return <ShieldCheck className="size-3.5 text-amber-500" />
+      return <ShieldCheck className="size-3.5 text-amber-600 dark:text-amber-400" />
     default:
-      return <Zap className="size-3.5 text-blue-500" />
+      return <Zap className="size-3.5 text-blue-600 dark:text-blue-400" />
   }
 }
 
