@@ -1,22 +1,17 @@
-import { KeyRound, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Key } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
 
-interface EmptyStateProps {
+interface ApiKeysEmptyStateProps {
   onCreateClick: () => void
 }
 
-export function EmptyState({ onCreateClick }: EmptyStateProps) {
+export function ApiKeysEmptyState({ onCreateClick }: ApiKeysEmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <KeyRound className="mb-3 size-10 text-muted-foreground" />
-      <p className="text-sm font-medium">No API keys yet</p>
-      <p className="text-xs text-muted-foreground mt-1">
-        Create your first key to connect an agent to the server.
-      </p>
-      <Button className="mt-4" onClick={onCreateClick}>
-        <Plus className="mr-2 size-4" />
-        Create Key
-      </Button>
-    </div>
+    <EmptyState
+      icon={<Key className="h-10 w-10" />}
+      title="No API keys yet"
+      description="API keys authenticate your agents when they connect to the server. Each key is scoped to an environment (production, staging, etc.). Create a key, then set it as EDICTUM_API_KEY in your agent's config."
+      action={{ label: "Create Key", onClick: onCreateClick }}
+    />
   )
 }

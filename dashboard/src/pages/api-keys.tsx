@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { listKeys, type ApiKeyInfo } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
-import { EmptyState } from "./api-keys/empty-state"
+import { ApiKeysEmptyState } from "./api-keys/empty-state"
 import { KeyFilterBar } from "./api-keys/key-filter-bar"
 import { KeyTable } from "./api-keys/key-table"
 import { CreateKeyDialog } from "./api-keys/create-key-dialog"
@@ -147,7 +147,7 @@ export default function ApiKeysPage() {
       </div>
 
       {keys.length === 0 ? (
-        <EmptyState onCreateClick={() => setCreateOpen(true)} />
+        <ApiKeysEmptyState onCreateClick={() => setCreateOpen(true)} />
       ) : (
         <>
           <KeyFilterBar

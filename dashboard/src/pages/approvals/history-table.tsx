@@ -7,7 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Bot, Clock, Loader2, MessageSquare } from "lucide-react"
+import { Bot, Clock, Loader2, MessageSquare, Shield } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { ChannelBadge, StatusBadge } from "./badges"
 import { EnvBadge } from "@/lib/env-colors"
@@ -116,7 +116,13 @@ export function HistoryTable({ approvals, loading }: HistoryTableProps) {
         {approvals.length === 0 && (
           <TableRow>
             <TableCell colSpan={9} className="py-12 text-center">
-              <p className="text-sm text-muted-foreground">No history yet</p>
+              <div className="flex flex-col items-center gap-2">
+                <Shield className="h-10 w-10 text-muted-foreground" />
+                <p className="text-lg font-semibold">No approval history</p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Past approval decisions will appear here. This includes approved, denied, and timed-out requests.
+                </p>
+              </div>
             </TableCell>
           </TableRow>
         )}

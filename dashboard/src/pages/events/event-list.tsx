@@ -21,7 +21,8 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { Label } from "@/components/ui/label"
-import { Search, X, Clock } from "lucide-react"
+import { Activity, Search, X, Clock } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import type { EventResponse } from "@/lib/api"
 import {
@@ -297,9 +298,11 @@ export function EventList({
       <div className="flex-1 overflow-y-auto px-3 pt-2">
         <div className="space-y-px pb-3">
           {events.length === 0 && (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-sm text-muted-foreground">No events found</p>
-            </div>
+            <EmptyState
+              icon={<Activity className="h-10 w-10" />}
+              title="No events yet"
+              description="Events appear here when agents start making tool calls. Each event shows whether the call was allowed, denied, or observed by your contracts. Connect an agent to start seeing events."
+            />
           )}
           {events.map((event) => {
             const isSelected = event.id === selectedEventId
@@ -316,7 +319,7 @@ export function EventList({
                   else rowRefs.current.delete(event.id)
                 }}
                 onClick={() => onSelectEvent(event.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors ${
+                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                   observe ? "opacity-75" : ""
                 } ${
                   isHighlighted

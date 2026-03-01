@@ -8,8 +8,8 @@ import {
   List,
   Shield,
   ShieldAlert,
-  ShieldCheck,
 } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
@@ -264,13 +264,11 @@ export function ApprovalsQueue() {
 
         <TabsContent value="pending" className="mt-4">
           {pending.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <ShieldCheck className="mb-3 size-10 text-emerald-600 dark:text-emerald-400" />
-              <p className="text-sm font-medium">No pending approvals</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                All agents are running freely
-              </p>
-            </div>
+            <EmptyState
+              icon={<Shield className="h-10 w-10" />}
+              title="No pending approvals"
+              description="When a contract requires human approval before a tool call executes, it appears here. Add effect: approve to a pre-contract or sandbox contract to enable human-in-the-loop."
+            />
           ) : isCardMode ? (
             <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-stretch">
               {pending.map((approval) => (

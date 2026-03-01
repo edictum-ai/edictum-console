@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Zap, ShieldCheck } from "lucide-react"
+import { Activity, Zap, ShieldCheck } from "lucide-react"
 import type { EventResponse } from "@/lib/api"
 import { contractLabel, extractProvenance, isObserveFinding, extractArgsPreview } from "@/lib/payload-helpers"
 import { VERDICT_STYLES } from "@/lib/verdict-helpers"
@@ -122,9 +122,13 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
       <ScrollArea className="flex-1">
         <div className="px-6 pb-4">
           {filteredEvents.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              No activity yet
-            </p>
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+              <Activity className="h-10 w-10 mb-4 text-muted-foreground" />
+              <h3 className="text-lg font-semibold mb-2">No activity yet</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Events appear here when agents start making tool calls. Connect an agent to start seeing activity.
+              </p>
+            </div>
           ) : (
             <div className="space-y-0">
               {filteredEvents.slice(0, 15).map((event, idx) => {

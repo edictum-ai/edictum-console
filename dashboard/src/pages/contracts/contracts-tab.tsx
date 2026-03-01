@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
-import { AlertCircle, Search, Shield, ShieldOff } from "lucide-react"
+import { AlertCircle, FileText, Search, Shield } from "lucide-react"
+import { EmptyState } from "@/components/empty-state"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -71,11 +72,11 @@ export function ContractsTab({
 
   // Empty state: no bundles at all
   if (summaries.length === 0) return (
-    <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border">
-      <ShieldOff className="size-8 text-muted-foreground/50" />
-      <p className="text-sm font-medium">No contract bundles yet</p>
-      <p className="text-xs text-muted-foreground">Upload a YAML bundle to define governance rules for your agents</p>
-    </div>
+    <EmptyState
+      icon={<FileText className="h-10 w-10" />}
+      title="No contract bundles yet"
+      description="Contracts are YAML rules that enforce boundaries on what your AI agents can do — preconditions before execution, sandboxes for file paths, session limits, and postcondition checks. Upload your first bundle to start."
+    />
   )
 
   // Bundle name selector (only shown when multiple bundles exist)

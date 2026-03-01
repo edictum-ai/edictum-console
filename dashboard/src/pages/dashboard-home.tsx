@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import {
   listEvents,
   listApprovals,
+  listKeys,
+  listBundles,
   type EventResponse,
   type ApprovalResponse,
 } from "@/lib/api"
@@ -11,6 +13,8 @@ import { StatsBar } from "@/components/dashboard/stats-bar"
 import { TriageColumn } from "@/components/dashboard/triage-column"
 import { ActivityColumn } from "@/components/dashboard/activity-column"
 import { AgentGrid } from "@/components/dashboard/agent-grid"
+import { GettingStarted } from "@/components/dashboard/getting-started"
+import { deriveAgents } from "@/lib/derive-agents"
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -26,6 +30,8 @@ export function DashboardHome() {
   const { data: stats, loading: statsLoading, refresh: refreshStats } = useStats()
   const [events, setEvents] = useState<EventResponse[]>([])
   const [approvals, setApprovals] = useState<ApprovalResponse[]>([])
+  const [hasKeys, setHasKeys] = useState(false)
+  const [hasBundles, setHasBundles] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,6 +44,16 @@ export function DashboardHome() {
       ])
       setEvents(eventsData)
       setApprovals(approvalsData)
+
+      // Only fetch getting-started data when dashboard is empty
+      if (eventsData.length === 0) {
+        const [keysData, bundlesData] = await Promise.all([
+          listKeys().catch(() => []),
+          listBundles().catch(() => []),
+        ])
+        setHasKeys(keysData.length > 0)
+        setHasBundles(bundlesData.length > 0)
+      }
     } catch {
       setError("Failed to load dashboard data")
       toast.error("Failed to load dashboard data")
@@ -102,8 +118,46 @@ export function DashboardHome() {
     )
   }
 
+  const agents = useMemo(() => deriveAgents(events), [events])
+  const isEmpty = events.length === 0
+  const wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
+
+  if (isEmpty && !wizardCompleted) {
+    return (
+      <div className="flex flex-col p-4 h-full overflow-auto">
+        {/* Stats bar still shows */}
+        <div className="-mx-4 -mt-4 mb-0 border-b border-border bg-card/30">
+          <div className="px-4 py-0">
+            <StatsBar stats={stats} loading={statsLoading} />
+          </div>
+        </div>
+
+        {/* Error banner */}
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              {error}
+              <Button variant="outline" size="sm" onClick={() => { setError(null); void fetchData() }}>
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Getting started card */}
+        <GettingStarted hasKeys={hasKeys} hasBundles={hasBundles} />
+
+        {/* Agent fleet empty state */}
+        <div className="mt-8">
+          <AgentGrid agents={[]} />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex flex-col p-4 h-screen overflow-auto">
+    <div className="flex flex-col p-4 h-full overflow-auto">
       {/* Top Stats Bar */}
       <div className="-mx-4 -mt-4 mb-0 border-b border-border bg-card/30">
         <div className="px-4 py-0">
@@ -143,7 +197,7 @@ export function DashboardHome() {
 
       {/* Agent Fleet - scrolls with page */}
       <div className="mt-4">
-        <AgentGrid events={events} />
+        <AgentGrid agents={agents} />
       </div>
     </div>
   )

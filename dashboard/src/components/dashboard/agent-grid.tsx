@@ -8,14 +8,17 @@ import {
 } from "@/components/ui/tooltip"
 import {
   Activity,
+  Bot,
   Clock,
   Signal,
   AlertTriangle,
   WifiOff,
 } from "lucide-react"
-import { Area, AreaChart, ResponsiveContainer } from "recharts"
-import type { EventResponse } from "@/lib/api"
-import { deriveAgents, type AgentStatus, type AgentSummary } from "@/lib/derive-agents"
+import { EmptyState } from "@/components/empty-state"
+import { Area, AreaChart } from "recharts"
+import { ChartContainer } from "@/components/ui/chart"
+import type { ChartConfig } from "@/components/ui/chart"
+import { type AgentStatus, type AgentSummary } from "@/lib/derive-agents"
 import { ENV_COLORS } from "@/lib/env-colors"
 
 const STATUS_CONFIG: Record<AgentStatus, { label: string; dotClass: string; icon: typeof Signal }> = {
@@ -36,12 +39,16 @@ function StatusDot({ status }: { status: AgentStatus }) {
   )
 }
 
+const sparklineConfig = {
+  v: { label: "Events", color: "var(--color-emerald-500, #10b981)" },
+} satisfies ChartConfig
+
 function MiniSparkline({ data, status, agentName }: { data: number[]; status: AgentStatus; agentName: string }) {
   const color = status === "healthy" ? "var(--success)" : status === "degraded" ? "var(--warning)" : "var(--muted-foreground)"
   const chartData = data.map((v, i) => ({ i, v }))
   const gradientId = `spark-${agentName}-${status}`
   return (
-    <ResponsiveContainer width="100%" height={28}>
+    <ChartContainer config={sparklineConfig} className="h-7 w-full [&>div]:!aspect-auto">
       <AreaChart data={chartData} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
@@ -59,7 +66,7 @@ function MiniSparkline({ data, status, agentName }: { data: number[]; status: Ag
           isAnimationActive={false}
         />
       </AreaChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }
 
@@ -178,11 +185,11 @@ function AgentCard({ agent }: { agent: AgentSummary }) {
 }
 
 interface AgentGridProps {
-  events: EventResponse[]
+  agents: AgentSummary[]
 }
 
-export function AgentGrid({ events }: AgentGridProps) {
-  const agents = deriveAgents(events)
+export function AgentGrid({ agents }: AgentGridProps) {
+  const navigate = useNavigate()
 
   if (agents.length === 0) {
     return (
@@ -190,9 +197,12 @@ export function AgentGrid({ events }: AgentGridProps) {
         <h2 className="text-sm font-semibold text-foreground mb-3">
           Agent Fleet
         </h2>
-        <p className="text-sm text-muted-foreground">
-          No agents have connected yet. Create an API key and connect your first agent.
-        </p>
+        <EmptyState
+          icon={<Bot className="h-10 w-10" />}
+          title="No agents connected"
+          description="Agents appear here when they connect using an API key. Create an API key, install the SDK (pip install edictum[server]), and configure your agent."
+          action={{ label: "Create API Key", onClick: () => navigate("/dashboard/keys") }}
+        />
       </div>
     )
   }
