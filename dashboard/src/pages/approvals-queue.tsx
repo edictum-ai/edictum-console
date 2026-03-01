@@ -220,6 +220,7 @@ export function ApprovalsQueue() {
               variant={isCardMode ? "default" : "ghost"}
               onClick={() => setViewMode(viewMode === "cards" ? "auto" : "cards")}
               title="Card view"
+              aria-label="Card view"
             >
               <LayoutGrid className="size-3" />
             </Button>
@@ -228,6 +229,7 @@ export function ApprovalsQueue() {
               variant={!isCardMode ? "default" : "ghost"}
               onClick={() => setViewMode(viewMode === "table" ? "auto" : "table")}
               title="Table view"
+              aria-label="Table view"
             >
               <List className="size-3" />
             </Button>

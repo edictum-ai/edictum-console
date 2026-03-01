@@ -3,10 +3,13 @@
  * Single source of truth — no duplicates allowed elsewhere.
  */
 
-/** Relative time string like "5s ago", "3m ago", "2h ago", "1d ago". Handles empty/missing timestamps. */
+/** Relative time string like "5s ago", "3m ago", "2h ago", "1d ago". Handles empty/missing/invalid timestamps and clock skew. */
 export function formatRelativeTime(timestamp: string): string {
   if (!timestamp) return "never"
-  const diff = Date.now() - new Date(timestamp).getTime()
+  const date = new Date(timestamp)
+  if (isNaN(date.getTime())) return "invalid date"
+  const diff = Date.now() - date.getTime()
+  if (diff < 0) return "just now"
   const seconds = Math.floor(diff / 1000)
   if (seconds < 60) return `${seconds}s ago`
   const minutes = Math.floor(seconds / 60)

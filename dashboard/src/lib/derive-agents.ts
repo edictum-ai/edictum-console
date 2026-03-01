@@ -1,6 +1,21 @@
 import type { EventResponse } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
 
+/** Agent is considered offline if no activity for this duration. */
+const OFFLINE_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
+
+/** Denied rate above which an agent is considered degraded. */
+const DEGRADED_DENIED_RATE = 0.3 // 30%
+
+/** Minimum denied count before degraded status applies. */
+const DEGRADED_MIN_DENIED = 3
+
+/** Duration of each sparkline time bucket. */
+const SPARKLINE_BUCKET_MS = 5 * 60 * 1000 // 5 minutes
+
+/** Number of sparkline time buckets (1 hour total). */
+const SPARKLINE_BUCKET_COUNT = 12
+
 export type AgentStatus = "healthy" | "degraded" | "offline"
 
 export interface AgentSummary {
@@ -34,16 +49,15 @@ export function deriveAgents(events: EventResponse[]): AgentSummary[] {
     const deniedRate = sorted.length > 0 ? deniedCount / sorted.length : 0
 
     let status: AgentStatus = "healthy"
-    if (msSinceLastActivity > 30 * 60 * 1000) status = "offline"
-    else if (deniedRate > 0.3 && deniedCount >= 3) status = "degraded"
+    if (msSinceLastActivity > OFFLINE_THRESHOLD_MS) status = "offline"
+    else if (deniedRate > DEGRADED_DENIED_RATE && deniedCount >= DEGRADED_MIN_DENIED) status = "degraded"
 
-    // Build sparkline from 12 time buckets (5-minute intervals)
+    // Build sparkline from time buckets
     const now = Date.now()
-    const bucketDuration = 5 * 60 * 1000
     const counts: number[] = []
-    for (let i = 11; i >= 0; i--) {
-      const start = now - (i + 1) * bucketDuration
-      const end = now - i * bucketDuration
+    for (let i = SPARKLINE_BUCKET_COUNT - 1; i >= 0; i--) {
+      const start = now - (i + 1) * SPARKLINE_BUCKET_MS
+      const end = now - i * SPARKLINE_BUCKET_MS
       counts.push(
         sorted.filter((e) => {
           const t = new Date(e.timestamp).getTime()

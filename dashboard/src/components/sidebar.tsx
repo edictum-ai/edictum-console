@@ -85,7 +85,7 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
         >
           <button
             onClick={() => setCollapsed((p) => !p)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <Shield className="h-4 w-4 text-white" />

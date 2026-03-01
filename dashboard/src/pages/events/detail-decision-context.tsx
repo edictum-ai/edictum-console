@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Shield, Copy, Check } from "lucide-react"
+import { toast } from "sonner"
 import { formatDecisionSource } from "@/lib/payload-helpers"
 import { DetailRow } from "@/components/detail-row"
 
@@ -15,14 +16,25 @@ interface Provenance {
 
 export function DecisionContextCard({ prov }: { prov: Provenance }) {
   const [copiedVersion, setCopiedVersion] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current)
+  }, [])
 
   if (!(prov.contractName ?? prov.decisionSource ?? prov.reason)) return null
 
   const handleCopyVersion = async () => {
     if (!prov.policyVersion) return
-    await navigator.clipboard.writeText(prov.policyVersion)
-    setCopiedVersion(true)
-    setTimeout(() => setCopiedVersion(false), 1500)
+    try {
+      await navigator.clipboard.writeText(prov.policyVersion)
+      setCopiedVersion(true)
+    } catch {
+      toast.error("Failed to copy to clipboard")
+      return
+    }
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopiedVersion(false), 1500)
   }
 
   return (

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { Label } from "@/components/ui/label"
 import { ArrowLeftRight, Loader2 } from "lucide-react"
 import type { BundleWithDeployments } from "@/lib/api"
 import { getBundleYaml } from "@/lib/api"
@@ -98,7 +99,7 @@ export function DiffTab({ bundles, selectedBundle }: DiffTabProps) {
       {/* Version selectors */}
       <div className="flex items-center gap-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">From</label>
+          <Label className="text-xs text-muted-foreground">From</Label>
           <Select
             value={fromVersion ? String(fromVersion) : ""}
             onValueChange={(v) => setFromVersion(Number(v))}
@@ -119,7 +120,7 @@ export function DiffTab({ bundles, selectedBundle }: DiffTabProps) {
         </Button>
 
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">To</label>
+          <Label className="text-xs text-muted-foreground">To</Label>
           <Select
             value={toVersion ? String(toVersion) : ""}
             onValueChange={(v) => setToVersion(Number(v))}

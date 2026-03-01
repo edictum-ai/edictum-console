@@ -77,8 +77,7 @@ export default function ApiKeysPage() {
     }
     setRevokeTarget(null)
     toast.success("API key revoked")
-    void fetchKeys()
-  }, [revokeTarget, fetchKeys])
+  }, [revokeTarget])
 
   if (loading && keys.length === 0) {
     return (

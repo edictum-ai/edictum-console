@@ -175,7 +175,7 @@ export function ActivityColumn({ events }: ActivityColumnProps) {
                 </div>
                 )
               })}
-              {filteredEvents.length > 30 && (
+              {filteredEvents.length > 15 && (
                 <div className="pt-2 text-center">
                   <Button
                     variant="ghost"

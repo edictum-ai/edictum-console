@@ -6,6 +6,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import { Loader2, Rocket } from "lucide-react"
 import { toast } from "sonner"
 import { deployBundle, type BundleWithDeployments } from "@/lib/api"
@@ -63,7 +64,7 @@ export function DeployDialog({
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Environment</label>
+            <Label>Environment</Label>
             <Select value={selectedEnv} onValueChange={setSelectedEnv}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>

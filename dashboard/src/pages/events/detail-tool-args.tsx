@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Copy, Check } from "lucide-react"
+import { toast } from "sonner"
 
 interface ToolArgsCardProps {
   toolArgs: Record<string, unknown>
@@ -9,14 +10,25 @@ interface ToolArgsCardProps {
 
 export function ToolArgsCard({ toolArgs }: ToolArgsCardProps) {
   const [copied, setCopied] = useState(false)
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current)
+  }, [])
 
   if (Object.keys(toolArgs).length === 0) return null
 
   const handleCopyArgs = async () => {
     const text = JSON.stringify(toolArgs, null, 2)
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+    } catch {
+      toast.error("Failed to copy to clipboard")
+      return
+    }
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1500)
   }
 
   return (

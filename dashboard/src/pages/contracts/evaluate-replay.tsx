@@ -63,32 +63,40 @@ export function EvaluateReplay({ bundles, selectedBundle }: EvaluateReplayProps)
     const errors: Array<{ toolName: string; error: string }> = []
     let evaluated = 0
 
-    for (let i = 0; i < events.length; i++) {
-      const event = events[i]!
-      const toolArgs = (event.payload as Record<string, unknown> | null)?.tool_args as Record<string, unknown> | undefined
-      try {
-        const [baseResult, testResult] = await Promise.all([
-          evaluateBundle({ yaml_content: baselineYaml, tool_name: event.tool_name, tool_args: toolArgs ?? {} }),
-          evaluateBundle({ yaml_content: testYaml, tool_name: event.tool_name, tool_args: toolArgs ?? {} }),
-        ])
-        evaluated++
-        if (baseResult.verdict !== testResult.verdict) {
-          changes.push({
-            id: event.id, tool_name: event.tool_name, argsPreview: extractArgsPreview(event),
-            agent_id: event.agent_id, timestamp: event.timestamp,
-            oldVerdict: baseResult.verdict, newVerdict: testResult.verdict,
-            decidingContract: testResult.deciding_contract, oldResult: baseResult, newResult: testResult,
-          })
+    const CHUNK = 5
+    let endpointMissing = false
+    for (let i = 0; i < events.length; i += CHUNK) {
+      const chunk = events.slice(i, i + CHUNK)
+
+      await Promise.all(chunk.map(async (event) => {
+        const toolArgs = (event.payload as Record<string, unknown> | null)?.tool_args as Record<string, unknown> | undefined
+        try {
+          const [baseResult, testResult] = await Promise.all([
+            evaluateBundle({ yaml_content: baselineYaml, tool_name: event.tool_name, tool_args: toolArgs ?? {} }),
+            evaluateBundle({ yaml_content: testYaml, tool_name: event.tool_name, tool_args: toolArgs ?? {} }),
+          ])
+          evaluated++
+          if (baseResult.verdict !== testResult.verdict) {
+            changes.push({
+              id: event.id, tool_name: event.tool_name, argsPreview: extractArgsPreview(event),
+              agent_id: event.agent_id, timestamp: event.timestamp,
+              oldVerdict: baseResult.verdict, newVerdict: testResult.verdict,
+              decidingContract: testResult.deciding_contract, oldResult: baseResult, newResult: testResult,
+            })
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          if (i === 0 && msg.includes("404")) endpointMissing = true
+          errors.push({ toolName: event.tool_name, error: msg })
         }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e)
-        if (i === 0 && msg.includes("404")) {
-          setState({ status: "error", message: "The evaluate endpoint is not deployed yet. Check the server setup guide." })
-          return
-        }
-        errors.push({ toolName: event.tool_name, error: msg })
+      }))
+
+      if (endpointMissing) {
+        setState({ status: "error", message: "The evaluate endpoint is not deployed yet. Check the server setup guide." })
+        return
       }
-      setState({ status: "running", progress: i + 1, total: events.length })
+
+      setState({ status: "running", progress: Math.min(i + CHUNK, events.length), total: events.length })
     }
 
     const newDenials = changes.filter((c) => c.newVerdict === "deny").length

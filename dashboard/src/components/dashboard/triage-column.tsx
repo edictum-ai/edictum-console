@@ -93,7 +93,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
   const pending = approvals.filter((a) => a.status === "pending")
 
   return (
-    <div className="border-r border-border flex flex-col h-full">
+    <div className="flex flex-col h-full">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {/* Triage section - actionable items needing attention */}
@@ -165,6 +165,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
                               size="sm"
                               variant="outline"
                               disabled={deciding}
+                              aria-label="Approve"
                               className="h-6 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/15"
                               onClick={() => void handleDecision(approval.id, true)}
                             >
@@ -174,6 +175,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
                               size="sm"
                               variant="outline"
                               disabled={deciding}
+                              aria-label="Deny"
                               className="h-6 px-2 text-red-600 hover:text-red-700 hover:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/15"
                               onClick={() => void handleDecision(approval.id, false)}
                             >
@@ -182,6 +184,7 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
                             <Button
                               size="sm"
                               variant="ghost"
+                              aria-label="View details"
                               className="h-6 px-2 text-muted-foreground"
                               onClick={() => void navigate(`/dashboard/approvals`)}
                             >

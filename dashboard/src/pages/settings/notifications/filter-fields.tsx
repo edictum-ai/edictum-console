@@ -62,13 +62,13 @@ export function FilterFields({ filters, onChange }: FilterFieldsProps) {
           <Label className="text-muted-foreground">Environments</Label>
           <div className="flex gap-4">
             {ENVS.map((env) => (
-              <label key={env} className="flex items-center gap-2 text-sm">
+              <Label key={env} className="flex items-center gap-2 text-sm font-normal">
                 <Checkbox
                   checked={envs.includes(env)}
                   onCheckedChange={(c) => toggleEnv(env, !!c)}
                 />
                 <span className="capitalize">{env}</span>
-              </label>
+              </Label>
             ))}
           </div>
           <p className="text-xs text-muted-foreground">Unchecked = all environments.</p>

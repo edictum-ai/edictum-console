@@ -55,9 +55,10 @@ export class SSEClient {
       this.source = null
 
       if (this.shouldReconnect) {
+        const jitter = this.reconnectDelay * (0.5 + Math.random())
         setTimeout(() => {
           this.createConnection()
-        }, this.reconnectDelay)
+        }, jitter)
         this.reconnectDelay = Math.min(
           this.reconnectDelay * 2,
           this.maxReconnectDelay,

@@ -172,10 +172,18 @@ export function ApprovalsTable({
                       aria-label={`Select approval for ${approval.tool_name}`}
                     />
                   </TableCell>
-                  <TableCell className="px-0">
-                    {isExpanded
-                      ? <ChevronDown className="size-3.5 text-muted-foreground" />
-                      : <ChevronRight className="size-3.5 text-muted-foreground" />}
+                  <TableCell className="px-0" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0"
+                      aria-label={isExpanded ? "Collapse row" : "Expand row"}
+                      onClick={() => setExpandedId(isExpanded ? null : approval.id)}
+                    >
+                      {isExpanded
+                        ? <ChevronDown className="size-3.5 text-muted-foreground" />
+                        : <ChevronRight className="size-3.5 text-muted-foreground" />}
+                    </Button>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">

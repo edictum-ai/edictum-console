@@ -2,6 +2,10 @@ import { useState, useCallback, useRef, type DragEvent } from "react"
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
 } from "@/components/ui/sheet"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -24,19 +28,55 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [pendingContent, setPendingContent] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const validation = yaml.trim() ? validateBundle(yaml) : null
+
+  const applyContent = useCallback((content: string) => {
+    setYaml(content)
+    setServerError(null)
+  }, [])
+
+  const confirmReplace = useCallback(() => {
+    if (pendingContent) applyContent(pendingContent)
+    setPendingContent(null)
+    setConfirmOpen(false)
+  }, [pendingContent, applyContent])
 
   const handleTemplateSelect = useCallback(
     (value: string) => {
       const tpl = value === "devops" ? DEVOPS_AGENT_TEMPLATE : GOVERNANCE_V5_TEMPLATE
-      if (yaml.trim() && !confirm("Replace current content with template?")) return
-      setYaml(tpl)
-      setServerError(null)
+      if (yaml.trim()) {
+        setPendingContent(tpl)
+        setConfirmOpen(true)
+      } else {
+        applyContent(tpl)
+      }
     },
-    [yaml],
+    [yaml, applyContent],
   )
+
+  const handleFile = useCallback((file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase()
+    if (!["yaml", "yml"].includes(ext ?? "")) {
+      toast.error("Please drop a .yaml or .yml file")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result !== "string") return
+      if (yaml.trim()) {
+        setPendingContent(reader.result)
+        setConfirmOpen(true)
+      } else {
+        applyContent(reader.result)
+      }
+    }
+    reader.readAsText(file)
+  }, [yaml, applyContent])
 
   const handleChange = useCallback((value: string) => {
     setYaml(value)
@@ -51,15 +91,7 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
     e.preventDefault()
     setDragging(false)
     const file = e.dataTransfer.files[0]
-    if (!file) return
-    const ext = file.name.split(".").pop()?.toLowerCase()
-    if (!["yaml", "yml", "txt", "md"].includes(ext ?? "")) {
-      toast.error("Only YAML files are supported (.yaml, .yml, .txt, .md)")
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => { if (typeof reader.result === "string") setYaml(reader.result) }
-    reader.readAsText(file)
+    if (file) handleFile(file)
   }
 
   const handleSubmit = async () => {
@@ -102,16 +134,40 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
             </SelectContent>
           </Select>
 
-          <p className="text-xs text-muted-foreground">Paste YAML or drag a .yaml file</p>
+          <div
+            className={`rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+              dragging ? "border-primary bg-primary/5" : "border-border"
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <p className="text-sm text-muted-foreground">
+              Drop a .yaml file here or{" "}
+              <Button variant="link" className="h-auto px-0" onClick={() => fileInputRef.current?.click()}>
+                browse
+              </Button>
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".yaml,.yml"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) handleFile(file)
+                e.target.value = ""
+              }}
+            />
+          </div>
 
           <Textarea
             value={yaml}
             onChange={(e) => handleChange(e.target.value)}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
             placeholder="apiVersion: edictum/v1&#10;kind: ContractBundle&#10;..."
-            className={`flex-1 resize-none font-mono text-xs ${dragging ? "border-primary ring-1 ring-primary" : ""}`}
+            className="flex-1 resize-none font-mono text-xs"
           />
 
           {validation && (
@@ -147,6 +203,21 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
           </Button>
         </SheetFooter>
       </SheetContent>
+
+      <AlertDialog open={confirmOpen} onOpenChange={(v) => { setConfirmOpen(v); if (!v) setPendingContent(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace current content?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will replace the YAML you've written. This can't be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingContent(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReplace}>Replace</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   )
 }

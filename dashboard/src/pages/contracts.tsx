@@ -42,6 +42,13 @@ export function ContractsPage() {
     })
   }, [selectedBundle, selectedVersion, setSearchParams])
 
+  // Auto-switch to contracts tab if current tab becomes disabled
+  useEffect(() => {
+    if (summaries.length === 0 && activeTab !== "contracts") {
+      setTab("contracts")
+    }
+  }, [summaries.length, activeTab, setTab])
+
   // SSE handlers
   useDashboardSSE({
     bundle_uploaded: (data: unknown) => {
@@ -129,9 +136,9 @@ export function ContractsPage() {
       <Tabs value={activeTab} onValueChange={setTab}>
         <TabsList variant="line">
           <TabsTrigger value="contracts"><FileText className="size-3.5" />Contracts</TabsTrigger>
-          <TabsTrigger value="versions"><History className="size-3.5" />Versions</TabsTrigger>
-          <TabsTrigger value="diff"><GitCompare className="size-3.5" />Diff</TabsTrigger>
-          <TabsTrigger value="evaluate"><FlaskConical className="size-3.5" />Evaluate</TabsTrigger>
+          <TabsTrigger value="versions" disabled={summaries.length === 0}><History className="size-3.5" />Versions</TabsTrigger>
+          <TabsTrigger value="diff" disabled={summaries.length === 0}><GitCompare className="size-3.5" />Diff</TabsTrigger>
+          <TabsTrigger value="evaluate" disabled={summaries.length === 0}><FlaskConical className="size-3.5" />Evaluate</TabsTrigger>
         </TabsList>
 
         <TabsContent value="contracts" className="mt-4">

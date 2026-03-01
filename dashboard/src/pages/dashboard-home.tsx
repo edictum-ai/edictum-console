@@ -71,11 +71,9 @@ export function DashboardHome() {
     stats_update: () => {
       void refreshStats()
     },
-    new_event: (raw) => {
-      const event = raw as Record<string, unknown>
-      if (typeof event?.id === "string" && typeof event?.tool_name === "string") {
-        setEvents((prev) => [event as unknown as EventResponse, ...prev].slice(0, 100))
-      }
+    new_event: () => {
+      // Background sync — re-fetch to get a fully typed EventResponse
+      void listEvents({ limit: 100 }).then(setEvents).catch(() => {})
     },
     approval_update: () => {
       // Background sync — SSE will retry; don't toast on transient failures
@@ -88,6 +86,9 @@ export function DashboardHome() {
     // Decision already succeeded; this is a background sync
     void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
   }
+
+  // All hooks must be called before any conditional returns
+  const agents = useMemo(() => deriveAgents(events), [events])
 
   if (loading && statsLoading) {
     return (
@@ -118,7 +119,6 @@ export function DashboardHome() {
     )
   }
 
-  const agents = useMemo(() => deriveAgents(events), [events])
   const isEmpty = events.length === 0
   const wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
 

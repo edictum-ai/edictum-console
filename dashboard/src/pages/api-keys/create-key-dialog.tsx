@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { AlertCircle, Check, Copy, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -45,6 +45,7 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
       setCreating(false)
       setCreatedKey(null)
       setCopied(false)
+      clearTimeout(copyTimerRef.current)
       onOpenChange(false)
       if (hadKey) onCreated()
     } else {
@@ -65,15 +66,22 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
     }
   }
 
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current)
+  }, [])
+
   async function handleCopy() {
     if (!createdKey) return
     try {
       await navigator.clipboard.writeText(createdKey.key)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
     } catch {
       toast.error("Failed to copy — please select and copy manually")
+      return
     }
+    clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
   }
 
   return (

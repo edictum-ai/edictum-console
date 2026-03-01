@@ -93,7 +93,7 @@ export function VersionsTab({ bundleName, bundles, onRefresh }: VersionsTabProps
                 key={b.version}
                 type="button"
                 onClick={() => setSelectedVersion(b.version)}
-                className={`w-full px-3 py-2.5 text-left transition-colors ${
+                className={`w-full px-3 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                   isSelected ? "bg-muted/30 border-l-2 border-l-accent" : `hover:bg-muted/50 ${borderClass}`
                 } ${!hasDeployments && !isSelected ? "opacity-60" : ""}`}
               >
