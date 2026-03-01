@@ -1,0 +1,121 @@
+name: Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run Code Review
+        id: review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ steps.app-token.outputs.token }}
+          claude_args: '--max-turns 50 --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(cat:*),Bash(pytest:*),Bash(python:*),Bash(ruff:*),Bash(mypy:*),Read,Glob,Grep,Write"'
+          prompt: |
+            You are a code reviewer for the Edictum Console repository — a self-hostable agent operations console with a Python/FastAPI backend and React/TypeScript frontend.
+
+            REPO: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+            SHA: ${{ github.event.pull_request.head.sha }}
+
+            ## Step 1: Load context from the repo
+
+            Read these files — they define what to check and how to format results:
+            1. `CLAUDE.md` — project architecture, coding standards, security boundaries, shadcn rules, DDD layers
+            2. `.claude/agents/code-reviewer.md` — full review checklist, do-not-flag list
+            3. `.github/review-instructions.md` — how to format the review comment (template placeholders, icons, section structure)
+            4. `.github/review-template.md` — the template to fill in
+
+            Do NOT invent checks beyond what the criteria files specify.
+
+            ## Step 2: Get the diff
+
+            Run `git diff origin/main...HEAD --name-only` for changed files.
+            Run `git diff origin/main...HEAD` for the full diff.
+
+            Route checks by file type:
+            - `src/edictum_server/routes/**` → tenant isolation, security boundaries, DDD layers, SDK compatibility, input validation
+            - `src/edictum_server/services/**` → business logic, tenant scoping, no HTTP imports
+            - `src/edictum_server/auth/**` → session security, API key validation, auth bypass
+            - `src/edictum_server/db/**` → migration safety, model changes
+            - `dashboard/src/pages/**` → shadcn compliance, light/dark mode, component quality
+            - `dashboard/src/components/**` → shadcn compliance, light/dark mode
+            - `dashboard/src/lib/**` → shared module duplication, API client
+            - `tests/test_adversarial/**` → adversarial test coverage
+            - `tests/**` → test conventions, coverage
+            - `.github/**` → security (Actions injection patterns)
+            - `CLAUDE.md` → governance file consistency
+            - `alembic/**` → migration safety
+
+            Only run checks relevant to the files that changed.
+
+            ## Step 3: Review
+
+            For each changed file, apply the applicable checks from the criteria files.
+
+            For each potential issue:
+            - Read the actual source file to verify (not just the diff)
+            - Confirm it was INTRODUCED by this PR, not pre-existing
+            - Confirm it is high signal — a senior engineer would flag this
+            - Check against the "Do NOT flag" list in code-reviewer.md
+
+            Drop anything speculative or that a linter would catch.
+
+            ## Step 4: Post results as a sticky PR comment
+
+            Fill in the template from `.github/review-template.md` following the instructions in `.github/review-instructions.md`.
+
+            Write the filled template to `/tmp/review.md` using the Write tool.
+
+            Then check for an existing review comment to overwrite:
+            ```
+            gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --jq '.[] | select(.body | contains("<!-- edictum-console-review -->")) | .id'
+            ```
+
+            If you found an existing comment ID, update it:
+            ```
+            gh api "repos/${{ github.repository }}/issues/comments/COMMENT_ID" -X PATCH -f body=@/tmp/review.md
+            ```
+
+            If no existing comment, create new:
+            ```
+            gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review.md
+            ```
+        env:
+          ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
+          API_TIMEOUT_MS: "600000"
+          ANTHROPIC_DEFAULT_HAIKU_MODEL: glm-4.5-air
+          ANTHROPIC_DEFAULT_SONNET_MODEL: glm-5
+          ANTHROPIC_DEFAULT_OPUS_MODEL: glm-5
