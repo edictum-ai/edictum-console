@@ -20,6 +20,7 @@ function set(
 export const EMPTY_CONFIG: Record<ChannelType, Record<string, string>> = {
   telegram: { bot_token: "", chat_id: "" },
   slack: { webhook_url: "" },
+  slack_app: { bot_token: "", signing_secret: "", slack_channel: "" },
   webhook: { url: "", secret: "" },
   email: {
     smtp_host: "",
@@ -45,6 +46,15 @@ export function ConfigFields({ type, config, onChange }: ConfigFieldsProps) {
   if (type === "slack")
     return (
       <Field id="cfg-webhook-url" label="Webhook URL" value={config.webhook_url} onChange={(v) => f("webhook_url", v)} placeholder="https://hooks.slack.com/..." />
+    )
+
+  if (type === "slack_app")
+    return (
+      <>
+        <Field id="cfg-bot-token" label="Bot Token" type="password" value={config.bot_token} onChange={(v) => f("bot_token", v)} placeholder="xoxb-..." />
+        <Field id="cfg-signing-secret" label="Signing Secret" type="password" value={config.signing_secret} onChange={(v) => f("signing_secret", v)} hint="Found in Slack App settings → Basic Information → App Credentials." />
+        <Field id="cfg-slack-channel" label="Slack Channel" value={config.slack_channel} onChange={(v) => f("slack_channel", v)} placeholder="#ops-alerts or C01234ABCDE" hint="Channel name or ID to post approval messages into." />
+      </>
     )
 
   if (type === "webhook")

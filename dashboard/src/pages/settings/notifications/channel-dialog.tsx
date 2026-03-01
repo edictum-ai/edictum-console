@@ -36,6 +36,7 @@ function isValid(name: string, type: ChannelType, config: Record<string, string>
   if (!name.trim()) return false
   if (type === "telegram") return !!config.bot_token && !!config.chat_id
   if (type === "slack") return !!config.webhook_url
+  if (type === "slack_app") return !!config.bot_token && !!config.signing_secret && !!config.slack_channel
   if (type === "webhook") return !!config.url
   if (type === "email") return !!config.smtp_host && !!config.from_address && !!config.to_addresses
   return false
@@ -110,7 +111,8 @@ export function ChannelDialog({ open, onOpenChange, channel, onSaved }: ChannelD
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="telegram">Telegram</SelectItem>
-                <SelectItem value="slack">Slack</SelectItem>
+                <SelectItem value="slack">Slack (Webhook)</SelectItem>
+                <SelectItem value="slack_app">Slack (Interactive)</SelectItem>
                 <SelectItem value="webhook">Webhook</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
               </SelectContent>

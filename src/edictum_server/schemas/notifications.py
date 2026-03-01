@@ -21,7 +21,7 @@ class CreateChannelRequest(BaseModel):
     """Request body for creating a notification channel."""
 
     name: str = Field(min_length=1, max_length=100)
-    channel_type: Literal["telegram", "slack", "webhook", "email"]
+    channel_type: Literal["telegram", "slack", "slack_app", "webhook", "email"]
     config: dict
     filters: RoutingFilters | None = None
 

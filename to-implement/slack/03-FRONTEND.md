@@ -1,9 +1,9 @@
 # Prompt: Slack Interactive — P3 Frontend
 
-> **Scope:** Add `slack_app` channel type to the notification settings UI. Update type definitions, config form, channel dialog dropdown, and validation.
-> **Depends on:** P1 Backend (slack_app channel type accepted by API), P2 Tests (backend verified).
-> **Deliverable:** Admin can create and manage Slack (Interactive) channels from the dashboard. Both channel types visible with clear descriptions.
-> **Budget:** 3 files modified
+> **Scope:** Add description text below the channel type selector in the dialog. All other frontend changes were already implemented as part of P1.
+> **Depends on:** P1 Backend (done).
+> **Deliverable:** Type selector shows contextual description for each channel type. Verify existing P1 frontend work is correct.
+> **Budget:** 1 file modified (`channel-dialog.tsx`)
 
 ---
 
@@ -30,78 +30,17 @@
 
 **Do NOT create new components.** All changes fit within existing files.
 
----
-
-## Step 1: Update API types
-
-### Modify: `dashboard/src/lib/api/settings.ts`
-
-Add `"slack_app"` to the `ChannelType` union:
-
-```typescript
-export type ChannelType = "telegram" | "slack" | "webhook" | "email" | "slack_app"
-```
+> **Already done in P1:** `ChannelType` updated in `settings.ts`, `EMPTY_CONFIG` + `ConfigFields` branch added in `config-fields.tsx`, `isValid` + dropdown updated in `channel-dialog.tsx`, `TYPE_META` entry added in `channel-table.tsx`.
 
 ---
 
-## Step 2: Update config fields
-
-### Modify: `dashboard/src/pages/settings/notifications/config-fields.tsx`
-
-**Add to `EMPTY_CONFIG`:**
-
-```typescript
-slack_app: { bot_token: "", signing_secret: "", slack_channel: "" },
-```
-
-**Add `slack_app` branch in `ConfigFields`** (before the email fallback):
-
-```tsx
-if (type === "slack_app")
-  return (
-    <>
-      <Field
-        id="cfg-bot-token"
-        label="Bot Token"
-        type="password"
-        value={config.bot_token}
-        onChange={(v) => f("bot_token", v)}
-        placeholder="xoxb-..."
-        hint="From OAuth & Permissions after installing the Slack App."
-      />
-      <Field
-        id="cfg-signing-secret"
-        label="Signing Secret"
-        type="password"
-        value={config.signing_secret}
-        onChange={(v) => f("signing_secret", v)}
-        hint="From Basic Information in your Slack App settings."
-      />
-      <Field
-        id="cfg-slack-channel"
-        label="Slack Channel"
-        value={config.slack_channel}
-        onChange={(v) => f("slack_channel", v)}
-        placeholder="#ops-alerts or C01234ABCDE"
-        hint="The channel to post approval messages to. Invite the bot first."
-      />
-    </>
-  )
-```
-
----
-
-## Step 3: Update channel dialog
+## Step 1 (only remaining): Add description text to channel dialog
 
 ### Modify: `dashboard/src/pages/settings/notifications/channel-dialog.tsx`
 
-**Update `isValid` function** — add `slack_app` case:
+The dropdown exists but has no contextual description. Add a description line below the `</Select>` closing tag, inside the same `<div className="space-y-2">`:
 
-```typescript
-if (type === "slack_app") return !!config.bot_token && !!config.signing_secret && !!config.slack_channel
-```
-
-**Update the `<Select>` dropdown** — update labels and add `slack_app`:
+**The `<Select>` dropdown already looks like this** (no changes needed):
 
 ```tsx
 <SelectContent>
@@ -113,7 +52,7 @@ if (type === "slack_app") return !!config.bot_token && !!config.signing_secret &
 </SelectContent>
 ```
 
-**Add description text below the Select** that changes based on selected type. Add this after the `</Select>` closing tag, inside the same `<div className="space-y-2">`:
+**Add this description text** after the `</Select>` closing tag, inside the same `<div className="space-y-2">`:
 
 ```tsx
 <p className="text-xs text-muted-foreground">
@@ -127,23 +66,14 @@ if (type === "slack_app") return !!config.bot_token && !!config.signing_secret &
 
 ---
 
-## Step 4: Update channel table display (if needed)
+## Step 2: Verify P1 frontend work
 
-### Check: `dashboard/src/pages/settings/notifications/channel-table.tsx`
+These were implemented in P1 — just confirm they're correct before closing out:
 
-Read this file. If it displays `channel_type` as raw text (e.g. "slack_app"), add a display name mapping:
-
-```typescript
-const CHANNEL_TYPE_LABELS: Record<ChannelType, string> = {
-  telegram: "Telegram",
-  slack: "Slack (Webhook)",
-  slack_app: "Slack (Interactive)",
-  webhook: "Webhook",
-  email: "Email",
-}
-```
-
-Use this mapping wherever the channel type is displayed in the table.
+- `settings.ts` — `ChannelType` includes `"slack_app"` ✓
+- `config-fields.tsx` — `EMPTY_CONFIG.slack_app` exists, `ConfigFields` renders bot_token/signing_secret/slack_channel fields ✓
+- `channel-dialog.tsx` — `isValid` handles `slack_app`, dropdown shows "Slack (Webhook)" / "Slack (Interactive)" ✓
+- `channel-table.tsx` — `TYPE_META` has `slack_app` entry with `Zap` icon + "Slack (Interactive)" label ✓
 
 ---
 

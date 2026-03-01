@@ -23,7 +23,7 @@
 
 | Pattern | How | Reference |
 |---------|-----|-----------|
-| Mock httpx POST | `AsyncMock` on `channel._client.post`, return `MagicMock(json=lambda: {...}, raise_for_status=MagicMock())` | `test_slack_channel.py` |
+| Mock httpx POST | `AsyncMock` on `channel._client.post`, return `MagicMock(json=lambda: {"ok": True, "ts": "123.456"}, raise_for_status=MagicMock())` — **must include `"ok": True`**, `send_approval_request` raises `RuntimeError` if `ok` is falsy | `test_slack_channel.py` |
 | Fake Redis | `fake_redis` fixture from conftest (fakeredis) | `conftest.py` |
 | Create channel in DB | `POST /api/v1/notifications` via `client` fixture | `test_telegram_webhook_db.py` |
 | Slack interaction payload | Build `application/x-www-form-urlencoded` body with `payload` field containing JSON | Slack docs (see template below) |
@@ -86,7 +86,7 @@ def channel(fake_redis):
 
 5. **`test_update_expired_edits_messages`**
    - Pre-set Redis key for an approval
-   - Call `update_expired([(approval_id, ...)])`
+   - Call `update_expired([{"id": approval_id, "agent_id": "agent-1", "tool_name": "some_tool"}])` — list of dicts with `"id"` key, NOT tuples
    - Assert `chat.update` called with "EXPIRED" in blocks
 
 6. **`test_supports_interactive`**
@@ -101,6 +101,8 @@ def channel(fake_redis):
 ## File 2: `tests/test_notifications/test_slack_interactions.py` (~100 lines)
 
 Integration tests using the `client` fixture. Tests the full route handler.
+
+> **Before writing:** Read `tests/conftest.py` to understand how Redis is wired into the test app state. The integration tests need to pre-seed `slack:tenant:{channel_id}:{approval_id}` before POSTing an interaction. Check whether the test app uses `app.state.redis` (fakeredis injected via lifespan override) or a separate `fake_redis` fixture — the seeding approach differs.
 
 ### Helpers
 
@@ -146,9 +148,7 @@ def sign_body(signing_secret: str, body: bytes, timestamp: str | None = None) ->
    - Assert `oauth_config.scopes.bot` contains `"chat:write"`
    - Assert `display_information.name` is `"Edictum Approvals"`
 
-4. **`test_url_verification_challenge`**
-   - POST to `/api/v1/slack/interactions` with JSON body `{"type": "url_verification", "challenge": "test123"}`
-   - Assert 200 with `{"challenge": "test123"}` in response
+> **Note:** `test_url_verification_challenge` was removed. The `url_verification` challenge is only sent to Events API subscription URLs, not to Interactivity Request URLs. The handler was removed from `routes/slack.py` as dead code.
 
 ---
 

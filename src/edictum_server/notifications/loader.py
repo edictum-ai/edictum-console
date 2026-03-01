@@ -118,6 +118,20 @@ def _build_channel(
             filters=filters,
         )
 
+    if row.channel_type == "slack_app":
+        from edictum_server.notifications.slack_app import SlackAppChannel
+
+        return SlackAppChannel(
+            bot_token=config["bot_token"],
+            signing_secret=config["signing_secret"],
+            slack_channel=config["slack_channel"],
+            base_url=base_url,
+            channel_name=row.name,
+            channel_id=channel_id,
+            filters=filters,
+            redis=redis,
+        )
+
     if row.channel_type == "webhook":
         from edictum_server.notifications.webhook import WebhookChannel
 

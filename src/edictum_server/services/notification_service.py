@@ -11,10 +11,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import NotificationChannel
+from edictum_server.services.channel_test_helpers import test_email, test_http_channel
 
 REQUIRED_CONFIG: dict[str, list[str]] = {
     "telegram": ["bot_token", "chat_id"],
     "slack": ["webhook_url"],
+    "slack_app": ["bot_token", "signing_secret", "slack_channel"],
     "webhook": ["url"],
     "email": [
         "smtp_host",
@@ -154,10 +156,10 @@ async def test_channel(
 
     try:
         if channel.channel_type == "email":
-            success, message = await _test_email(channel.config)
+            success, message = await test_email(channel.config)
         else:
             async with httpx.AsyncClient(timeout=10) as client:
-                success, message = await _test_http_channel(
+                success, message = await test_http_channel(
                     client, channel.channel_type, channel.config
                 )
     except httpx.HTTPStatusError as exc:
@@ -172,65 +174,3 @@ async def test_channel(
     await db.flush()
 
     return success, message
-
-
-async def _test_http_channel(
-    client: httpx.AsyncClient,
-    channel_type: str,
-    config: dict,
-) -> tuple[bool, str]:
-    """Test HTTP-based channels (telegram, slack, webhook)."""
-    if channel_type == "telegram":
-        resp = await client.post(
-            f"https://api.telegram.org/bot{config['bot_token']}/sendMessage",
-            json={
-                "chat_id": config["chat_id"],
-                "text": "Edictum test notification — channel is working.",
-            },
-        )
-        resp.raise_for_status()
-        return True, "Telegram message sent successfully."
-
-    if channel_type == "slack":
-        resp = await client.post(
-            config["webhook_url"],
-            json={"text": "Edictum test notification — channel is working."},
-        )
-        resp.raise_for_status()
-        return True, "Slack message sent successfully."
-
-    if channel_type == "webhook":
-        resp = await client.post(
-            config["url"],
-            json={
-                "event": "test",
-                "message": "Edictum test notification — channel is working.",
-            },
-        )
-        resp.raise_for_status()
-        return True, "Webhook delivered successfully."
-
-    return False, f"Unknown channel type: {channel_type}"
-
-
-async def _test_email(config: dict) -> tuple[bool, str]:
-    """Test email channel via aiosmtplib."""
-    from email.message import EmailMessage
-
-    import aiosmtplib
-
-    msg = EmailMessage()
-    msg["Subject"] = "[Edictum] Test Notification"
-    msg["From"] = config["from_address"]
-    msg["To"] = ", ".join(config["to_addresses"])
-    msg.set_content("Edictum test notification — email channel is working.")
-
-    await aiosmtplib.send(
-        msg,
-        hostname=config["smtp_host"],
-        port=int(config["smtp_port"]),
-        username=config["smtp_user"],
-        password=config["smtp_password"],
-        start_tls=True,
-    )
-    return True, "Email sent successfully."

@@ -1,4 +1,4 @@
-import { Send, Hash, Webhook, Mail, MoreHorizontal, Pencil, Trash2, Power, PowerOff } from "lucide-react"
+import { Send, Hash, Webhook, Mail, Zap, MoreHorizontal, Pencil, Trash2, Power, PowerOff } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -27,7 +27,8 @@ import { TestButton } from "./test-button"
 
 const TYPE_META: Record<string, { icon: typeof Send; label: string }> = {
   telegram: { icon: Send, label: "Telegram" },
-  slack: { icon: Hash, label: "Slack" },
+  slack: { icon: Hash, label: "Slack (Webhook)" },
+  slack_app: { icon: Zap, label: "Slack (Interactive)" },
   webhook: { icon: Webhook, label: "Webhook" },
   email: { icon: Mail, label: "Email" },
 }
