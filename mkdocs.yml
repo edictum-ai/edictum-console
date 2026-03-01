@@ -1,0 +1,78 @@
+site_name: Edictum Console
+site_description: Self-hostable agent operations console
+site_url: https://docs.edictum.dev/console/
+repo_url: https://github.com/acartag7/edictum-console
+repo_name: acartag7/edictum-console
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Concepts:
+    - Architecture: concepts/architecture.md
+    - Multi-Tenancy: concepts/multi-tenancy.md
+    - Authentication: concepts/authentication.md
+    - Event Pipeline: concepts/event-pipeline.md
+    - Approval Workflows: concepts/approvals.md
+  - Guides:
+    - Deploy with Docker: guides/docker.md
+    - Connect an Agent: guides/connect-agent.md
+    - Set Up Notifications: guides/notifications.md
+    - Deploy Contracts: guides/deploy-contracts.md
+    - Manage API Keys: guides/api-keys.md
+  - Reference:
+    - API Endpoints: reference/api.md
+    - Configuration: reference/configuration.md
+    - Notification Channels: reference/channels.md
+    - Security: reference/security.md
+  - Deploy:
+    - Production Checklist: deploy/production.md
+    - Environment Variables: deploy/env-vars.md
+    - Database: deploy/database.md
+    - Troubleshooting: deploy/troubleshooting.md
