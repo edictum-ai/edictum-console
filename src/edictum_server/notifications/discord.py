@@ -26,7 +26,7 @@ def _decided_embed(status: str, decided_by: str | None, reason: str | None) -> d
         desc += f"\n**Decided by:** {decided_by}"
     if reason:
         desc += f"\n**Reason:** {reason}"
-    return {"title": f"Approval {status.capitalize()}", "description": desc, "color": color}
+    return {"title": f"Request {status.capitalize()}", "description": desc, "color": color}
 
 
 class DiscordChannel(NotificationChannel):

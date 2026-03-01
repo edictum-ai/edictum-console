@@ -110,10 +110,11 @@ class TelegramChannel(NotificationChannel):
         if raw is None:
             return
         msg_info = json.loads(raw)
-        emoji = _STATUS_EMOJI.get(status, "")
+        _label = {"approved": "Approved ✅", "denied": "Denied ❌", "timeout": "Expired ⏰"}
+        label = _label.get(status, status.capitalize())
         text = (
-            f"<b>HITL Approval \u2014 {emoji} {status.upper()}</b>\n\n"
-            f"<b>Decision:</b> {status}\n"
+            f"<b>Request {status.capitalize()}</b>\n\n"
+            f"<b>Decision:</b> {label}\n"
             f"<b>Decided by:</b> {decided_by or 'unknown'}"
         )
         if reason:

@@ -22,6 +22,7 @@ dependencies = [
     "pydantic-settings>=2.0",
     "bcrypt>=4.0",
     "aiosmtplib>=2.0,<3.0",
+    "edictum[yaml]>=0.11.3",
 ]
 
 [project.optional-dependencies]

@@ -51,7 +51,7 @@ class ApiKey(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "api_keys"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
-    key_prefix: Mapped[str] = mapped_column(String(12), index=True)
+    key_prefix: Mapped[str] = mapped_column(String(32), index=True)
     key_hash: Mapped[str] = mapped_column(String)
     env: Mapped[str] = mapped_column(String)
     label: Mapped[str | None] = mapped_column(String, nullable=True)

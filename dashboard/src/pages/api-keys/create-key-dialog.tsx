@@ -35,6 +35,7 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
   const [creating, setCreating] = useState(false)
   const [createdKey, setCreatedKey] = useState<CreateKeyResponse | null>(null)
   const [copied, setCopied] = useState(false)
+  const [copiedExport, setCopiedExport] = useState(false)
 
   function handleClose(isOpen: boolean) {
     if (!isOpen) {
@@ -45,7 +46,9 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
       setCreating(false)
       setCreatedKey(null)
       setCopied(false)
+      setCopiedExport(false)
       clearTimeout(copyTimerRef.current)
+      clearTimeout(copyExportTimerRef.current)
       onOpenChange(false)
       if (hadKey) onCreated()
     } else {
@@ -67,8 +70,12 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
   }
 
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const copyExportTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
-    return () => clearTimeout(copyTimerRef.current)
+    return () => {
+      clearTimeout(copyTimerRef.current)
+      clearTimeout(copyExportTimerRef.current)
+    }
   }, [])
 
   async function handleCopy() {
@@ -82,6 +89,19 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
     }
     clearTimeout(copyTimerRef.current)
     copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleCopyExport() {
+    if (!createdKey) return
+    try {
+      await navigator.clipboard.writeText(`export EDICTUM_API_KEY=${createdKey.key}`)
+      setCopiedExport(true)
+    } catch {
+      toast.error("Failed to copy — please select and copy manually")
+      return
+    }
+    clearTimeout(copyExportTimerRef.current)
+    copyExportTimerRef.current = setTimeout(() => setCopiedExport(false), 2000)
   }
 
   return (
@@ -148,9 +168,9 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
                 <Input
                   readOnly
                   value={createdKey?.key ?? ""}
-                  className="font-mono text-xs"
+                  className="font-mono text-xs min-w-0"
                 />
-                <Button variant="outline" size="sm" onClick={handleCopy} className="transition-all">
+                <Button variant="outline" size="sm" onClick={handleCopy} className="transition-all shrink-0">
                   {copied ? (
                     <>
                       <Check className="mr-2 size-4 text-emerald-600 dark:text-emerald-400" />
@@ -164,9 +184,23 @@ export function CreateKeyDialog({ open, onOpenChange, onCreated }: CreateKeyDial
                   )}
                 </Button>
               </div>
-              <pre className="rounded bg-muted p-3 text-xs font-mono overflow-x-auto">
-                {`export EDICTUM_API_KEY=${createdKey?.key ?? ""}`}
-              </pre>
+              <div className="relative group">
+                <pre className="rounded bg-muted p-3 pr-16 text-xs font-mono overflow-x-auto break-all whitespace-pre-wrap">
+                  {`export EDICTUM_API_KEY=${createdKey?.key ?? ""}`}
+                </pre>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyExport}
+                  className="absolute top-1.5 right-1.5 h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  {copiedExport ? (
+                    <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
             <DialogFooter>
               <Button onClick={() => handleClose(false)}>Done</Button>

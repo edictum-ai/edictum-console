@@ -177,15 +177,18 @@ async def slack_interaction(
 
     # Notify other channels
     notification_mgr: NotificationManager = request.app.state.notification_manager
-    asyncio.create_task(
-        notification_mgr.notify_approval_decided(
-            approval_id=str(approval.id),
-            status=approval.status,
-            decided_by=decided_by,
-            reason=None,
-            tenant_id=str(tenant_id),
-        )
-    )
+    async def _notify() -> None:
+        try:
+            await notification_mgr.notify_approval_decided(
+                approval_id=str(approval.id),
+                status=approval.status,
+                decided_by=decided_by,
+                reason=None,
+                tenant_id=str(tenant_id),
+            )
+        except Exception:
+            logger.exception("Unhandled error in background notification task")
+    asyncio.create_task(_notify())
 
     emoji = "\u2705" if decision == "approve" else "\u274c"
     result_text = f"{emoji} *{approval.status.upper()}* by {decided_by}"

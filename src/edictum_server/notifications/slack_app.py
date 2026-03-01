@@ -140,9 +140,12 @@ class SlackAppChannel(NotificationChannel):
         if not data.get("ok"):
             raise RuntimeError(f"Slack chat.postMessage failed: {data.get('error', 'unknown')}")
         ts = data["ts"]
+        # Use the channel ID returned by Slack (not the configured name).
+        # chat.update requires the channel ID, not a name like #channel-name.
+        channel_id = data.get("channel", self._slack_channel)
         ttl = timeout_seconds + 60
         await self._redis.set(self._tenant_key(approval_id), tenant_id, ex=ttl)
-        msg_data = json.dumps({"slack_channel": self._slack_channel, "ts": ts})
+        msg_data = json.dumps({"slack_channel": channel_id, "ts": ts})
         await self._redis.set(self._msg_key(approval_id), msg_data, ex=ttl)
 
     async def send_approval_decided(
@@ -154,19 +157,20 @@ class SlackAppChannel(NotificationChannel):
         reason: str | None,
     ) -> None:
         raw = await self._redis.get(self._msg_key(approval_id))
-        emoji = _STATUS_EMOJI.get(status, "")
-        result_text = f"{emoji} *{status.upper()}*"
+        _label = {"approved": "Approved :white_check_mark:", "denied": "Denied :x:", "timeout": "Expired :hourglass_flowing_sand:"}
+        label = _label.get(status, status.capitalize())
+        body = f"*Decision:* {label}"
         if decided_by:
-            result_text += f" by {decided_by}"
+            body += f"\n*Decided by:* {decided_by}"
         if reason:
-            result_text += f"\n_{reason}_"
+            body += f"\n*Reason:* {reason}"
 
         if raw is not None:
             msg_info = json.loads(raw)
-            title = f"Approval {status.capitalize()}"
+            title = f"Request {status.capitalize()}"
             blocks = [
                 {"type": "header", "text": {"type": "plain_text", "text": title}},
-                {"type": "section", "text": {"type": "mrkdwn", "text": result_text}},
+                {"type": "section", "text": {"type": "mrkdwn", "text": body}},
             ]
             resp = await self._client.post(
                 "https://slack.com/api/chat.update",
@@ -184,7 +188,7 @@ class SlackAppChannel(NotificationChannel):
                     approval_id, data.get("error", "unknown"),
                 )
         else:
-            fallback = f"Approval {approval_id}: {result_text}"
+            fallback = f"Request {status.capitalize()}: {body}"
             resp = await self._client.post(
                 "https://slack.com/api/chat.postMessage",
                 headers={"Authorization": f"Bearer {self._bot_token}"},

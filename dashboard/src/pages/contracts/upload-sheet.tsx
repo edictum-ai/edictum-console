@@ -1,4 +1,8 @@
 import { useState, useCallback, useRef, type DragEvent } from "react"
+import CodeMirror from "@uiw/react-codemirror"
+import { yaml as yamlLanguage } from "@codemirror/lang-yaml"
+import { oneDark } from "@codemirror/theme-one-dark"
+import { useTheme } from "@/hooks/use-theme"
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
 } from "@/components/ui/sheet"
@@ -7,7 +11,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
@@ -23,6 +26,7 @@ interface UploadSheetProps {
 }
 
 export function UploadSheet({ onRefresh }: UploadSheetProps) {
+  const { theme } = useTheme()
   const [open, setOpen] = useState(false)
   const [yaml, setYaml] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -120,7 +124,7 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
           <Upload className="mr-1.5 size-3.5" />Upload
         </Button>
       </SheetTrigger>
-      <SheetContent className="flex w-[500px] flex-col sm:max-w-[500px]">
+      <SheetContent className="flex w-[500px] flex-col sm:max-w-[500px] px-6 pb-6">
         <SheetHeader>
           <SheetTitle>Upload Contract Bundle</SheetTitle>
         </SheetHeader>
@@ -161,14 +165,22 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
             />
           </div>
 
-          <Textarea
-            value={yaml}
-            onChange={(e) => handleChange(e.target.value)}
+          <div
+            className="resize-y overflow-auto rounded-md border text-xs"
+            style={{ minHeight: "200px", height: "380px" }}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-            placeholder="apiVersion: edictum/v1&#10;kind: ContractBundle&#10;..."
-            className="flex-1 resize-none font-mono text-xs"
-          />
+          >
+            <CodeMirror
+              value={yaml}
+              onChange={handleChange}
+              extensions={[yamlLanguage()]}
+              theme={theme === "dark" ? oneDark : "light"}
+              placeholder={"apiVersion: edictum/v1\nkind: ContractBundle\n..."}
+              minHeight="200px"
+              basicSetup={{ lineNumbers: true, foldGutter: true }}
+            />
+          </div>
 
           {validation && (
             <div className="flex items-center gap-2">

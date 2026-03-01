@@ -4,11 +4,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChevronRight } from "lucide-react"
 import type { ContractCoverage } from "@/lib/api"
 import { CONTRACT_MODE_COLORS } from "@/lib/contract-colors"
 import type { ContractType, Mode, ParsedContract } from "./types"
 import { ContractDetail } from "./contract-detail"
+import {
+  EFFECT_TOOLTIPS, TYPE_TOOLTIPS, MODE_TOOLTIPS, withDocTooltip,
+} from "./contract-tooltips"
 
 interface ContractRowProps {
   contract: ParsedContract
@@ -38,6 +42,7 @@ export function ContractRow({ contract, coverage, defaultMode }: ContractRowProp
   const hasCoverage = coverage && coverage.total_evaluations > 0
 
   return (
+    <TooltipProvider delayDuration={400}>
     <Collapsible>
       <CollapsibleTrigger className={`group flex w-full items-center gap-2 border-l-2 ${TYPE_ACCENT[contract.type]} rounded-r px-3 py-2 text-left transition-colors hover:bg-muted/50`}>
         <ChevronRight className="size-3 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
@@ -45,21 +50,36 @@ export function ContractRow({ contract, coverage, defaultMode }: ContractRowProp
         {/* Contract ID — primary visual weight */}
         <span className="shrink-0 font-mono text-[13px] font-medium">{contract.id}</span>
 
+        {/* Type badge */}
+        {withDocTooltip(
+          <Badge variant="outline" className="shrink-0 text-[10px] text-muted-foreground">
+            {contract.type}
+          </Badge>,
+          TYPE_TOOLTIPS,
+          contract.type,
+        )}
+
         {/* Tool — monospace, de-emphasized */}
         <code className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
           {tool}
         </code>
 
         {/* Effect — the focal badge */}
-        <Badge variant="outline" className={`shrink-0 text-[10px] ${EFFECT_STYLES[effect] ?? ""}`}>
-          {effect}
-        </Badge>
+        {withDocTooltip(
+          <Badge variant="outline" className={`shrink-0 text-[10px] ${EFFECT_STYLES[effect] ?? ""}`}>
+            {effect}
+          </Badge>,
+          EFFECT_TOOLTIPS,
+          effect,
+        )}
 
         {/* Mode — only show if different from default */}
-        {contract.mode && contract.mode !== defaultMode && (
+        {contract.mode && contract.mode !== defaultMode && withDocTooltip(
           <Badge variant="outline" className={`shrink-0 text-[10px] ${CONTRACT_MODE_COLORS[mode]}`}>
             {mode}
-          </Badge>
+          </Badge>,
+          MODE_TOOLTIPS,
+          mode,
         )}
 
         {/* Tags */}
@@ -100,5 +120,6 @@ export function ContractRow({ contract, coverage, defaultMode }: ContractRowProp
         <ContractDetail contract={contract} coverage={coverage} />
       </CollapsibleContent>
     </Collapsible>
+    </TooltipProvider>
   )
 }

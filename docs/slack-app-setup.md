@@ -23,7 +23,7 @@ Connect Slack to Edictum for interactive approval buttons — Approve/Deny direc
    - **Bot Token**: the `xoxb-...` token from step 8
    - **Signing Secret**: from step 7
    - **Slack Channel**: `#ops-alerts` or the channel ID (e.g. `C01234ABCDE`)
-4. Click **Test** — you should see "Slack App connected as @edictum"
+4. Click **Test** — you should see "Slack App message sent successfully." and a test message appears in the channel
 5. Save
 
 ## What Happens
@@ -44,7 +44,9 @@ The manifest requests only `chat:write` — the minimum needed to post messages 
 
 | Problem | Fix |
 |---------|-----|
-| Bot can't post to channel | Invite it: `/invite @edictum` in the channel |
-| Test says "invalid_auth" | Bot token is wrong — re-copy from OAuth & Permissions |
-| Buttons don't work | Check the Request URL in Interactivity settings matches your server |
-| "url_verification_failed" on setup | Your server must be reachable from Slack's servers (not localhost) |
+| Test says `not_in_channel` | Invite the bot: `/invite @edictum` in the channel, then test again |
+| Test says `missing_scope` with scope name | Go to OAuth & Permissions → Bot Token Scopes → add the scope shown → **Reinstall to Workspace** → copy the new token and update it in Edictum |
+| Test says `invalid_auth` | Bot token is wrong or expired — re-copy from OAuth & Permissions after reinstalling |
+| Buttons don't work | The Request URL in Interactivity & Shortcuts must be an HTTPS endpoint reachable by Slack. Localhost won't work — use a tunnel like ngrok for local dev |
+| `url_verification_failed` on setup | Your server must be reachable from Slack's servers (not localhost) |
+| Notifications send but buttons do nothing | Check that `EDICTUM_BASE_URL` is set to your public HTTPS URL, not localhost |
