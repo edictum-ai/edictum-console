@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from edictum_server.config import Settings, get_settings
 from edictum_server.db.models import Deployment, SigningKey
 from edictum_server.services.signing_service import generate_signing_keypair
 from tests.conftest import TENANT_A_ID
@@ -226,15 +227,23 @@ async def test_deploy_by_name(
     client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
-    await _seed_signing_key(db_session)
-    await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML_A})
-    resp = await client.post(
-        "/api/v1/bundles/devops-agent/1/deploy",
-        json={"env": "production"},
+    from edictum_server.main import app
+
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        signing_key_secret=_TEST_SIGNING_SECRET
     )
-    assert resp.status_code == 201
-    assert resp.json()["bundle_name"] == "devops-agent"
-    assert resp.json()["bundle_version"] == 1
+    try:
+        await _seed_signing_key(db_session)
+        await client.post("/api/v1/bundles", json={"yaml_content": SAMPLE_YAML_A})
+        resp = await client.post(
+            "/api/v1/bundles/devops-agent/1/deploy",
+            json={"env": "production"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["bundle_name"] == "devops-agent"
+        assert resp.json()["bundle_version"] == 1
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
 
 
 async def test_deploy_wrong_name_returns_error(client: AsyncClient) -> None:

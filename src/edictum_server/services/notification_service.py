@@ -11,7 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import NotificationChannel
+from edictum_server.security.validators import ValidationError as SecurityError
+from edictum_server.security.validators import validate_url
 from edictum_server.services.channel_test_helpers import test_email, test_http_channel
+
+# Fields per channel type that contain outbound URLs (SSRF targets)
+_URL_FIELDS: dict[str, list[str]] = {
+    "webhook": ["url"],
+    "slack": ["webhook_url"],
+}
 
 REQUIRED_CONFIG: dict[str, list[str]] = {
     "telegram": ["bot_token", "chat_id"],
@@ -40,6 +48,16 @@ def _validate_config(channel_type: str, config: dict) -> None:  # noqa: ANN001
         raise ValueError(
             f"Missing required config keys for {channel_type}: {', '.join(missing)}"
         )
+
+
+def _validate_urls(channel_type: str, config: dict) -> None:  # noqa: ANN001
+    """Validate outbound URLs in channel config to prevent SSRF attacks."""
+    for field in _URL_FIELDS.get(channel_type, []):
+        if field in config:
+            try:
+                validate_url(config[field])
+            except SecurityError as exc:
+                raise ValueError(f"Invalid {field}: {exc}") from exc
 
 
 async def list_channels(
@@ -81,6 +99,7 @@ async def create_channel(
 ) -> NotificationChannel:
     """Create a new notification channel. Caller commits."""
     _validate_config(channel_type, config)
+    _validate_urls(channel_type, config)
     # Auto-generate webhook_secret for Telegram DB channels
     if channel_type == "telegram" and "webhook_secret" not in config:
         config = {**config, "webhook_secret": secrets.token_urlsafe(32)}
@@ -115,6 +134,7 @@ async def update_channel(
         channel.name = name
     if config is not None:
         _validate_config(channel.channel_type, config)
+        _validate_urls(channel.channel_type, config)
         channel.config = config
     if enabled is not None:
         channel.enabled = enabled

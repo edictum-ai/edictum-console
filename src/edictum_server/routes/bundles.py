@@ -10,7 +10,7 @@ from edictum_server.auth.dependencies import (
     get_current_tenant,
     require_dashboard_auth,
 )
-from edictum_server.config import get_settings
+from edictum_server.config import Settings, get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import Bundle
 from edictum_server.push.manager import PushManager, get_push_manager
@@ -195,9 +195,9 @@ async def deploy(
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
+    settings: Settings = Depends(get_settings),
 ) -> DeploymentResponse:
     """Deploy a bundle version to an environment (dashboard-authenticated)."""
-    settings = get_settings()
     signing_secret = bytes.fromhex(settings.signing_key_secret)
 
     try:
