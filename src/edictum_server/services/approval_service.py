@@ -102,17 +102,29 @@ async def submit_decision(
 ) -> Approval | None:
     """Submit a human decision on a pending approval.
 
+    Uses an atomic UPDATE with status='pending' in the WHERE clause to prevent
+    the TOCTOU race where two concurrent requests both read 'pending' and both
+    apply a decision. Only one request wins; the other gets None.
+
     Returns None if not found or already decided.
     """
-    approval = await get_approval(db, tenant_id, approval_id)
-    if approval is None or approval.status != "pending":
-        return None
-
-    approval.status = "approved" if approved else "denied"
-    approval.decided_by = decided_by
-    approval.decided_at = datetime.now(UTC)
-    approval.decision_reason = reason
-    approval.decided_via = decided_via
+    result = await db.execute(
+        update(Approval)
+        .where(
+            Approval.id == approval_id,
+            Approval.tenant_id == tenant_id,
+            Approval.status == "pending",
+        )
+        .values(
+            status="approved" if approved else "denied",
+            decided_by=decided_by,
+            decided_at=datetime.now(UTC),
+            decision_reason=reason,
+            decided_via=decided_via,
+        )
+        .returning(Approval)
+    )
+    approval = result.scalar_one_or_none()
     await db.flush()
     return approval
 
