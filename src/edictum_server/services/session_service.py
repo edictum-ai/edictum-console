@@ -2,13 +2,28 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 
 import redis.asyncio as aioredis
 
+_VALID_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_\-\.:/]+$")
+
+
+def _validate_key(key: str) -> None:
+    """Validate session key to prevent Redis key injection.
+
+    Raises ValueError if the key contains disallowed characters.
+    """
+    if not key or not _VALID_KEY_PATTERN.match(key):
+        raise ValueError(
+            f"Invalid session key: must match [a-zA-Z0-9_\\-\\.:/]+, got {key!r}"
+        )
+
 
 def _key(tenant_id: uuid.UUID, key: str) -> str:
     """Build the namespaced Redis key."""
+    _validate_key(key)
     return f"edictum:{tenant_id}:session:{key}"
 
 

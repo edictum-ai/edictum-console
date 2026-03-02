@@ -10,9 +10,12 @@ SDK contract (from SDK_COMPAT.md):
 from __future__ import annotations
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 from edictum_server.auth.dependencies import AuthContext, require_api_key
+
+# Session keys must match this pattern to prevent Redis key injection
+_KEY_PATTERN = r"^[a-zA-Z0-9_\-\.:/]+$"
 from edictum_server.redis.client import get_redis
 from edictum_server.schemas.sessions import (
     IncrementRequest,
@@ -36,7 +39,7 @@ router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
     summary="Get a session value",
 )
 async def get_value(
-    key: str,
+    key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
 ) -> SessionValueResponse:
@@ -53,8 +56,8 @@ async def get_value(
     summary="Set a session value",
 )
 async def put_value(
-    key: str,
     body: SetValueRequest,
+    key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
 ) -> SessionValueResponse:
@@ -69,8 +72,8 @@ async def put_value(
     summary="Increment a numeric session value",
 )
 async def post_increment(
-    key: str,
     body: IncrementRequest,
+    key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
 ) -> IncrementResponse:
@@ -85,7 +88,7 @@ async def post_increment(
     summary="Delete a session value",
 )
 async def delete_value(
-    key: str,
+    key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
 ) -> SessionValueResponse:
