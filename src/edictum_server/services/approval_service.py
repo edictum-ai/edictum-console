@@ -132,32 +132,24 @@ async def submit_decision(
 async def expire_approvals(db: AsyncSession) -> list[dict[str, Any]]:
     """Expire all pending approvals past their deadline.
 
-    Computes expiration in SQL: created_at + timeout_seconds <= now().
-    Sets status to 'timeout'. Returns list of expired approval info for SSE push.
+    Uses a single atomic UPDATE WHERE status='pending' AND expired RETURNING
+    to eliminate the TOCTOU race where concurrent expiry runs could both
+    select the same rows and emit duplicate SSE notifications.
     """
-    # SELECT first to capture info needed for SSE notifications
     result = await db.execute(
-        select(
+        update(Approval)
+        .where(Approval.status == "pending")
+        .where(_ApprovalExpired())
+        .values(status="timeout", decided_via="system")
+        .returning(
             Approval.id,
             Approval.tenant_id,
             Approval.env,
             Approval.agent_id,
             Approval.tool_name,
         )
-        .where(Approval.status == "pending")
-        .where(_ApprovalExpired())
     )
     rows = result.all()
-
-    if not rows:
-        return []
-
-    expired_ids = [row.id for row in rows]
-    await db.execute(
-        update(Approval)
-        .where(Approval.id.in_(expired_ids))
-        .values(status="timeout", decided_via="system")
-    )
 
     return [
         {
