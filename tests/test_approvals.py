@@ -141,3 +141,57 @@ async def test_expire_approvals(
     resp = await client.get(f"/api/v1/approvals/{created['id']}")
     assert resp.status_code == 200
     assert resp.json()["status"] == "timeout"
+
+
+async def test_concurrent_decisions_race_condition(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """Test that concurrent decisions on the same approval only succeed once.
+
+    This tests the atomic UPDATE in submit_decision() that prevents race conditions
+    where two concurrent requests could both decide the same approval.
+    """
+    import asyncio
+
+    from edictum_server.services.approval_service import submit_decision
+
+    created = await _create_approval(client)
+    approval_id = uuid.UUID(created["id"])
+
+    # Get tenant_id from the approval record
+    approval = await db_session.get(Approval, approval_id)
+    assert approval is not None
+    tenant_id = approval.tenant_id
+
+    # Simulate two concurrent decision attempts on the same approval
+    async def decide(approved: bool, decided_by: str):
+        return await submit_decision(
+            db_session,
+            tenant_id=tenant_id,
+            approval_id=approval_id,
+            approved=approved,
+            decided_by=decided_by,
+        )
+
+    # Run both decisions concurrently
+    results = await asyncio.gather(
+        decide(True, "admin1"),
+        decide(False, "admin2"),
+        return_exceptions=True,
+    )
+
+    # Count how many succeeded (returned non-None Approval)
+    successful = [r for r in results if r is not None and not isinstance(r, Exception)]
+
+    # Only ONE should succeed - the atomic UPDATE should prevent both from winning
+    assert (
+        len(successful) == 1
+    ), f"Expected exactly 1 successful decision, got {len(successful)}"
+
+    # Verify the approval has the winner's decision
+    await db_session.commit()
+    approval = await db_session.get(Approval, approval_id)
+    assert approval is not None
+    assert approval.status in ("approved", "denied")
+    assert approval.decided_by in ("admin1", "admin2")
