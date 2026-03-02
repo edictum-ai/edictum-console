@@ -50,12 +50,12 @@ def _validate_config(channel_type: str, config: dict) -> None:  # noqa: ANN001
         )
 
 
-def _validate_urls(channel_type: str, config: dict) -> None:  # noqa: ANN001
+async def _validate_urls(channel_type: str, config: dict) -> None:  # noqa: ANN001
     """Validate outbound URLs in channel config to prevent SSRF attacks."""
     for field in _URL_FIELDS.get(channel_type, []):
         if field in config:
             try:
-                validate_url(config[field])
+                await validate_url(config[field])
             except SecurityError as exc:
                 raise ValueError(f"Invalid {field}: {exc}") from exc
 
@@ -99,7 +99,7 @@ async def create_channel(
 ) -> NotificationChannel:
     """Create a new notification channel. Caller commits."""
     _validate_config(channel_type, config)
-    _validate_urls(channel_type, config)
+    await _validate_urls(channel_type, config)
     # Auto-generate webhook_secret for Telegram DB channels
     if channel_type == "telegram" and "webhook_secret" not in config:
         config = {**config, "webhook_secret": secrets.token_urlsafe(32)}
@@ -134,7 +134,7 @@ async def update_channel(
         channel.name = name
     if config is not None:
         _validate_config(channel.channel_type, config)
-        _validate_urls(channel.channel_type, config)
+        await _validate_urls(channel.channel_type, config)
         channel.config = config
     if enabled is not None:
         channel.enabled = enabled

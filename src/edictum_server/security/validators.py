@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import re
 import socket
@@ -42,7 +43,7 @@ class ValidationError(ValueError):
     """Raised when an input fails a security validation check."""
 
 
-def validate_url(url: str) -> str:
+async def validate_url(url: str) -> str:
     """Validate that a URL is safe to make server-side requests to.
 
     Blocks private networks, loopback, cloud metadata endpoints, and
@@ -68,7 +69,7 @@ def validate_url(url: str) -> str:
         raise ValidationError("URL must include a hostname")
 
     try:
-        addr_info = socket.getaddrinfo(hostname, None)
+        addr_info = await asyncio.to_thread(socket.getaddrinfo, hostname, None)
     except socket.gaierror as exc:
         raise ValidationError(f"Cannot resolve hostname '{hostname}': {exc}") from exc
 
