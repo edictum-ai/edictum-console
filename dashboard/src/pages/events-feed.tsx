@@ -137,7 +137,7 @@ export function EventsFeed() {
   useDashboardSSE({
     event_created: (data) => {
       const event = data as EventResponse
-      setBufferedEvents((prev) => [event, ...prev])
+      setBufferedEvents((prev) => [event, ...prev].slice(0, 100))
     },
   })
 
