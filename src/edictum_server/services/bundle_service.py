@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import uuid
 from collections import defaultdict
 
 import yaml
 from sqlalchemy import func, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from edictum_server.db.models import Bundle, Deployment
+
+logger = logging.getLogger(__name__)
+
+# Maximum retries for version conflict resolution
+_MAX_VERSION_RETRIES = 5
 
 
 async def upload_bundle(
@@ -23,8 +31,13 @@ async def upload_bundle(
 ) -> Bundle:
     """Validate YAML, extract name, compute revision hash, auto-version, and persist.
 
+    Uses retry logic with nested transactions to handle race conditions when
+    multiple concurrent uploads for the same bundle name occur. Retries up to
+    _MAX_VERSION_RETRIES times before giving up.
+
     Raises:
         ValueError: If the YAML is unparseable or missing metadata.name.
+        RuntimeError: If version conflicts persist after all retries.
     """
     try:
         parsed = yaml.safe_load(yaml_content)
@@ -41,29 +54,51 @@ async def upload_bundle(
 
     revision_hash = hashlib.sha256(yaml_content).hexdigest()
 
-    # Determine next version number for this tenant + name
-    result = await db.execute(
-        select(Bundle.version)
-        .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
-        .order_by(Bundle.version.desc())
-        .limit(1)
-    )
-    latest_version = result.scalar_one_or_none()
-    next_version = (latest_version or 0) + 1
+    # Retry loop to handle concurrent uploads with version conflicts
+    for attempt in range(_MAX_VERSION_RETRIES):
+        # Determine next version number for this tenant + name
+        result = await db.execute(
+            select(Bundle.version)
+            .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
+            .order_by(Bundle.version.desc())
+            .limit(1)
+        )
+        latest_version = result.scalar_one_or_none()
+        next_version = (latest_version or 0) + 1
 
-    bundle = Bundle(
-        tenant_id=tenant_id,
-        name=bundle_name,
-        version=next_version,
-        revision_hash=revision_hash,
-        yaml_bytes=yaml_content,
-        uploaded_by=uploaded_by,
-        source_hub_slug=source_hub_slug,
-        source_hub_revision=source_hub_revision,
+        bundle = Bundle(
+            tenant_id=tenant_id,
+            name=bundle_name,
+            version=next_version,
+            revision_hash=revision_hash,
+            yaml_bytes=yaml_content,
+            uploaded_by=uploaded_by,
+            source_hub_slug=source_hub_slug,
+            source_hub_revision=source_hub_revision,
+        )
+
+        # Use a nested transaction (savepoint) to handle IntegrityError
+        # without rolling back the entire session
+        async with db.begin_nested():
+            try:
+                db.add(bundle)
+                await db.flush()
+                return bundle
+            except IntegrityError:
+                # Version conflict - another concurrent upload won the race
+                # The nested transaction will automatically rollback
+                logger.warning(
+                    f"Bundle version conflict for {bundle_name} v{next_version}, "
+                    f"retrying (attempt {attempt + 1}/{_MAX_VERSION_RETRIES})"
+                )
+                # Expire all objects to get fresh data on next query
+                await db.expire_all()
+                continue
+
+    raise RuntimeError(
+        f"Failed to upload bundle '{bundle_name}' after {_MAX_VERSION_RETRIES} "
+        f"attempts due to persistent version conflicts. Please retry later."
     )
-    db.add(bundle)
-    await db.flush()
-    return bundle
 
 
 async def get_current_bundle(
