@@ -13,7 +13,8 @@ from pathlib import Path
 import sqlalchemy as sa
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
@@ -257,6 +258,17 @@ app.include_router(slack.router)
 app.include_router(agents.router)
 app.include_router(notifications.router)
 app.include_router(settings.router)
+
+# --- 404 handler: redirect non-API paths to dashboard -------------------------
+@app.exception_handler(404)
+async def not_found_handler(
+    request: Request, exc: StarletteHTTPException  # noqa: ARG001
+) -> JSONResponse | RedirectResponse:
+    """API routes get JSON 404; everything else redirects to the dashboard."""
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
+    return RedirectResponse(url="/dashboard", status_code=302)
+
 
 # --- SPA serving (dashboard) ---------------------------------------------------
 _STATIC_DIR = Path(os.environ.get("EDICTUM_STATIC_DIR", "/app/static/dashboard"))
