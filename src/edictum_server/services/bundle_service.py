@@ -72,21 +72,21 @@ async def upload_bundle(
             source_hub_revision=source_hub_revision,
         )
 
-        async with db.begin_nested():
-            try:
+        try:
+            async with db.begin_nested():
                 db.add(bundle)
                 await db.flush()
-                return bundle
-            except IntegrityError:
-                logger.warning(
-                    "Bundle version conflict: %s v%d (attempt %d/%d)",
-                    bundle_name,
-                    next_version,
-                    attempt + 1,
-                    _MAX_VERSION_RETRIES,
-                )
-                await db.expire_all()
-                continue
+            return bundle
+        except IntegrityError:
+            logger.warning(
+                "Bundle version conflict: %s v%d (attempt %d/%d)",
+                bundle_name,
+                next_version,
+                attempt + 1,
+                _MAX_VERSION_RETRIES,
+            )
+            await db.expire_all()
+            continue
 
     raise RuntimeError(
         f"Failed to assign a version for bundle '{bundle_name}' after "
