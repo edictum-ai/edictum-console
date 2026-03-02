@@ -219,14 +219,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await engine.dispose()
 
 
+_settings = get_settings()
+_is_production = _settings.env_name == "production"
 app = FastAPI(
     title="Edictum Console",
     description="Self-hostable agent operations console -- runtime governance for AI agents",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
-
-_settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _settings.cors_origins.split(",") if o.strip()],
