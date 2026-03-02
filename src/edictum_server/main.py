@@ -198,10 +198,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Background workers
     timeout_task = asyncio.create_task(_approval_timeout_worker(app))
     partition_task = asyncio.create_task(_partition_worker())
+    app.state.push_manager.start_cleanup_task()
 
     yield
 
     # Shutdown
+    app.state.push_manager.stop_cleanup_task()
     partition_task.cancel()
     timeout_task.cancel()
     with contextlib.suppress(asyncio.CancelledError):

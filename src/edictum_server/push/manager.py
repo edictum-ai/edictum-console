@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi import Request
+
+logger = logging.getLogger(__name__)
 
 # Event types forwarded to dashboard SSE subscribers.
 _DASHBOARD_EVENT_TYPES = frozenset({
@@ -19,6 +22,10 @@ _DASHBOARD_EVENT_TYPES = frozenset({
     "bundle_uploaded",
     "contract_update",
 })
+
+# Cleanup interval and max connection age.
+CLEANUP_INTERVAL_SECONDS = 300  # 5 minutes
+MAX_CONNECTION_AGE = timedelta(hours=1)
 
 
 @dataclass(eq=False)
@@ -32,6 +39,7 @@ class AgentConnection:
     policy_version: str | None
     agent_id: str
     connected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    is_closed: bool = field(default=False)
 
 
 class PushManager:
@@ -49,6 +57,7 @@ class PushManager:
         self._dashboard_connections: dict[uuid.UUID, set[asyncio.Queue[dict[str, Any]]]] = (
             defaultdict(set)
         )
+        self._cleanup_task: asyncio.Task[None] | None = None
 
     def subscribe(
         self,
@@ -76,6 +85,7 @@ class PushManager:
 
     def unsubscribe(self, env: str, conn: AgentConnection) -> None:
         """Remove an agent connection when the SSE stream closes."""
+        conn.is_closed = True
         self._connections[env].discard(conn)
         if not self._connections[env]:
             del self._connections[env]
@@ -150,6 +160,56 @@ class PushManager:
     def connection_count(self) -> int:
         """Total number of active SSE connections across all environments."""
         return sum(len(qs) for qs in self._connections.values())
+
+    # ------------------------------------------------------------------
+    # Background cleanup for dead / stale connections
+    # ------------------------------------------------------------------
+
+    def cleanup_stale_connections(self) -> int:
+        """Remove connections that are closed or older than MAX_CONNECTION_AGE.
+
+        Returns the number of connections removed.
+        """
+        now = datetime.now(UTC)
+        removed = 0
+        empty_envs: list[str] = []
+
+        for env, conns in self._connections.items():
+            stale = {
+                conn for conn in conns
+                if conn.is_closed or (now - conn.connected_at) > MAX_CONNECTION_AGE
+            }
+            removed += len(stale)
+            conns -= stale
+            if not conns:
+                empty_envs.append(env)
+
+        for env in empty_envs:
+            del self._connections[env]
+
+        if removed:
+            logger.info("Cleaned up %d stale SSE connections", removed)
+        return removed
+
+    def start_cleanup_task(self) -> None:
+        """Start the periodic background cleanup task."""
+        if self._cleanup_task is not None and not self._cleanup_task.done():
+            return
+        self._cleanup_task = asyncio.create_task(self._cleanup_loop())
+
+    def stop_cleanup_task(self) -> None:
+        """Cancel the background cleanup task."""
+        if self._cleanup_task is not None and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+
+    async def _cleanup_loop(self) -> None:
+        """Periodically clean up dead connections."""
+        try:
+            while True:
+                await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+                self.cleanup_stale_connections()
+        except asyncio.CancelledError:
+            return
 
 
 def get_push_manager(request: Request) -> PushManager:
