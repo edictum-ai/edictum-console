@@ -122,11 +122,19 @@ export function ApprovalsQueue() {
   async function handleBulkApprove(ids: string[]) {
     setActing(true)
     try {
-      await Promise.all(ids.map((id) => submitDecision(id, true, user?.email)))
-      setPending((prev) => prev.filter((a) => !ids.includes(a.id)))
-      void fetchHistory({ silent: true })
-    } catch {
-      toast.error("Failed to approve selected requests")
+      const results = await Promise.allSettled(
+        ids.map((id) => submitDecision(id, true, user?.email)),
+      )
+      const succeededIds = ids.filter((_, i) => results[i]?.status === "fulfilled")
+      const failedCount = ids.length - succeededIds.length
+
+      if (succeededIds.length > 0) {
+        setPending((prev) => prev.filter((a) => !succeededIds.includes(a.id)))
+        void fetchHistory({ silent: true })
+      }
+      if (failedCount > 0) {
+        toast.error(`${succeededIds.length} approvals succeeded, ${failedCount} failed. Please retry the failed ones.`)
+      }
     } finally {
       setActing(false)
     }
@@ -136,11 +144,19 @@ export function ApprovalsQueue() {
   async function handleBulkDeny(ids: string[], reason: string) {
     setActing(true)
     try {
-      await Promise.all(ids.map((id) => submitDecision(id, false, user?.email, reason)))
-      setPending((prev) => prev.filter((a) => !ids.includes(a.id)))
-      void fetchHistory({ silent: true })
-    } catch {
-      toast.error("Failed to deny selected requests")
+      const results = await Promise.allSettled(
+        ids.map((id) => submitDecision(id, false, user?.email, reason)),
+      )
+      const succeededIds = ids.filter((_, i) => results[i]?.status === "fulfilled")
+      const failedCount = ids.length - succeededIds.length
+
+      if (succeededIds.length > 0) {
+        setPending((prev) => prev.filter((a) => !succeededIds.includes(a.id)))
+        void fetchHistory({ silent: true })
+      }
+      if (failedCount > 0) {
+        toast.error(`${succeededIds.length} denials succeeded, ${failedCount} failed. Please retry the failed ones.`)
+      }
     } finally {
       setActing(false)
     }
