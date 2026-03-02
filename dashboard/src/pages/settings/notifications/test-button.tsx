@@ -4,14 +4,17 @@ import { Button } from "@/components/ui/button"
 import { testChannel } from "@/lib/api"
 import { toast } from "sonner"
 
+const INTERACTIVE_TYPES = new Set(["telegram", "discord", "slack_app"])
+
 interface TestButtonProps {
   channelId: string
+  channelType?: string
   onTested?: () => void
 }
 
 type TestState = "idle" | "testing" | "passed" | "failed"
 
-export function TestButton({ channelId, onTested }: TestButtonProps) {
+export function TestButton({ channelId, channelType, onTested }: TestButtonProps) {
   const [state, setState] = useState<TestState>("idle")
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
@@ -30,7 +33,13 @@ export function TestButton({ channelId, onTested }: TestButtonProps) {
       const next = result.success ? "passed" : "failed"
       setState(next)
       if (result.success) {
-        toast.success("Test notification sent")
+        if (channelType && INTERACTIVE_TYPES.has(channelType)) {
+          toast.success("Message delivered", {
+            description: "This confirms the bot can send messages. Approve/Deny buttons require a live approval request to test.",
+          })
+        } else {
+          toast.success("Test notification sent")
+        }
       } else {
         toast.error(result.message || "Test failed")
       }

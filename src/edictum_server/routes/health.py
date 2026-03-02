@@ -57,6 +57,7 @@ async def health(
         "version": __version__,
         "auth_provider": settings.auth_provider,
         "bootstrap_complete": user_count > 0,
+        "base_url_https": settings.base_url.startswith("https://"),
         "database": {"connected": True, "latency_ms": db_latency_ms},
         "redis": {"connected": redis_connected, "latency_ms": redis_latency_ms},
         "connected_agents": connected_agents,

@@ -12,6 +12,7 @@ export interface HealthResponse {
   version: string
   auth_provider: string
   bootstrap_complete: boolean
+  base_url_https?: boolean
   // Enriched fields (optional — older servers won't have these)
   database?: ServiceHealth
   redis?: ServiceHealth

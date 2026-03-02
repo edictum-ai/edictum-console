@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
-import { Loader2, Plus } from "lucide-react"
+import { Loader2, Plus, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { listChannels, deleteChannel, updateChannel } from "@/lib/api"
+import { listChannels, deleteChannel, updateChannel, getHealth } from "@/lib/api"
 import type { NotificationChannelInfo } from "@/lib/api"
 import { toast } from "sonner"
 import { ChannelTable } from "./notifications/channel-table"
@@ -29,6 +30,7 @@ export function NotificationsSection({ onChannelCountChange }: NotificationsSect
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingChannel, setEditingChannel] = useState<NotificationChannelInfo | null>(null)
   const [deletingChannel, setDeletingChannel] = useState<NotificationChannelInfo | null>(null)
+  const [baseUrlHttps, setBaseUrlHttps] = useState<boolean | null>(null)
 
   const fetchChannels = useCallback(async () => {
     setLoading(true)
@@ -45,6 +47,10 @@ export function NotificationsSection({ onChannelCountChange }: NotificationsSect
   }, [onChannelCountChange])
 
   useEffect(() => { void fetchChannels() }, [fetchChannels])
+
+  useEffect(() => {
+    getHealth().then((h) => setBaseUrlHttps(h.base_url_https ?? null)).catch(() => {})
+  }, [])
 
   function openCreate() {
     setEditingChannel(null)
@@ -78,8 +84,24 @@ export function NotificationsSection({ onChannelCountChange }: NotificationsSect
     }
   }
 
+  const hasInteractiveChannels = channels.some((c) =>
+    ["telegram", "discord", "slack_app"].includes(c.channel_type)
+  )
+
   return (
     <div className="space-y-4">
+      {baseUrlHttps === false && hasInteractiveChannels && (
+        <Alert variant="destructive">
+          <AlertTriangle className="size-4" />
+          <AlertDescription>
+            <strong>Interactive approvals won&apos;t work.</strong> The server&apos;s{" "}
+            <code className="text-xs font-mono">EDICTUM_BASE_URL</code> is not set to an HTTPS
+            URL, so Telegram / Discord / Slack buttons cannot send callbacks back to this server.
+            Set <code className="text-xs font-mono">EDICTUM_BASE_URL=https://your-domain.com</code>{" "}
+            and redeploy to enable Approve / Deny buttons.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Notification Channels</h2>
@@ -106,7 +128,7 @@ export function NotificationsSection({ onChannelCountChange }: NotificationsSect
       ) : channels.length === 0 ? (
         <ChannelEmptyState onCreateClick={openCreate} />
       ) : (
-        <ChannelTable channels={channels} onEdit={openEdit} onDelete={setDeletingChannel} onToggleEnabled={handleToggleEnabled} />
+        <ChannelTable channels={channels} baseUrlHttps={baseUrlHttps} onEdit={openEdit} onDelete={setDeletingChannel} onToggleEnabled={handleToggleEnabled} />
       )}
 
       <ChannelDialog

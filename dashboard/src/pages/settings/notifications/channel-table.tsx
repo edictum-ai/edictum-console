@@ -1,4 +1,4 @@
-import { Send, Hash, Webhook, Mail, Zap, Gamepad2, MoreHorizontal, Pencil, Trash2, Power, PowerOff } from "lucide-react"
+import { Send, Hash, Webhook, Mail, Zap, Gamepad2, MoreHorizontal, Pencil, Trash2, Power, PowerOff, AlertTriangle, Link } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -34,8 +34,11 @@ const TYPE_META: Record<string, { icon: typeof Send; label: string }> = {
   discord: { icon: Gamepad2, label: "Discord" },
 }
 
+const INTERACTIVE_TYPES = new Set(["telegram", "discord", "slack_app"])
+
 interface ChannelTableProps {
   channels: NotificationChannelInfo[]
+  baseUrlHttps: boolean | null
   onEdit: (channel: NotificationChannelInfo) => void
   onDelete: (channel: NotificationChannelInfo) => void
   onToggleEnabled: (channel: NotificationChannelInfo) => void
@@ -50,7 +53,7 @@ function filterSummary(f: ChannelFilters | null): string | null {
   return parts.length > 0 ? parts.join(" · ") : null
 }
 
-export function ChannelTable({ channels, onEdit, onDelete, onToggleEnabled }: ChannelTableProps) {
+export function ChannelTable({ channels, baseUrlHttps, onEdit, onDelete, onToggleEnabled }: ChannelTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -58,6 +61,7 @@ export function ChannelTable({ channels, onEdit, onDelete, onToggleEnabled }: Ch
           <TableHead>Name</TableHead>
           <TableHead>Type</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Interactivity</TableHead>
           <TableHead>Last Tested</TableHead>
           <TableHead className="w-[140px]" />
         </TableRow>
@@ -105,6 +109,33 @@ export function ChannelTable({ channels, onEdit, onDelete, onToggleEnabled }: Ch
                 </span>
               </TableCell>
               <TableCell>
+                {INTERACTIVE_TYPES.has(ch.channel_type) ? (
+                  baseUrlHttps === false ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 cursor-default">
+                          <AlertTriangle className="size-3.5" />
+                          Not registered
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-xs">
+                          EDICTUM_BASE_URL is not set to an HTTPS URL. Approve/Deny buttons
+                          won&apos;t work until it&apos;s configured.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                      <Link className="size-3.5" />
+                      Webhook active
+                    </span>
+                  )
+                ) : (
+                  <span className="text-muted-foreground text-sm">—</span>
+                )}
+              </TableCell>
+              <TableCell>
                 {ch.last_test_ok === false ? (
                   <span className="text-red-600 dark:text-red-400">Failed</span>
                 ) : ch.last_test_at ? (
@@ -117,7 +148,7 @@ export function ChannelTable({ channels, onEdit, onDelete, onToggleEnabled }: Ch
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end gap-1">
-                  <TestButton channelId={ch.id} />
+                  <TestButton channelId={ch.id} channelType={ch.channel_type} />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="sm" className="size-8 p-0">
