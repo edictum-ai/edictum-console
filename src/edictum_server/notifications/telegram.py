@@ -91,12 +91,12 @@ class TelegramChannel(NotificationChannel):
         result = await self.client.send_message(
             chat_id=self._chat_id, text=text, reply_markup=reply_markup,
         )
-        ttl = timeout_seconds + 60
+        _SEVEN_DAYS = 86400 * 7
         msg_data = json.dumps(
             {"chat_id": self._chat_id, "message_id": result["message_id"]}
         )
-        await self._redis.set(self._msg_key(approval_id), msg_data, ex=ttl)
-        await self._redis.set(self._tenant_key(approval_id), tenant_id, ex=ttl)
+        await self._redis.set(self._msg_key(approval_id), msg_data, ex=_SEVEN_DAYS)
+        await self._redis.set(self._tenant_key(approval_id), tenant_id, ex=_SEVEN_DAYS)
 
     async def send_approval_decided(
         self,
