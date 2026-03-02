@@ -1,8 +1,10 @@
 #!/bin/sh
 set -e
 
-# Railway injects DATABASE_URL as postgresql:// — translate to asyncpg driver if needed
-if [ -z "$EDICTUM_DATABASE_URL" ] && [ -n "$DATABASE_URL" ]; then
+# Ensure postgresql+asyncpg:// driver prefix — Railway provides postgresql:// format
+if [ -n "$EDICTUM_DATABASE_URL" ]; then
+  export EDICTUM_DATABASE_URL=$(echo "$EDICTUM_DATABASE_URL" | sed 's|^postgresql://|postgresql+asyncpg://|;s|^postgres://|postgresql+asyncpg://|')
+elif [ -n "$DATABASE_URL" ]; then
   export EDICTUM_DATABASE_URL=$(echo "$DATABASE_URL" | sed 's|^postgresql://|postgresql+asyncpg://|;s|^postgres://|postgresql+asyncpg://|')
 fi
 
