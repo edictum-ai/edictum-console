@@ -130,7 +130,8 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     tool_name: Mapped[str] = mapped_column(String)
     verdict: Mapped[str] = mapped_column(String)
     mode: Mapped[str] = mapped_column(String)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    env: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     payload: Mapped[dict[str, object] | None] = mapped_column(JSON, nullable=True)
 
 

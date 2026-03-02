@@ -38,7 +38,7 @@ async def post_events(
 
     Duplicate events (same ``tenant_id`` + ``call_id``) are silently ignored.
     """
-    accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events)
+    accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events, env=auth.env)
     await db.commit()
     return EventIngestResponse(accepted=accepted, duplicates=duplicates)
 
@@ -59,12 +59,15 @@ async def get_events(
     db: AsyncSession = Depends(get_db),
 ) -> list[EventResponse]:
     """Query audit events with optional filters."""
+    # API key auth is scoped to an environment — only return events for that env
+    env_filter = auth.env if auth.auth_type == "api_key" else None
     events = await query_events(
         db,
         auth.tenant_id,
         agent_id=agent_id,
         tool_name=tool_name,
         verdict=verdict,
+        env=env_filter,
         since=since,
         until=until,
         limit=limit,

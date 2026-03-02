@@ -16,6 +16,7 @@ async def ingest_events(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     events: list[EventPayload],
+    env: str | None = None,
 ) -> tuple[int, int]:
     """Batch-insert events with deduplication.
 
@@ -37,6 +38,7 @@ async def ingest_events(
             "tool_name": e.tool_name,
             "verdict": e.verdict,
             "mode": e.mode,
+            "env": env,
             "timestamp": e.timestamp,
             "payload": e.payload,
         }
@@ -71,6 +73,7 @@ async def query_events(
     agent_id: str | None = None,
     tool_name: str | None = None,
     verdict: str | None = None,
+    env: str | None = None,
     since: datetime | None = None,
     until: datetime | None = None,
     limit: int = 100,
@@ -84,6 +87,8 @@ async def query_events(
         stmt = stmt.where(Event.tool_name == tool_name)
     if verdict is not None:
         stmt = stmt.where(Event.verdict == verdict)
+    if env is not None:
+        stmt = stmt.where(Event.env == env)
     if since is not None:
         stmt = stmt.where(Event.timestamp >= since)
     if until is not None:
