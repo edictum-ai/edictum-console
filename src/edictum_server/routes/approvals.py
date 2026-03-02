@@ -19,7 +19,9 @@ def _fire(coro: object) -> None:
 
     asyncio.create_task(_run())
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +33,8 @@ from edictum_server.auth.dependencies import (
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import Approval
 from edictum_server.push.manager import PushManager, get_push_manager
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
+from edictum_server.redis.client import get_redis
 from edictum_server.schemas.approvals import (
     ApprovalResponse,
     ApprovalStatusType,
@@ -63,15 +67,27 @@ def _to_response(approval: Approval) -> ApprovalResponse:
     )
 
 
-@router.post("", status_code=201, response_model=ApprovalResponse)
+@router.post("", status_code=201, response_model=ApprovalResponse | dict)
 async def create_approval(
     body: CreateApprovalRequest,
     request: Request,
     auth: AuthContext = Depends(require_api_key),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
-) -> ApprovalResponse:
+    redis: aioredis.Redis = Depends(get_redis),
+) -> ApprovalResponse | JSONResponse:
     """Create a pending approval request (agent-facing)."""
+    agent_id = auth.agent_id or "unknown"
+    rate_key = f"rate_limit:approval:{auth.tenant_id}:{agent_id}"
+    try:
+        await check_rate_limit(redis, rate_key, max_attempts=10, window_seconds=60)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Too many approval requests. Please slow down."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+
     env = auth.env or "production"
     approval = await approval_service.create_approval(db, auth.tenant_id, body, env=env)
     await db.commit()
