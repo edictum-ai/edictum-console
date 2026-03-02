@@ -33,12 +33,6 @@ async def create_key(
     Only available to dashboard-authenticated users.
     The full key is returned once and cannot be retrieved again.
     """
-    if body.env not in ("production", "staging", "development"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="env must be 'production', 'staging', or 'development'.",
-        )
-
     full_key, prefix, key_hash = generate_api_key(body.env)
 
     api_key = ApiKey(

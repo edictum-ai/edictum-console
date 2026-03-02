@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -50,7 +51,7 @@ class BundleSummaryResponse(BaseModel):
 class DeployRequest(BaseModel):
     """Request body for deploying a bundle to an environment."""
 
-    env: str
+    env: Literal["production", "staging", "development"]
 
 
 class DeploymentResponse(BaseModel):

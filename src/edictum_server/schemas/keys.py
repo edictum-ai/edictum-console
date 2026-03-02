@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
+
+EnvName = Literal["production", "staging", "development"]
 
 
 class CreateKeyRequest(BaseModel):
     """Request body for creating a new API key."""
 
-    env: str
+    env: EnvName
     label: str | None = None
 
 

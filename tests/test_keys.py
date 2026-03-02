@@ -54,7 +54,7 @@ async def test_create_key_invalid_env(client: AsyncClient) -> None:
         "/api/v1/keys",
         json={"env": "invalid"},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 422  # Pydantic Literal validation
 
 
 async def test_revoke_nonexistent_key(client: AsyncClient) -> None:
