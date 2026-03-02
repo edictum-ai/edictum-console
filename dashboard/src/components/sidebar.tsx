@@ -1,3 +1,6 @@
+// Single cohesive component — brand header, nav sections, user footer.
+// Intentionally over 200 lines. Do not split.
+
 import { useState, useEffect } from "react"
 import { NavLink } from "react-router"
 import {
@@ -11,6 +14,7 @@ import {
   Shield,
   PanelLeftClose,
   PanelLeftOpen,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -34,6 +38,7 @@ interface SidebarProps {
 
 const navMonitor = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+  { to: "/dashboard/agents", icon: Users, label: "Agents" },
   { to: "/dashboard/events", icon: Activity, label: "Events" },
   { to: "/dashboard/approvals", icon: CheckCircle, label: "Approvals", hasBadge: true },
 ]

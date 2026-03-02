@@ -13,6 +13,7 @@ import { ApprovalsQueue } from "@/pages/approvals-queue"
 import { ContractsPage } from "@/pages/contracts"
 
 // Lazy-load page views
+const AgentsPage = lazy(() => import("@/pages/agents/agents-page"))
 const ApiKeysPage = lazy(() => import("@/pages/api-keys"))
 const SettingsPage = lazy(() => import("@/pages/settings"))
 
@@ -43,6 +44,7 @@ export function App() {
             }
           >
             <Route index element={<DashboardHome />} />
+            <Route path="agents" element={<Suspense fallback={<PageFallback />}><AgentsPage /></Suspense>} />
             <Route path="events" element={<EventsFeed />} />
             <Route path="approvals" element={<ApprovalsQueue />} />
             <Route path="contracts" element={<ContractsPage />} />
