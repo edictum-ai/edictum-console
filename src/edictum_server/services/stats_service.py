@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import case, func, select, text
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Approval, Event
@@ -88,7 +88,7 @@ async def get_overview(db: AsyncSession, tenant_id: uuid.UUID) -> StatsOverviewR
         .where(
             Event.tenant_id == tenant_id,
             Event.timestamp >= twenty_four_hours_ago,
-            Event.payload["decision_name"] != text("'null'"),
+            Event.payload["decision_name"].isnot(None),
         )
     )
     contracts_triggered_24h = contracts_result.scalar() or 0
@@ -130,7 +130,6 @@ async def get_contract_stats(
             Event.tenant_id == tenant_id,
             Event.timestamp >= since,
             Event.timestamp <= until,
-            decision_col != text("'null'"),
             decision_col.isnot(None),
         )
         .group_by(decision_col)
