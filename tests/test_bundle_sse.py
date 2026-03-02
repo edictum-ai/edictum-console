@@ -28,7 +28,7 @@ async def test_upload_fires_bundle_uploaded_sse(
     push_manager: PushManager,
 ) -> None:
     """Uploading a bundle pushes a ``bundle_uploaded`` event to the dashboard."""
-    queue = push_manager.subscribe_dashboard(TENANT_A_ID)
+    conn = push_manager.subscribe_dashboard(TENANT_A_ID)
 
     resp = await client.post(
         "/api/v1/bundles",
@@ -37,11 +37,11 @@ async def test_upload_fires_bundle_uploaded_sse(
     assert resp.status_code == 201
 
     # The event should be in the queue
-    event = queue.get_nowait()
+    event = conn.queue.get_nowait()
     assert event["type"] == "bundle_uploaded"
     assert event["bundle_name"] == "devops-agent"
     assert event["version"] == 1
     assert "revision_hash" in event
     assert event["uploaded_by"] == "user_test_123"
 
-    push_manager.unsubscribe_dashboard(TENANT_A_ID, queue)
+    push_manager.unsubscribe_dashboard(TENANT_A_ID, conn)

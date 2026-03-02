@@ -15,7 +15,7 @@ from edictum_server.auth.dependencies import (
     require_api_key,
     require_dashboard_auth,
 )
-from edictum_server.push.manager import PushManager, get_push_manager
+from edictum_server.push.manager import DashboardConnection, PushManager, get_push_manager
 
 router = APIRouter(prefix="/api/v1/stream", tags=["stream"])
 
@@ -78,13 +78,13 @@ async def stream_dashboard(
     Forwards approval_created, approval_decided, approval_timeout,
     and contract_update events.
     """
-    queue = push.subscribe_dashboard(auth.tenant_id)
+    conn: DashboardConnection = push.subscribe_dashboard(auth.tenant_id)
 
     async def event_stream() -> AsyncGenerator[dict[str, str], None]:
         try:
-            async for event in _event_generator(queue):
+            async for event in _event_generator(conn.queue):
                 yield event
         finally:
-            push.unsubscribe_dashboard(auth.tenant_id, queue)
+            push.unsubscribe_dashboard(auth.tenant_id, conn)
 
     return EventSourceResponse(event_stream())

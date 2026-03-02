@@ -39,7 +39,19 @@ class AgentConnection:
     policy_version: str | None
     agent_id: str
     connected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    # External code may set is_closed=True to signal a dead connection without
+    # going through unsubscribe() (e.g. from an error handler).  The cleanup
+    # task checks this flag in addition to the age-based cutoff.
     is_closed: bool = field(default=False)
+
+
+@dataclass(eq=False)
+class DashboardConnection:
+    """Metadata for a connected dashboard SSE subscription."""
+
+    queue: asyncio.Queue[dict[str, Any]]
+    tenant_id: uuid.UUID
+    connected_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 class PushManager:
@@ -54,7 +66,7 @@ class PushManager:
 
     def __init__(self) -> None:
         self._connections: dict[str, set[AgentConnection]] = defaultdict(set)
-        self._dashboard_connections: dict[uuid.UUID, set[asyncio.Queue[dict[str, Any]]]] = (
+        self._dashboard_connections: dict[uuid.UUID, set[DashboardConnection]] = (
             defaultdict(set)
         )
         self._cleanup_task: asyncio.Task[None] | None = None
@@ -85,25 +97,27 @@ class PushManager:
 
     def unsubscribe(self, env: str, conn: AgentConnection) -> None:
         """Remove an agent connection when the SSE stream closes."""
-        conn.is_closed = True
         self._connections[env].discard(conn)
         if not self._connections[env]:
             del self._connections[env]
 
-    def subscribe_dashboard(self, tenant_id: uuid.UUID) -> asyncio.Queue[dict[str, Any]]:
+    def subscribe_dashboard(self, tenant_id: uuid.UUID) -> DashboardConnection:
         """Register a dashboard SSE connection for a tenant (all envs).
 
-        Returns an asyncio Queue the caller should read from.
+        Returns a DashboardConnection whose .queue the caller should read from.
         """
-        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
-        self._dashboard_connections[tenant_id].add(queue)
-        return queue
+        conn = DashboardConnection(
+            queue=asyncio.Queue(),
+            tenant_id=tenant_id,
+        )
+        self._dashboard_connections[tenant_id].add(conn)
+        return conn
 
     def unsubscribe_dashboard(
-        self, tenant_id: uuid.UUID, queue: asyncio.Queue[dict[str, Any]]
+        self, tenant_id: uuid.UUID, conn: DashboardConnection
     ) -> None:
-        """Remove a dashboard queue when the SSE connection closes."""
-        self._dashboard_connections[tenant_id].discard(queue)
+        """Remove a dashboard connection when the SSE stream closes."""
+        self._dashboard_connections[tenant_id].discard(conn)
         if not self._dashboard_connections[tenant_id]:
             del self._dashboard_connections[tenant_id]
 
@@ -137,8 +151,8 @@ class PushManager:
         event_type = data.get("type", "")
         if event_type not in _DASHBOARD_EVENT_TYPES:
             return
-        for queue in self._dashboard_connections.get(tenant_id, set()):
-            queue.put_nowait(data)
+        for conn in self._dashboard_connections.get(tenant_id, set()):
+            conn.queue.put_nowait(data)
 
     def get_agent_connections(
         self,
@@ -166,14 +180,20 @@ class PushManager:
     # ------------------------------------------------------------------
 
     def cleanup_stale_connections(self) -> int:
-        """Remove connections that are closed or older than MAX_CONNECTION_AGE.
+        """Remove agent and dashboard connections that are closed or too old.
 
-        Returns the number of connections removed.
+        Agent connections are removed if ``is_closed`` is True (set externally
+        to signal an abnormal disconnect) or if they are older than
+        ``MAX_CONNECTION_AGE``.  Dashboard connections are removed by age only
+        (they have no ``is_closed`` flag).
+
+        Returns the total number of connections removed.
         """
         now = datetime.now(UTC)
         removed = 0
-        empty_envs: list[str] = []
 
+        # --- agent connections ---
+        empty_envs: list[str] = []
         for env, conns in self._connections.items():
             stale = {
                 conn for conn in conns
@@ -183,9 +203,22 @@ class PushManager:
             conns -= stale
             if not conns:
                 empty_envs.append(env)
-
         for env in empty_envs:
             del self._connections[env]
+
+        # --- dashboard connections ---
+        empty_tenants: list[uuid.UUID] = []
+        for tenant_id, conns in self._dashboard_connections.items():
+            stale = {
+                conn for conn in conns
+                if (now - conn.connected_at) > MAX_CONNECTION_AGE
+            }
+            removed += len(stale)
+            conns -= stale
+            if not conns:
+                empty_tenants.append(tenant_id)
+        for tenant_id in empty_tenants:
+            del self._dashboard_connections[tenant_id]
 
         if removed:
             logger.info("Cleaned up %d stale SSE connections", removed)

@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from edictum_server.push.manager import MAX_CONNECTION_AGE, PushManager
+from edictum_server.push.manager import MAX_CONNECTION_AGE, DashboardConnection, PushManager
 
 TENANT = uuid.uuid4()
 
@@ -79,13 +79,61 @@ def test_cleanup_mixed_closed_and_stale(push: PushManager) -> None:
     assert push.connection_count == 1
 
 
-def test_unsubscribe_marks_closed(push: PushManager) -> None:
-    """unsubscribe() sets is_closed=True on the connection."""
+def test_unsubscribe_removes_connection(push: PushManager) -> None:
+    """unsubscribe() immediately removes the connection from the manager."""
     conn = push.subscribe("production", tenant_id=TENANT, agent_id="a1")
-    assert not conn.is_closed
+    assert push.connection_count == 1
 
     push.unsubscribe("production", conn)
-    assert conn.is_closed
+    assert push.connection_count == 0
+    assert "production" not in push._connections
+
+
+def test_cleanup_removes_stale_dashboard_connections(push: PushManager) -> None:
+    """Dashboard connections older than MAX_CONNECTION_AGE are removed."""
+    conn_old = push.subscribe_dashboard(TENANT)
+    conn_fresh = push.subscribe_dashboard(TENANT)
+
+    conn_old.connected_at = datetime.now(UTC) - MAX_CONNECTION_AGE - timedelta(seconds=1)
+
+    removed = push.cleanup_stale_connections()
+    assert removed == 1
+    assert conn_old not in push._dashboard_connections.get(TENANT, set())
+    assert conn_fresh in push._dashboard_connections[TENANT]
+
+
+def test_cleanup_keeps_fresh_dashboard_connections(push: PushManager) -> None:
+    """Fresh dashboard connections are not removed."""
+    push.subscribe_dashboard(TENANT)
+    push.subscribe_dashboard(TENANT)
+
+    removed = push.cleanup_stale_connections()
+    assert removed == 0
+    assert len(push._dashboard_connections[TENANT]) == 2
+
+
+def test_cleanup_removes_empty_dashboard_tenant_keys(push: PushManager) -> None:
+    """When all dashboard connections for a tenant are removed, the tenant key is deleted."""
+    conn = push.subscribe_dashboard(TENANT)
+    conn.connected_at = datetime.now(UTC) - MAX_CONNECTION_AGE - timedelta(seconds=1)
+
+    push.cleanup_stale_connections()
+    assert TENANT not in push._dashboard_connections
+
+
+def test_cleanup_covers_both_agent_and_dashboard(push: PushManager) -> None:
+    """A single cleanup pass removes stale agent and dashboard connections."""
+    agent_conn = push.subscribe("production", tenant_id=TENANT, agent_id="old")
+    dash_conn = push.subscribe_dashboard(TENANT)
+    push.subscribe("production", tenant_id=TENANT, agent_id="alive")
+
+    cutoff = datetime.now(UTC) - MAX_CONNECTION_AGE - timedelta(minutes=1)
+    agent_conn.connected_at = cutoff
+    dash_conn.connected_at = cutoff
+
+    removed = push.cleanup_stale_connections()
+    assert removed == 2
+    assert push.connection_count == 1
 
 
 async def test_start_stop_cleanup_task(push: PushManager) -> None:
