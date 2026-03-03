@@ -59,8 +59,8 @@ export function AgentTable({ agents, since, loading, ungoverned }: AgentTablePro
       accessorKey: "drift_status", header: "Drift", size: 80, enableSorting: true,
       cell: ({ getValue }) => {
         const s = getValue<string>()
-        const style = DRIFT_STYLES[s] ?? DRIFT_STYLES.unknown
-        return <Badge variant="outline" className={`text-[10px] ${style.className}`}>{style.label}</Badge>
+        const style = DRIFT_STYLES[s] ?? DRIFT_STYLES.unknown!
+        return <Badge variant="outline" className={`text-[10px] ${style!.className}`}>{style!.label}</Badge>
       },
     },
     {

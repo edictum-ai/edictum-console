@@ -18,7 +18,7 @@ interface AgentHeaderProps {
 
 export function AgentHeader({ data, fleetEntry, loading, onBack }: AgentHeaderProps) {
   const driftStatus = fleetEntry?.drift_status ?? "unknown"
-  const driftStyle = DRIFT_STYLES[driftStatus] ?? DRIFT_STYLES.unknown
+  const driftStyle = DRIFT_STYLES[driftStatus] ?? DRIFT_STYLES.unknown!
 
   return (
     <>

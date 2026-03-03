@@ -3,7 +3,7 @@ import { Shield } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import type { ContractCoverage } from "@/lib/api"
 import { CONTRACT_TYPE_COLORS } from "@/lib/contract-colors"
-import type { ContractType, ContractBundle } from "./types"
+import type { ContractType, ContractBundle, Mode } from "./types"
 import { ContractRow } from "./contract-row"
 
 const TYPE_META: Record<ContractType, { label: string; desc: string }> = {
@@ -17,7 +17,7 @@ interface ContractsAccordionProps {
   nonEmptyTypes: ContractType[]
   grouped: Record<ContractType, ContractBundle["contracts"]>
   coverageMap: Map<string, ContractCoverage>
-  defaultMode: string
+  defaultMode: Mode
 }
 
 export function ContractsAccordion({ nonEmptyTypes, grouped, coverageMap, defaultMode }: ContractsAccordionProps) {

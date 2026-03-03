@@ -49,7 +49,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
         </SelectContent>
       </Select>
 
-      <Select value={coverage} onValueChange={(v) => onUpdate("coverage", v)}>
+      <Select value={coverage} onValueChange={(v) => onUpdate("coverage", v as CoverageFilter)}>
         <SelectTrigger className="w-[150px] h-9">
           <SelectValue placeholder="Coverage" />
         </SelectTrigger>
@@ -61,7 +61,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
         </SelectContent>
       </Select>
 
-      <Select value={drift} onValueChange={(v) => onUpdate("drift", v)}>
+      <Select value={drift} onValueChange={(v) => onUpdate("drift", v as DriftFilter)}>
         <SelectTrigger className="w-[120px] h-9">
           <SelectValue placeholder="Drift" />
         </SelectTrigger>
@@ -72,7 +72,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
         </SelectContent>
       </Select>
 
-      <Select value={since} onValueChange={(v) => onUpdate("since", v)}>
+      <Select value={since} onValueChange={(v) => onUpdate("since", v as PresetKey)}>
         <SelectTrigger className="w-[110px] h-9">
           <SelectValue />
         </SelectTrigger>

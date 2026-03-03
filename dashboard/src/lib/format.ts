@@ -77,6 +77,6 @@ export function sinceToIso(since: string): string {
   const units: Record<string, number> = { h: 3600000, d: 86400000 }
   const match = since.match(/^(\d+)([hd])$/)
   if (!match) return new Date(Date.now() - 86400000).toISOString()
-  return new Date(Date.now() - parseInt(match[1]) * units[match[2]]).toISOString()
+  return new Date(Date.now() - parseInt(match[1]!) * units[match[2]!]!).toISOString()
 }
 
