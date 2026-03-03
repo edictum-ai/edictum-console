@@ -1,10 +1,13 @@
 import { useEffect, useRef } from "react"
-import { createDashboardSSE, type SSEClient } from "@/lib/sse"
+import { subscribeDashboardSSE } from "@/lib/sse"
 
 /**
  * Hook for subscribing to dashboard SSE events.
  * Accepts a map of SSE event names to handler functions.
- * Handles connect/disconnect/cleanup automatically.
+ *
+ * All useDashboardSSE() calls share a single EventSource connection
+ * via DashboardSSEPool — safe to call from multiple components on the
+ * same page without opening duplicate connections.
  */
 export function useDashboardSSE(handlers: Record<string, (data: unknown) => void>) {
   const handlersRef = useRef(handlers)
@@ -21,12 +24,6 @@ export function useDashboardSSE(handlers: Record<string, (data: unknown) => void
       proxyHandlers[key] = (data) => handlersRef.current[key]?.(data)
     }
 
-    let client: SSEClient | null = createDashboardSSE(proxyHandlers)
-    client.connect()
-
-    return () => {
-      client?.disconnect()
-      client = null
-    }
+    return subscribeDashboardSSE(proxyHandlers)
   }, [handlerKeys])
 }

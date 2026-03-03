@@ -1,93 +1,137 @@
-type SSEEventHandler = (data: unknown) => void
+/**
+ * Dashboard SSE — shared singleton pool.
+ *
+ * One EventSource connection for all useDashboardSSE() calls.
+ * Multiple components on the same page share a single connection
+ * instead of each opening their own EventSource.
+ */
 
-interface SSEClientOptions {
-  url: string
-  onEvent: Record<string, SSEEventHandler>
-  onError?: (error: Event) => void
-  onOpen?: () => void
-  onClose?: () => void
+type SSEEventHandler = (data: unknown) => void
+type SubscriptionId = number
+
+interface Subscription {
+  handlers: Record<string, SSEEventHandler>
 }
 
-export class SSEClient {
+const DASHBOARD_SSE_URL = "/api/v1/stream/dashboard"
+
+class DashboardSSEPool {
   private source: EventSource | null = null
-  private options: SSEClientOptions
+  private subs = new Map<SubscriptionId, Subscription>()
+  private knownEvents = new Set<string>()
+  private nextId = 0
   private reconnectDelay = 1000
   private maxReconnectDelay = 60000
-  private shouldReconnect = true
+  private shouldReconnect = false
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
-  constructor(options: SSEClientOptions) {
-    this.options = options
+  subscribe(handlers: Record<string, SSEEventHandler>): SubscriptionId {
+    const id = this.nextId++
+    this.subs.set(id, { handlers })
+
+    // Register listeners for any event names we haven't seen yet
+    for (const name of Object.keys(handlers)) {
+      if (!this.knownEvents.has(name)) {
+        this.knownEvents.add(name)
+        this.attachListener(name)
+      }
+    }
+
+    // First subscriber — open connection
+    if (this.subs.size === 1) {
+      this.open()
+    }
+
+    return id
   }
 
-  connect() {
+  unsubscribe(id: SubscriptionId) {
+    this.subs.delete(id)
+
+    // Last subscriber — tear down
+    if (this.subs.size === 0) {
+      this.close()
+    }
+  }
+
+  private open() {
     this.shouldReconnect = true
     this.createConnection()
   }
 
-  disconnect() {
+  private close() {
     this.shouldReconnect = false
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     this.source?.close()
     this.source = null
-    this.options.onClose?.()
-  }
-
-  get connected() {
-    return this.source?.readyState === EventSource.OPEN
+    this.knownEvents.clear()
+    this.reconnectDelay = 1000
   }
 
   private createConnection() {
-    if (this.source) {
-      this.source.close()
-    }
+    this.source?.close()
 
-    this.source = new EventSource(this.options.url, {
-      withCredentials: true,
-    })
+    this.source = new EventSource(DASHBOARD_SSE_URL, { withCredentials: true })
 
     this.source.onopen = () => {
       this.reconnectDelay = 1000
-      this.options.onOpen?.()
     }
 
-    this.source.onerror = (event) => {
-      this.options.onError?.(event)
+    this.source.onerror = () => {
       this.source?.close()
       this.source = null
 
       if (this.shouldReconnect) {
         const jitter = this.reconnectDelay * (0.5 + Math.random())
-        setTimeout(() => {
+        this.reconnectTimer = setTimeout(() => {
+          this.reconnectTimer = null
           this.createConnection()
         }, jitter)
-        this.reconnectDelay = Math.min(
-          this.reconnectDelay * 2,
-          this.maxReconnectDelay,
-        )
+        this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay)
       }
     }
 
-    for (const [eventName, handler] of Object.entries(
-      this.options.onEvent,
-    )) {
-      this.source.addEventListener(eventName, (event) => {
-        try {
-          const data: unknown = JSON.parse(
-            (event as MessageEvent<string>).data,
-          )
-          handler(data)
-        } catch {
-          handler((event as MessageEvent<string>).data)
-        }
-      })
+    // Re-attach listeners for all known event names on the new source
+    for (const name of this.knownEvents) {
+      this.attachListener(name)
     }
+  }
+
+  /** Add a named event listener that fans out to all matching subscribers. */
+  private attachListener(eventName: string) {
+    if (!this.source) return
+
+    this.source.addEventListener(eventName, (event) => {
+      let data: unknown
+      try {
+        data = JSON.parse((event as MessageEvent<string>).data)
+      } catch {
+        data = (event as MessageEvent<string>).data
+      }
+
+      for (const sub of this.subs.values()) {
+        try {
+          sub.handlers[eventName]?.(data)
+        } catch {
+          // Isolate subscriber failures — one bad handler must not break fan-out
+        }
+      }
+    })
   }
 }
 
-export function createDashboardSSE(
+const dashboardPool = new DashboardSSEPool()
+
+/**
+ * Subscribe to dashboard SSE events via the shared singleton connection.
+ * Returns an unsubscribe function.
+ */
+export function subscribeDashboardSSE(
   handlers: Record<string, SSEEventHandler>,
-) {
-  return new SSEClient({
-    url: "/api/v1/stream/dashboard",
-    onEvent: handlers,
-  })
+): () => void {
+  const id = dashboardPool.subscribe(handlers)
+  return () => dashboardPool.unsubscribe(id)
 }

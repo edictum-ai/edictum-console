@@ -40,6 +40,7 @@ import {
 import { submitDecision, type ApprovalResponse } from "@/lib/api"
 import { formatArgs } from "@/lib/format"
 import { useTimerTick } from "@/pages/approvals/timer"
+import { FleetCoverageTriage } from "@/components/dashboard/fleet-coverage-triage"
 
 function LiveCountdown({ createdAt, timeoutSeconds }: { createdAt: string; timeoutSeconds: number }) {
   const { timeStr, zone } = useTimerTick(createdAt, timeoutSeconds)
@@ -199,6 +200,9 @@ export function TriageColumn({ approvals, onDecisionMade }: TriageColumnProps) {
               </div>
             )}
           </section>
+
+          {/* Fleet Coverage — ungoverned tools and drift */}
+          <FleetCoverageTriage />
 
           {/* TODO: Disconnected Agents section
               Icon: WifiOff (red)
