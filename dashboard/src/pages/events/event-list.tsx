@@ -141,14 +141,16 @@ export function EventList({
               >
                 <VerdictIcon verdict={event.verdict} />
 
-                <span className="w-[72px] shrink-0 font-mono text-[11px] text-muted-foreground">
+                {/* Timestamp — hidden on mobile */}
+                <span className="hidden w-[72px] shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
                   {formatTime(event.timestamp)}
                 </span>
 
+                {/* Agent ID link — hidden on mobile */}
                 <Link
                   to={`/dashboard/agents/${encodeURIComponent(event.agent_id)}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-[110px] shrink-0 truncate text-xs font-medium text-foreground hover:text-primary hover:underline"
+                  className="hidden w-[110px] shrink-0 truncate text-xs font-medium text-foreground hover:text-primary hover:underline sm:inline"
                 >
                   {event.agent_id}
                 </Link>

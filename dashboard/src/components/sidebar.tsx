@@ -34,6 +34,8 @@ interface SidebarProps {
   user: UserInfo
   pendingApprovals?: number
   onLogout: () => void
+  /** When true, render expanded and hide the collapse toggle (used inside mobile Sheet). */
+  forceExpanded?: boolean
 }
 
 const navMonitor = [
@@ -48,8 +50,9 @@ const navManage = [
   { to: "/dashboard/keys", icon: KeyRound, label: "API Keys" },
 ]
 
-export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
+export function Sidebar({ user, pendingApprovals, onLogout, forceExpanded }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
+    if (forceExpanded) return false
     try {
       return localStorage.getItem(STORAGE_KEY) === "true"
     } catch {
@@ -57,13 +60,16 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
     }
   })
 
+  const isCollapsed = forceExpanded ? false : collapsed
+
   useEffect(() => {
+    if (forceExpanded) return
     try {
       localStorage.setItem(STORAGE_KEY, String(collapsed))
     } catch {
       // localStorage unavailable
     }
-  }, [collapsed])
+  }, [collapsed, forceExpanded])
 
   async function handleLogout() {
     try {
@@ -79,15 +85,16 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
     <TooltipProvider>
       <aside
         className={cn(
-          "flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
-          collapsed ? "w-14" : "w-[230px]",
+          "flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200",
+          forceExpanded ? "h-full w-[230px]" : "h-screen",
+          !forceExpanded && (isCollapsed ? "w-14" : "w-[230px]"),
         )}
       >
         {/* Brand header */}
         <div
           className={cn(
             "flex items-center border-b border-sidebar-border",
-            collapsed ? "flex-col gap-2 px-2 py-3" : "gap-3 px-4 py-3.5",
+            isCollapsed ? "flex-col gap-2 px-2 py-3" : "gap-3 px-4 py-3.5",
           )}
         >
           {/* Logo — not a toggle */}
@@ -95,7 +102,7 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
             <Shield className="h-4 w-4 text-white" />
           </div>
 
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-semibold leading-none text-sidebar-foreground">
                 Edictum
@@ -106,32 +113,34 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
             </div>
           )}
 
-          {/* Dedicated toggle button — always visible */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setCollapsed((p) => !p)}
-                className="h-6 w-6 shrink-0 text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              >
-                {collapsed
-                  ? <PanelLeftOpen className="h-4 w-4" />
-                  : <PanelLeftClose className="h-4 w-4" />
-                }
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            </TooltipContent>
-          </Tooltip>
+          {/* Collapse toggle — hidden when inside mobile Sheet */}
+          {!forceExpanded && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setCollapsed((p) => !p)}
+                  className="h-6 w-6 shrink-0 text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  {isCollapsed
+                    ? <PanelLeftOpen className="h-4 w-4" />
+                    : <PanelLeftClose className="h-4 w-4" />
+                  }
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 pt-4">
           {/* Monitor section */}
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-section-label">
               Monitor
             </div>
@@ -141,25 +150,25 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
               <SidebarNavItem
                 key={item.to}
                 item={item}
-                collapsed={collapsed}
+                collapsed={isCollapsed}
                 pendingApprovals={pendingApprovals}
               />
             ))}
           </div>
 
           {/* Manage section */}
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="mb-2 mt-5 px-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-section-label">
               Manage
             </div>
           )}
-          {collapsed && <div className="my-2" />}
+          {isCollapsed && <div className="my-2" />}
           <div className="space-y-0.5">
             {navManage.map((item) => (
               <SidebarNavItem
                 key={item.to}
                 item={item}
-                collapsed={collapsed}
+                collapsed={isCollapsed}
               />
             ))}
           </div>
@@ -169,17 +178,17 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
         <div className="border-t border-sidebar-border px-3 py-2.5">
           <SidebarNavItem
             item={{ to: "/dashboard/settings", icon: Settings, label: "Settings" }}
-            collapsed={collapsed}
+            collapsed={isCollapsed}
           />
 
           {/* User row */}
           <div
             className={cn(
               "mt-1.5 flex items-center rounded-md transition-colors hover:bg-sidebar-accent",
-              collapsed ? "justify-center px-1 py-1.5" : "gap-2.5 px-2 py-1.5",
+              isCollapsed ? "justify-center px-1 py-1.5" : "gap-2.5 px-2 py-1.5",
             )}
           >
-            {collapsed ? (
+            {isCollapsed ? (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-[10px] font-bold text-white shadow-sm">

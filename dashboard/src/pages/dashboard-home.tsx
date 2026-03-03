@@ -8,6 +8,7 @@ import {
   type ApprovalResponse,
 } from "@/lib/api"
 import { useStats } from "@/hooks/use-stats"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { StatsBar } from "@/components/dashboard/stats-bar"
 import { TriageColumn } from "@/components/dashboard/triage-column"
@@ -27,6 +28,7 @@ import { AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 
 export function DashboardHome() {
+  const isMobile = useIsMobile()
   const { data: stats, loading: statsLoading, refresh: refreshStats } = useStats()
   const [events, setEvents] = useState<EventResponse[]>([])
   const [approvals, setApprovals] = useState<ApprovalResponse[]>([])
@@ -101,20 +103,27 @@ export function DashboardHome() {
             ))}
           </div>
         </div>
-        {/* Two column skeleton */}
-        <div className="mt-4 grid grid-cols-[2fr_3fr] gap-4 h-[50vh]">
-          <div className="space-y-3 p-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full rounded-lg" />
-            ))}
+        {/* Two column skeleton (stacked on mobile) */}
+        {isMobile ? (
+          <div className="mt-4 space-y-4">
+            <Skeleton className="h-[200px] rounded-lg" />
+            <Skeleton className="h-[200px] rounded-lg" />
           </div>
-          <div className="space-y-2 p-4">
-            <Skeleton className="h-[120px] w-full rounded-lg" />
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
+        ) : (
+          <div className="mt-4 grid grid-cols-[2fr_3fr] gap-4 h-[50vh]">
+            <div className="space-y-3 p-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+            <div className="space-y-2 p-4">
+              <Skeleton className="h-[120px] w-full rounded-lg" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     )
   }
@@ -178,22 +187,29 @@ export function DashboardHome() {
         </Alert>
       )}
 
-      {/* Two-column layout: triage + activity (resizable horizontally) */}
-      <div className="mt-4 h-[50vh] min-h-[300px]">
-        <ResizablePanelGroup orientation="horizontal" className="h-full">
-          <ResizablePanel defaultSize={40} minSize={25}>
-            <div className="h-full overflow-auto border-r border-border">
-              <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />
-            </div>
-          </ResizablePanel>
-          <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={60} minSize={30}>
-            <div className="h-full overflow-auto">
-              <ActivityColumn events={events} />
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+      {/* Two-column layout: triage + activity (stacked on mobile) */}
+      {isMobile ? (
+        <div className="mt-4 space-y-4 [&>*]:h-auto">
+          <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />
+          <ActivityColumn events={events} />
+        </div>
+      ) : (
+        <div className="mt-4 h-[50vh] min-h-[300px]">
+          <ResizablePanelGroup orientation="horizontal" className="h-full">
+            <ResizablePanel defaultSize={40} minSize={25}>
+              <div className="h-full overflow-auto border-r border-border">
+                <TriageColumn approvals={approvals} onDecisionMade={handleDecisionMade} />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={60} minSize={30}>
+              <div className="h-full overflow-auto">
+                <ActivityColumn events={events} />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+      )}
 
       {/* Agent Fleet - scrolls with page */}
       <div className="mt-4">

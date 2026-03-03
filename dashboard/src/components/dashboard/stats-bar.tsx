@@ -49,10 +49,12 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
   if (loading || !stats) {
     return (
       <div className="shrink-0 px-6 py-3">
-        <div className="flex items-center gap-6 text-sm">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-4 w-24" />
+        <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex items-center gap-6 text-sm min-w-max">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-24" />
+          </div>
         </div>
       </div>
     )
@@ -65,7 +67,8 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
 
   return (
     <div className="shrink-0 px-6 py-3">
-      <div className="flex items-center gap-6 text-sm">
+      <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex items-center gap-6 text-sm min-w-max">
         <StatItem
           icon={<ShieldAlert className="size-4 text-amber-600 dark:text-amber-400" />}
           label="Pending"
@@ -119,6 +122,7 @@ export function StatsBar({ stats, loading }: StatsBarProps) {
           label="Contracts Triggered"
           value={stats.contracts_triggered_24h ?? 0}
         />
+      </div>
       </div>
     </div>
   )
