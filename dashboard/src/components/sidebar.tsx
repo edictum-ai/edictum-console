@@ -14,7 +14,7 @@ import {
   Shield,
   PanelLeftClose,
   PanelLeftOpen,
-  Users,
+  Bot,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -38,7 +38,7 @@ interface SidebarProps {
 
 const navMonitor = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
-  { to: "/dashboard/agents", icon: Users, label: "Agents" },
+  { to: "/dashboard/agents", icon: Bot, label: "Agents" },
   { to: "/dashboard/events", icon: Activity, label: "Events" },
   { to: "/dashboard/approvals", icon: CheckCircle, label: "Approvals", hasBadge: true },
 ]
@@ -109,16 +109,18 @@ export function Sidebar({ user, pendingApprovals, onLogout }: SidebarProps) {
           {/* Dedicated toggle button — always visible */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setCollapsed((p) => !p)}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-6 w-6 shrink-0 text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
                 {collapsed
                   ? <PanelLeftOpen className="h-4 w-4" />
                   : <PanelLeftClose className="h-4 w-4" />
                 }
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
               {collapsed ? "Expand sidebar" : "Collapse sidebar"}

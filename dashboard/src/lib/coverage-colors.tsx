@@ -36,6 +36,13 @@ export function CoverageBadge({ status }: { status: CoverageStatus }) {
   )
 }
 
+/** Drift status styles — badge classes and labels. Light/dark safe. */
+export const DRIFT_STYLES: Record<string, { className: string; label: string }> = {
+  current: { className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", label: "Current" },
+  drift: { className: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30", label: "Drift" },
+  unknown: { className: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30", label: "Unknown" },
+}
+
 /** Dot color class for filter indicators (mirrors verdictDot pattern). */
 export function coverageDot(status: CoverageStatus): string {
   switch (status) {

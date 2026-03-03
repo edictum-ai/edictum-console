@@ -6,13 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EnvBadge } from "@/lib/env-colors"
 import { formatRelativeTime } from "@/lib/format"
 import { CoverageBar } from "./coverage-bar"
+import { DRIFT_STYLES } from "@/lib/coverage-colors"
 import type { AgentCoverage, AgentCoverageSummaryEntry } from "@/lib/api/agents"
-
-const DRIFT_STYLES: Record<string, { className: string; label: string }> = {
-  current: { className: "border-emerald-500/30 text-emerald-600 dark:text-emerald-400", label: "Current" },
-  drift: { className: "border-amber-500/30 text-amber-600 dark:text-amber-400", label: "Drift" },
-  unknown: { className: "border-zinc-500/30 text-zinc-600 dark:text-zinc-400", label: "Unknown" },
-}
 
 interface AgentHeaderProps {
   data: AgentCoverage
@@ -38,7 +33,7 @@ export function AgentHeader({ data, fleetEntry, loading, onBack }: AgentHeaderPr
           <EnvBadge env={data.environment} />
           <Badge variant="outline" className={driftStyle.className}>{driftStyle.label}</Badge>
           {data.deployed_bundle && (
-            <Badge variant="outline" className="text-xs">v{data.deployed_bundle.version} signed</Badge>
+            <Badge variant="outline" className="text-xs font-mono">v{data.deployed_bundle.version}</Badge>
           )}
           {fleetEntry?.last_seen && (
             <span className="text-xs text-muted-foreground">

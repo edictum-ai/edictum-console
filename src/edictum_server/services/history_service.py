@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, func, cast, String, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Bundle, Deployment, Event
@@ -53,17 +53,20 @@ async def get_agent_history(
     if not deployments:
         return AgentHistoryResponse(agent_id=agent_id, environment=agent_env, events=[first_seen])
 
-    # Map each deployment → its bundle's revision_hash
+    # Batch-query bundle hashes for all deployments in one query
+    bundle_keys = [(dep.bundle_name, dep.bundle_version) for dep in deployments]
+    hash_rows = (await db.execute(
+        select(Bundle.name, Bundle.version, Bundle.revision_hash).where(
+            Bundle.tenant_id == tenant_id,
+            tuple_(Bundle.name, Bundle.version).in_(bundle_keys),
+        )
+    )).all()
+    hash_map = {(r.name, r.version): r.revision_hash for r in hash_rows}
     dep_hashes: dict[uuid.UUID, str] = {}
     for dep in deployments:
-        brow = (await db.execute(
-            select(Bundle.revision_hash).where(
-                Bundle.tenant_id == tenant_id,
-                Bundle.name == dep.bundle_name, Bundle.version == dep.bundle_version,
-            )
-        )).first()
-        if brow:
-            dep_hashes[dep.id] = brow[0]
+        rh = hash_map.get((dep.bundle_name, dep.bundle_version))
+        if rh:
+            dep_hashes[dep.id] = rh
 
     # Batch-query agent events from oldest deployment onward
     agent_events: list[EventRow] = list((await db.execute(
@@ -150,18 +153,24 @@ def _agent_tracks_console_versions(
 async def _any_event_matches_hash(
     db: AsyncSession, tenant_id: uuid.UUID, agent_id: str, known_hashes: set[str],
 ) -> bool:
-    """Check ALL agent events for a policy_version matching known bundle hashes."""
+    """Check if any agent event has a policy_version matching known bundle hashes.
+
+    Uses an EXISTS query per hash instead of loading all payloads into memory.
+    """
     if not known_hashes:
         return False
-    rows = (await db.execute(
-        select(Event.payload).where(
-            Event.tenant_id == tenant_id, Event.agent_id == agent_id,
-            Event.payload.is_not(None),
+    for h in known_hashes:
+        result = await db.execute(
+            select(func.count()).select_from(Event).where(
+                Event.tenant_id == tenant_id,
+                Event.agent_id == agent_id,
+                Event.payload.is_not(None),
+                cast(Event.payload["policy_version"].as_string(), String) == h,
+            ).limit(1)
         )
-    )).all()
-    return any(
-        row[0] and row[0].get("policy_version") in known_hashes for row in rows
-    )
+        if result.scalar_one() > 0:
+            return True
+    return False
 
 
 def _find_sync(

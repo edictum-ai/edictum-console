@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/empty-state"
 import { getAgentHistory, type HistoryEvent } from "@/lib/api/agents"
-import { formatRelativeTime } from "@/lib/format"
+import { formatRelativeTime, formatDuration } from "@/lib/format"
 
 interface HistoryTabProps {
   agentId: string
@@ -25,16 +25,6 @@ const ICONS: Record<HistoryEvent["type"], React.ReactNode> = {
   first_seen: <Eye className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-400" />,
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds} seconds`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""}`
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  return remainingMinutes > 0
-    ? `${hours}h ${remainingMinutes}m`
-    : `${hours} hour${hours !== 1 ? "s" : ""}`
-}
 
 function eventTitle(event: HistoryEvent): string {
   switch (event.type) {

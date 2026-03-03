@@ -60,6 +60,18 @@ export function formatToolArgs(toolArgs: Record<string, unknown> | null): string
   return JSON.stringify(toolArgs, null, 2)
 }
 
+/** Format a duration in seconds to human-readable string like "5 minutes" or "2h 30m". */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds} seconds`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""}`
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  return remainingMinutes > 0
+    ? `${hours}h ${remainingMinutes}m`
+    : `${hours} hour${hours !== 1 ? "s" : ""}`
+}
+
 /** Convert a relative time string like "24h" or "7d" to an ISO timestamp. */
 export function sinceToIso(since: string): string {
   const units: Record<string, number> = { h: 3600000, d: 86400000 }

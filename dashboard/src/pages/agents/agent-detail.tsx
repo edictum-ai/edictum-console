@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useSearchParams, useNavigate } from "react-router"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -38,22 +38,23 @@ function AgentDetail() {
 
   // Event counts for metric cards
   const [events, setEvents] = useState<EventResponse[]>([])
-  const fetchEventCounts = useCallback(async () => {
-    if (!agentId) return
-    try {
-      const result = await listEvents({ agent_id: agentId, since: sinceToIso(since), limit: 500 })
-      setEvents(result)
-    } catch { /* metric cards show 0 */ }
-  }, [agentId, since])
-
   useEffect(() => {
-    void fetchEventCounts()
-  }, [fetchEventCounts])
+    if (!agentId) return
+    let cancelled = false
+    listEvents({ agent_id: agentId, since: sinceToIso(since), limit: 500 })
+      .then((result) => { if (!cancelled) setEvents(result) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [agentId, since])
 
   // Fleet data for analytics comparison + drift status
   const [fleetData, setFleetData] = useState<FleetCoverage | null>(null)
   useEffect(() => {
-    void getFleetCoverage(since).then(setFleetData).catch(() => {})
+    let cancelled = false
+    getFleetCoverage(since)
+      .then((data) => { if (!cancelled) setFleetData(data) })
+      .catch(() => {})
+    return () => { cancelled = true }
   }, [since])
 
   const setTab = (value: string) => {

@@ -48,6 +48,9 @@ def parse_since(since_str: str | None) -> datetime:
     match = _SINCE_RE.match(since_str)
     if match:
         amount = int(match.group(1))
+        if amount > 365 * 10:
+            msg = f"Duration too large: {since_str} (max 10 years)"
+            raise ValueError(msg)
         unit = match.group(2)
         if unit == "h":
             delta = timedelta(hours=amount)
@@ -80,9 +83,13 @@ async def compute_coverage(
 
     Returns None if no events exist for this agent_id in tenant.
     """
-    # Cache key omits `until` intentionally — it defaults to now() and the
-    # 60s TTL makes stale-window collisions negligible.
-    cache_key = f"coverage:{tenant_id}:{agent_id}:{since.isoformat()}:{include_verdicts}"
+    # Round `since` to the nearest minute for cache key stability.
+    # parse_since("24h") computes datetime.now() - 24h which includes
+    # microseconds, making the raw isoformat unique per request.
+    # Truncating to the minute gives a 60s window of cache hits,
+    # matching the TTL.
+    since_rounded = since.replace(second=0, microsecond=0)
+    cache_key = f"coverage:{tenant_id}:{agent_id}:{since_rounded.isoformat()}:{include_verdicts}"
     if redis is not None:
         try:
             cached = await redis.get(cache_key)  # type: ignore[union-attr]

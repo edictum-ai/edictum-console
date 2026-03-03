@@ -21,6 +21,7 @@ export function ContractsPage() {
   const {
     summaries, selectedBundle, versions, selectedVersion,
     coverage, loading, error, yamlContent, parsedBundle, parseError,
+    agentCount,
     refreshSummaries, refreshVersions, handleBundleChange,
     setSelectedVersion, clearError,
   } = useContractsData()
@@ -148,6 +149,7 @@ export function ContractsPage() {
             onBundleChange={handleBundleChange} onVersionChange={setSelectedVersion}
             coverage={coverage} parsedBundle={parsedBundle}
             parseError={parseError}
+            agentCount={agentCount}
           />
         </TabsContent>
         <TabsContent value="versions" className="mt-4">

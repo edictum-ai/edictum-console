@@ -166,10 +166,13 @@ async def _resolve_agent_envs(
     if env:
         return {aid: env for aid in agent_ids}
 
+    # Get most recent env per agent. ORDER BY timestamp DESC + Python dedup
+    # gives us the latest env. LIMIT caps the scan for large event volumes.
     env_stmt = (
         select(Event.agent_id, Event.env)
         .where(Event.tenant_id == tenant_id, Event.agent_id.in_(agent_ids))
         .order_by(Event.timestamp.desc())
+        .limit(len(agent_ids) * 50)
     )
     env_rows = (await db.execute(env_stmt)).all()
     agent_envs: dict[str, str | None] = {}

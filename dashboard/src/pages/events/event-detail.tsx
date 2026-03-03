@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Link } from "react-router"
 import {
   X,
   Clock,
@@ -104,7 +105,15 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
             </div>
 
             <div className="space-y-1.5">
-              <DetailRow label="Agent" value={event.agent_id} />
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="shrink-0 text-[11px] text-muted-foreground">Agent</span>
+                <Link
+                  to={`/dashboard/agents/${encodeURIComponent(event.agent_id)}`}
+                  className="min-w-0 truncate text-right text-[11px] text-foreground hover:text-primary hover:underline"
+                >
+                  {event.agent_id}
+                </Link>
+              </div>
               <DetailRow label="Tool" value={event.tool_name} mono />
               <DetailRow label="Event ID" value={event.id} mono />
               {event.call_id && (

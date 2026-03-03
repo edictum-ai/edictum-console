@@ -9,6 +9,7 @@ import {
   type BundleWithDeployments,
   type ContractCoverage,
 } from "@/lib/api"
+import { getAgentStatus } from "@/lib/api/agents"
 import { parseContractBundle } from "./yaml-parser"
 import type { ContractBundle } from "./types"
 
@@ -31,6 +32,7 @@ export function useContractsData() {
   const [yamlContent, setYamlContent] = useState("")
   const [parsedBundle, setParsedBundle] = useState<ContractBundle | null>(null)
   const [parseError, setParseError] = useState<string | null>(null)
+  const [agentCount, setAgentCount] = useState<number | null>(null)
 
   // Fetch summaries + coverage
   const refreshSummaries = useCallback(async () => {
@@ -77,6 +79,16 @@ export function useContractsData() {
     setSelectedVersion(versions[0]!.version)
   }, [versions, selectedVersion])
 
+  // Fetch agent count for selected bundle
+  useEffect(() => {
+    if (!selectedBundle) { setAgentCount(null); return }
+    let cancelled = false
+    getAgentStatus(selectedBundle)
+      .then((data) => { if (!cancelled) setAgentCount(data.agents.length) })
+      .catch(() => { if (!cancelled) setAgentCount(null) })
+    return () => { cancelled = true }
+  }, [selectedBundle])
+
   // Load YAML when bundle + version changes
   useEffect(() => {
     if (!selectedBundle || !selectedVersion) return
@@ -110,6 +122,7 @@ export function useContractsData() {
   return {
     summaries, selectedBundle, versions, selectedVersion,
     coverage, loading, error, yamlContent, parsedBundle, parseError,
+    agentCount,
     refreshSummaries, refreshVersions, handleBundleChange,
     setSelectedVersion, clearError,
   }

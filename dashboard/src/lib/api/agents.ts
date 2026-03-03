@@ -98,7 +98,6 @@ export interface HistoryEvent {
   bundle_name?: string
   bundle_version?: number
   deployed_by?: string
-  changes_summary?: string
   policy_version?: string
   drift_duration_seconds?: number
   expected_version?: string

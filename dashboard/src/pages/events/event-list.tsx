@@ -1,29 +1,14 @@
-import { useMemo, useCallback, useState, useRef, useEffect } from "react"
-import { Card } from "@/components/ui/card"
+import { useMemo, useRef, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
-import { Activity, Search, X, Clock } from "lucide-react"
+import { Link } from "react-router"
+import { Activity, Search } from "lucide-react"
 import { EmptyState } from "@/components/empty-state"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts"
 import type { EventResponse } from "@/lib/api"
 import {
   extractProvenance,
@@ -33,21 +18,10 @@ import {
 } from "@/lib/payload-helpers"
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
 import { formatTime, truncate } from "@/lib/format"
-import {
-  buildHistogram,
-  histogramConfig,
-  type HistogramBucket,
-  type TimeWindow,
-  type PresetKey,
-  PRESETS,
-  PRESET_KEYS,
-  DEFAULT_TIME_WINDOW,
-  resolveWindow,
-  formatCustomLabel,
-  toLocalISOString,
-} from "@/lib/histogram"
+import { buildHistogram, type TimeWindow } from "@/lib/histogram"
+import { EventHistogram } from "./event-histogram"
 
-// -- Component -------------------------------------------------------------
+// -- Component ----------------------------------------------------------------
 
 interface EventListProps {
   events: EventResponse[]
@@ -77,7 +51,7 @@ export function EventList({
   onHighlightComplete,
 }: EventListProps) {
   const histogramData = useMemo(() => buildHistogram(events, timeWindow), [events, timeWindow])
-  const rowRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
+  const rowRefs = useRef<Map<string, HTMLElement>>(new Map())
 
   // Scroll to and highlight deep-linked event
   useEffect(() => {
@@ -89,49 +63,6 @@ export function EventList({
     const timer = setTimeout(() => onHighlightComplete(), 2000)
     return () => clearTimeout(timer)
   }, [highlightedEventId, onHighlightComplete])
-
-  // Custom range inline state
-  const [showCustomInputs, setShowCustomInputs] = useState(false)
-  const [customStart, setCustomStart] = useState("")
-  const [customEnd, setCustomEnd] = useState("")
-
-  const handleBarClick = useCallback(
-    (data: HistogramBucket) => {
-      onTimeWindowChange({ kind: "custom", start: data._start, end: data._end })
-      setShowCustomInputs(false)
-    },
-    [onTimeWindowChange],
-  )
-
-  const handlePresetSelect = useCallback(
-    (value: string) => {
-      if (value === "custom") {
-        const { start, end } = resolveWindow(timeWindow)
-        setCustomStart(toLocalISOString(new Date(start)))
-        setCustomEnd(toLocalISOString(new Date(end)))
-        setShowCustomInputs(true)
-        return
-      }
-      setShowCustomInputs(false)
-      onTimeWindowChange({ kind: "preset", key: value as PresetKey })
-    },
-    [timeWindow, onTimeWindowChange],
-  )
-
-  const handleCustomApply = useCallback(() => {
-    const s = new Date(customStart).getTime()
-    const e = new Date(customEnd).getTime()
-    if (!Number.isNaN(s) && !Number.isNaN(e) && s < e) {
-      onTimeWindowChange({ kind: "custom", start: s, end: e })
-      setShowCustomInputs(false)
-    }
-  }, [customStart, customEnd, onTimeWindowChange])
-
-  const selectValue = timeWindow.kind === "preset" ? timeWindow.key : "custom"
-  const customLabel =
-    timeWindow.kind === "custom"
-      ? formatCustomLabel(timeWindow.start, timeWindow.end)
-      : null
 
   return (
     <div className="flex h-full min-w-0 flex-col">
@@ -165,133 +96,11 @@ export function EventList({
 
       {/* Histogram */}
       {histogramData.length > 0 && (
-        <Card className="mx-3 mt-3 rounded-lg border-border bg-card/50 py-0">
-          <div className="px-4 pt-3 pb-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">
-                  Verdict Distribution
-                </span>
-                <div className="flex items-center gap-1">
-                  <Select value={selectValue} onValueChange={handlePresetSelect}>
-                    <SelectTrigger className="h-6 w-[100px] text-[10px] border-border/50">
-                      <SelectValue>
-                        {customLabel ?? PRESETS[timeWindow.kind === "preset" ? timeWindow.key : "24h"].label}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PRESET_KEYS.map((key) => (
-                        <SelectItem key={key} value={key} className="text-xs">
-                          {PRESETS[key].label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="custom" className="text-xs">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Custom...
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {timeWindow.kind === "custom" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowCustomInputs(false)
-                        onTimeWindowChange(DEFAULT_TIME_WINDOW)
-                      }}
-                      className="h-5 w-5 p-0 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500" />
-                  Allowed
-                </span>
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-sm bg-red-500" />
-                  Denied
-                </span>
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-sm bg-amber-500" />
-                  Pending
-                </span>
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-sm bg-amber-600" />
-                  Observed
-                </span>
-              </div>
-            </div>
-            {/* Inline custom time range inputs */}
-            {showCustomInputs && (
-              <div className="mt-2 flex items-end gap-2 rounded-md border border-border bg-background/50 px-3 py-2">
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">From</Label>
-                  <Input
-                    type="datetime-local"
-                    value={customStart}
-                    onChange={(e) => setCustomStart(e.target.value)}
-                    className="h-7 w-[180px] text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">To</Label>
-                  <Input
-                    type="datetime-local"
-                    value={customEnd}
-                    onChange={(e) => setCustomEnd(e.target.value)}
-                    className="h-7 w-[180px] text-xs"
-                  />
-                </div>
-                <Button size="sm" className="h-7 text-xs" onClick={handleCustomApply}>
-                  Apply
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs text-muted-foreground"
-                  onClick={() => setShowCustomInputs(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            )}
-          </div>
-          <div className="px-2 pb-2">
-            <ChartContainer config={histogramConfig} className="h-[130px] w-full [&>div]:!aspect-auto">
-              <BarChart
-                accessibilityLayer
-                data={histogramData}
-                barGap={1}
-                onClick={(state) => {
-                  if (state?.activePayload?.[0]?.payload) {
-                    handleBarClick(state.activePayload[0].payload as HistogramBucket)
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                />
-                <YAxis hide />
-                <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-                <Bar dataKey="allowed" stackId="a" fill="var(--color-allowed)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="denied" stackId="a" fill="var(--color-denied)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="pending" stackId="a" fill="var(--color-pending)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="observed" stackId="a" fill="var(--color-observed)" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </div>
-        </Card>
+        <EventHistogram
+          histogramData={histogramData}
+          timeWindow={timeWindow}
+          onTimeWindowChange={onTimeWindowChange}
+        />
       )}
 
       {/* Event List */}
@@ -312,14 +121,15 @@ export function EventList({
             const prov = extractProvenance(event)
             const label = contractLabel(prov)
             return (
-              <button
+              <Button
+                variant="ghost"
                 key={event.id}
                 ref={(el) => {
                   if (el) rowRefs.current.set(event.id, el)
                   else rowRefs.current.delete(event.id)
                 }}
                 onClick={() => onSelectEvent(event.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 h-auto text-left justify-start transition-colors ${
                   observe ? "opacity-75" : ""
                 } ${
                   isHighlighted
@@ -335,9 +145,13 @@ export function EventList({
                   {formatTime(event.timestamp)}
                 </span>
 
-                <span className="w-[110px] shrink-0 truncate text-xs font-medium text-foreground">
+                <Link
+                  to={`/dashboard/agents/${encodeURIComponent(event.agent_id)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-[110px] shrink-0 truncate text-xs font-medium text-foreground hover:text-primary hover:underline"
+                >
                   {event.agent_id}
-                </span>
+                </Link>
 
                 <Badge
                   variant="outline"
@@ -367,7 +181,7 @@ export function EventList({
                 >
                   {event.verdict}
                 </Badge>
-              </button>
+              </Button>
             )
           })}
         </div>

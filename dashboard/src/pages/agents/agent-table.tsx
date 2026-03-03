@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronRight, ChevronDown } from "lucide-react"
 import { EnvBadge } from "@/lib/env-colors"
 import { formatRelativeTime, truncate } from "@/lib/format"
-import { COVERAGE_STYLES } from "@/lib/coverage-colors"
+import { COVERAGE_STYLES, DRIFT_STYLES } from "@/lib/coverage-colors"
 import { CoverageBar } from "./coverage-bar"
 import type { AgentCoverageSummaryEntry, UngovernedToolEntry } from "@/lib/api"
 import type { PresetKey } from "@/lib/histogram"
@@ -26,12 +26,6 @@ interface AgentTableProps {
   since: PresetKey
   loading: boolean
   ungoverned: UngovernedToolEntry[]
-}
-
-const DRIFT_STYLES: Record<string, string> = {
-  current: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  drift: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30",
-  unknown: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 border-zinc-500/30",
 }
 
 export function AgentTable({ agents, since, loading, ungoverned }: AgentTableProps) {
@@ -65,7 +59,8 @@ export function AgentTable({ agents, since, loading, ungoverned }: AgentTablePro
       accessorKey: "drift_status", header: "Drift", size: 80, enableSorting: true,
       cell: ({ getValue }) => {
         const s = getValue<string>()
-        return <Badge variant="outline" className={`text-[10px] ${DRIFT_STYLES[s] ?? DRIFT_STYLES.unknown}`}>{s}</Badge>
+        const style = DRIFT_STYLES[s] ?? DRIFT_STYLES.unknown
+        return <Badge variant="outline" className={`text-[10px] ${style.className}`}>{style.label}</Badge>
       },
     },
     {

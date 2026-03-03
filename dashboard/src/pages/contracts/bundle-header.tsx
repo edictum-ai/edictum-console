@@ -16,7 +16,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { ChevronRight, Clock, User } from "lucide-react"
+import { Link } from "react-router"
+import { ChevronRight, Clock, User, Users } from "lucide-react"
 import { CONTRACT_MODE_COLORS } from "@/lib/contract-colors"
 import { EnvBadge } from "@/lib/env-colors"
 import { formatRelativeTime } from "@/lib/format"
@@ -30,6 +31,7 @@ interface BundleHeaderProps {
   onVersionChange: (version: number) => void
   parsedBundle: ContractBundle
   coverage: ContractCoverage[]
+  agentCount: number | null
 }
 
 const KNOWN_ENVS = ["production", "staging", "development"] as const
@@ -41,6 +43,7 @@ export function BundleHeader({
   onVersionChange,
   parsedBundle,
   coverage,
+  agentCount,
 }: BundleHeaderProps) {
   const selected = bundles.find((b) => b.version === selectedVersion)
   if (!selected) return null
@@ -145,6 +148,15 @@ export function BundleHeader({
         <span className={coveragePct > 0 ? "text-emerald-600 dark:text-emerald-400" : ""}>
           {coveragePct}% triggered
         </span>
+        {agentCount != null && agentCount > 0 && (
+          <Link
+            to="/dashboard/agents"
+            className="flex items-center gap-1 hover:text-primary hover:underline"
+          >
+            <Users className="size-3" />
+            {agentCount} agent{agentCount !== 1 ? "s" : ""}
+          </Link>
+        )}
         {toolEntries.length > 0 && (
           <Collapsible className="inline-flex">
             <CollapsibleTrigger className="group flex items-center gap-1 hover:text-foreground">
