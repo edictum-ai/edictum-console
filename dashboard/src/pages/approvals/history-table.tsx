@@ -30,6 +30,7 @@ export function HistoryTable({ approvals, loading }: HistoryTableProps) {
   }
 
   return (
+    <div className="overflow-x-auto rounded-md border">
     <Table>
       <TableHeader>
         <TableRow>
@@ -128,5 +129,6 @@ export function HistoryTable({ approvals, loading }: HistoryTableProps) {
         )}
       </TableBody>
     </Table>
+    </div>
   )
 }

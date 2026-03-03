@@ -20,6 +20,7 @@ import {
 } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { useAuth } from "@/hooks/use-auth"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { getTimerState } from "./approvals/timer"
 import { ApprovalCard } from "./approvals/approval-card"
 import { ApprovalsTable } from "./approvals/approvals-table"
@@ -162,8 +163,10 @@ export function ApprovalsQueue() {
     }
   }
 
-  // Determine card vs table mode
-  const isCardMode = viewMode === "cards" || (viewMode === "auto" && pending.length < CARD_THRESHOLD)
+  const isMobile = useIsMobile()
+
+  // Determine card vs table mode — force cards on mobile
+  const isCardMode = isMobile || viewMode === "cards" || (viewMode === "auto" && pending.length < CARD_THRESHOLD)
 
   // Count approvals in red zone (expiring soon)
   const expiringCount = pending.filter(
@@ -180,7 +183,7 @@ export function ApprovalsQueue() {
           </div>
           <Skeleton className="h-8 w-20" />
         </div>
-        <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rounded-lg border border-border p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -229,8 +232,8 @@ export function ApprovalsQueue() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+          {/* View mode toggle — hidden on mobile, cards are forced */}
+          <div className="hidden items-center gap-1 rounded-lg border border-border p-0.5 md:flex">
             <Button
               size="icon-xs"
               variant={isCardMode ? "default" : "ghost"}
@@ -288,7 +291,7 @@ export function ApprovalsQueue() {
               description="When a contract requires human approval before a tool call executes, it appears here. Add effect: approve to a pre-contract or sandbox contract to enable human-in-the-loop."
             />
           ) : isCardMode ? (
-            <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3 items-stretch">
+            <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3 items-stretch">
               {pending.map((approval) => (
                 <ApprovalCard
                   key={approval.id}

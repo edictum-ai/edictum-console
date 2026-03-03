@@ -77,7 +77,7 @@ export function ApprovalsTable({
     <div className="space-y-3">
       {/* Bulk actions bar */}
       {someSelected && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-2.5">
           <span className="text-sm font-medium">{selected.size} selected</span>
           <div className="flex items-center gap-2 ml-auto">
             <Button
@@ -133,6 +133,7 @@ export function ApprovalsTable({
         </div>
       )}
 
+      <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -262,6 +263,7 @@ export function ApprovalsTable({
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   )
 }

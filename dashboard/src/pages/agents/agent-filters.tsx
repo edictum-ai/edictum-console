@@ -26,7 +26,7 @@ interface AgentFiltersBarProps {
 export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate }: AgentFiltersBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border">
-      <InputGroup className="w-[200px]">
+      <InputGroup className="w-full sm:w-[200px]">
         <InputGroupAddon>
           <Search className="h-4 w-4" />
         </InputGroupAddon>
@@ -38,7 +38,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
       </InputGroup>
 
       <Select value={env} onValueChange={(v) => onUpdate("env", v)}>
-        <SelectTrigger className="w-[130px] h-9">
+        <SelectTrigger className="w-full sm:w-[130px] h-9">
           <SelectValue placeholder="Environment" />
         </SelectTrigger>
         <SelectContent>
@@ -50,7 +50,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
       </Select>
 
       <Select value={coverage} onValueChange={(v) => onUpdate("coverage", v as CoverageFilter)}>
-        <SelectTrigger className="w-[150px] h-9">
+        <SelectTrigger className="w-full sm:w-[150px] h-9">
           <SelectValue placeholder="Coverage" />
         </SelectTrigger>
         <SelectContent>
@@ -62,7 +62,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
       </Select>
 
       <Select value={drift} onValueChange={(v) => onUpdate("drift", v as DriftFilter)}>
-        <SelectTrigger className="w-[120px] h-9">
+        <SelectTrigger className="w-full sm:w-[120px] h-9">
           <SelectValue placeholder="Drift" />
         </SelectTrigger>
         <SelectContent>
@@ -73,7 +73,7 @@ export function AgentFiltersBar({ search, env, coverage, drift, since, onUpdate 
       </Select>
 
       <Select value={since} onValueChange={(v) => onUpdate("since", v as PresetKey)}>
-        <SelectTrigger className="w-[110px] h-9">
+        <SelectTrigger className="w-full sm:w-[110px] h-9">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
