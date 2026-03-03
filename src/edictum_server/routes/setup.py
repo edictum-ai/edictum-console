@@ -10,8 +10,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.local import LocalAuthProvider
+from edictum_server.config import Settings, get_settings
 from edictum_server.db.engine import get_db
-from edictum_server.db.models import Tenant, User
+from edictum_server.db.models import SigningKey, Tenant, User
+from edictum_server.services.signing_service import generate_signing_keypair
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class SetupResponse(BaseModel):
 async def setup(
     body: SetupRequest,
     db: AsyncSession = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ) -> SetupResponse:
     """Create the first admin user and tenant.
 
@@ -75,6 +78,19 @@ async def setup(
         is_admin=True,
     )
     db.add(admin)
+
+    # Create initial signing key for bundle deployment
+    if settings.signing_key_secret:
+        secret = bytes.fromhex(settings.signing_key_secret)
+        public_key_bytes, encrypted_private_key = generate_signing_keypair(secret)
+        signing_key = SigningKey(
+            tenant_id=tenant.id,
+            public_key=public_key_bytes,
+            private_key_encrypted=encrypted_private_key,
+            active=True,
+        )
+        db.add(signing_key)
+
     await db.commit()
 
     logger.info("Setup complete: admin user %s created", body.email)

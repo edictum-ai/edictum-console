@@ -113,6 +113,8 @@ async def _bootstrap_admin(_app: FastAPI) -> None:
     settings = get_settings()
     from edictum_server.auth.local import LocalAuthProvider
     from edictum_server.db.models import Tenant, User
+    from edictum_server.services.signing_service import generate_signing_keypair
+    from edictum_server.db.models import SigningKey as SigningKeyModel
 
     async with async_session_factory()() as db:
         result = await db.execute(select(func.count()).select_from(User))
@@ -151,8 +153,65 @@ async def _bootstrap_admin(_app: FastAPI) -> None:
             is_admin=True,
         )
         db.add(admin)
+        await db.flush()
+
+        # Create initial signing key for bundle deployment
+        if settings.signing_key_secret:
+            secret = bytes.fromhex(settings.signing_key_secret)
+            public_key_bytes, encrypted_private_key = generate_signing_keypair(secret)
+            signing_key = SigningKeyModel(
+                tenant_id=tenant.id,
+                public_key=public_key_bytes,
+                private_key_encrypted=encrypted_private_key,
+                active=True,
+            )
+            db.add(signing_key)
+            logger.info("Created initial signing key for tenant")
+
         await db.commit()
         logger.info("Bootstrapped admin user: %s", settings.admin_email)
+
+
+async def _ensure_signing_keys(settings: Settings) -> None:
+    """Backfill: create signing keys for tenants that don't have one.
+
+    This handles existing deployments that were bootstrapped before
+    signing key auto-creation was added.
+    """
+    if not settings.signing_key_secret:
+        return
+
+    from edictum_server.db.models import SigningKey as SigningKeyModel, Tenant
+    from edictum_server.services.signing_service import generate_signing_keypair
+
+    async with async_session_factory()() as db:
+        # Find tenants without an active signing key
+        tenants_with_keys = (
+            select(SigningKeyModel.tenant_id)
+            .where(SigningKeyModel.active.is_(True))
+            .subquery()
+        )
+        result = await db.execute(
+            select(Tenant).where(Tenant.id.not_in(select(tenants_with_keys.c.tenant_id)))
+        )
+        tenants = result.scalars().all()
+
+        if not tenants:
+            return
+
+        secret = bytes.fromhex(settings.signing_key_secret)
+        for tenant in tenants:
+            public_key_bytes, encrypted_private_key = generate_signing_keypair(secret)
+            key = SigningKeyModel(
+                tenant_id=tenant.id,
+                public_key=public_key_bytes,
+                private_key_encrypted=encrypted_private_key,
+                active=True,
+            )
+            db.add(key)
+            logger.info("Created signing key for tenant %s", tenant.id)
+
+        await db.commit()
 
 
 @asynccontextmanager
@@ -195,6 +254,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Bootstrap admin on first run
     await _bootstrap_admin(app)
+
+    # Ensure every tenant has an active signing key
+    await _ensure_signing_keys(settings)
 
     # Background workers
     timeout_task = asyncio.create_task(_approval_timeout_worker(app))
