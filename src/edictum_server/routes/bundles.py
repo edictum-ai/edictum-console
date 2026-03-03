@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +17,7 @@ from edictum_server.db.engine import get_db
 from edictum_server.db.models import Bundle
 from edictum_server.push.manager import PushManager, get_push_manager
 from edictum_server.schemas.bundles import (
+    BundleCurrentResponse,
     BundleResponse,
     BundleSummaryResponse,
     BundleUploadRequest,
@@ -108,16 +111,18 @@ async def list_bundles(
 
 # Register /{name}/current BEFORE /{name}/{version} — FastAPI matches top-to-bottom.
 # Since version is typed as int, "current" won't match it, but order is a safety measure.
-@router.get("/{name}/current", response_model=BundleResponse)
+@router.get("/{name}/current", response_model=BundleCurrentResponse)
 async def current(
     name: str,
     env: str = Query(..., description="Target environment"),
     auth: AuthContext = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
-) -> BundleResponse:
+) -> BundleCurrentResponse:
     """Get the currently deployed bundle for a (name, env) pair.
 
-    Accessible by both API-key agents and dashboard-authenticated users.
+    Returns bundle metadata plus the YAML content (base64-encoded) so
+    agents can parse and enforce contracts. Accessible by both API-key
+    agents and dashboard-authenticated users.
     """
     bundle = await get_current_bundle(db, auth.tenant_id, env, bundle_name=name)
     if bundle is None:
@@ -125,7 +130,11 @@ async def current(
             status_code=404,
             detail=f"No deployed bundle '{name}' for env '{env}'",
         )
-    return _bundle_to_response(bundle)
+    resp = _bundle_to_response(bundle)
+    return BundleCurrentResponse(
+        **resp.model_dump(),
+        yaml_bytes=base64.b64encode(bundle.yaml_bytes).decode(),
+    )
 
 
 @router.get("/{name}", response_model=list[BundleWithDeploymentsResponse])

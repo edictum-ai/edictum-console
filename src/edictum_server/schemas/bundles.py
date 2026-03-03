@@ -32,6 +32,16 @@ class BundleResponse(BaseModel):
     created_at: datetime
 
 
+class BundleCurrentResponse(BundleResponse):
+    """Bundle response with YAML content for agent consumption.
+
+    Used by GET /{name}/current — agents need the actual contract YAML
+    to parse and enforce. The yaml_bytes field is base64-encoded.
+    """
+
+    yaml_bytes: str  # base64-encoded YAML content
+
+
 class BundleWithDeploymentsResponse(BundleResponse):
     """Bundle response enriched with deployed environment names."""
 
