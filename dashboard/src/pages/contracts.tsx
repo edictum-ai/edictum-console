@@ -12,8 +12,16 @@ const VALID_TABS = new Set(["library", "bundles", "deployments", "evaluate"])
 
 /** Wrapper that defers bundle data fetching until the Evaluate tab mounts. */
 function EvaluateTabConnected() {
-  const { versions, selectedBundle } = useContractsData()
-  return <EvaluateTab bundles={versions} selectedBundle={selectedBundle} />
+  const { versions, selectedBundle, summaries, handleBundleChange } = useContractsData()
+  const bundleNames = summaries.map((s) => s.name)
+  return (
+    <EvaluateTab
+      bundles={versions}
+      selectedBundle={selectedBundle}
+      bundleNames={bundleNames}
+      onBundleChange={handleBundleChange}
+    />
+  )
 }
 
 export function ContractsPage() {

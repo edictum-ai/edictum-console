@@ -30,6 +30,8 @@ function formatEvalError(raw: string): string {
 interface EvaluateManualProps {
   bundles: BundleWithDeployments[]
   selectedBundle: string | null
+  bundleNames?: string[]
+  onBundleChange?: (name: string) => void
 }
 
 type EvalState =
@@ -44,7 +46,7 @@ const DEFAULT_FIELDS: ToolCallFields = {
   showAdvanced: false, principalUserId: "", principalRole: "", principalClaimsStr: "{}",
 }
 
-export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps) {
+export function EvaluateManual({ bundles, selectedBundle, bundleNames, onBundleChange }: EvaluateManualProps) {
   const sorted = [...bundles].sort((a, b) => b.version - a.version)
 
   const [sourceMode, setSourceMode] = useState<"deployed" | "custom" | "composition">("deployed")
@@ -149,6 +151,19 @@ export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps)
           </TabsList>
           <TabsContent value="deployed" className="mt-2">
             <div className="flex items-center gap-2">
+              {bundleNames && bundleNames.length > 1 && onBundleChange && (
+                <Select value={selectedBundle ?? ""} onValueChange={onBundleChange}>
+                  <SelectTrigger className="w-48"><SelectValue placeholder="Select bundle..." /></SelectTrigger>
+                  <SelectContent>
+                    {bundleNames.map((name) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {bundleNames && bundleNames.length === 1 && selectedBundle && (
+                <span className="text-sm font-medium text-foreground">{selectedBundle}</span>
+              )}
               <Select value={sourceVersion} onValueChange={(v) => void handleVersionChange(v)}>
                 <SelectTrigger className="w-48"><SelectValue placeholder="Select version..." /></SelectTrigger>
                 <SelectContent>

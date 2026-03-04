@@ -10,9 +10,11 @@ import { AiChatPanel } from "./ai-chat-panel"
 interface EvaluateTabProps {
   bundles: BundleWithDeployments[]
   selectedBundle: string | null
+  bundleNames?: string[]
+  onBundleChange?: (name: string) => void
 }
 
-export function EvaluateTab({ bundles, selectedBundle }: EvaluateTabProps) {
+export function EvaluateTab({ bundles, selectedBundle, bundleNames, onBundleChange }: EvaluateTabProps) {
   const [showAi, setShowAi] = useState(false)
 
   if (bundles.length === 0) {
@@ -42,7 +44,7 @@ export function EvaluateTab({ bundles, selectedBundle }: EvaluateTabProps) {
               </Button>
             </div>
             <TabsContent value="manual" className="mt-4">
-              <EvaluateManual bundles={bundles} selectedBundle={selectedBundle} />
+              <EvaluateManual bundles={bundles} selectedBundle={selectedBundle} bundleNames={bundleNames} onBundleChange={onBundleChange} />
             </TabsContent>
             <TabsContent value="replay" className="mt-4">
               <EvaluateReplay bundles={bundles} selectedBundle={selectedBundle} />
