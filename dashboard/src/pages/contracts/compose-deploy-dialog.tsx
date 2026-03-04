@@ -81,8 +81,8 @@ export function ComposeDeployDialog({
           <div className="space-y-3">
             <Alert>
               <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-              <AlertDescription className="leading-relaxed">
-                Deployed <strong>{result.bundle_name}</strong> v{result.bundle_version} to <strong>{env}</strong>. {result.contracts_assembled.length} contract{result.contracts_assembled.length !== 1 ? "s" : ""} assembled.
+              <AlertDescription>
+                <p>Deployed <strong>{result.bundle_name}</strong> v{result.bundle_version} to <strong>{env}</strong>. {result.contracts_assembled.length} contract{result.contracts_assembled.length !== 1 ? "s" : ""} assembled.</p>
               </AlertDescription>
             </Alert>
           </div>
@@ -110,8 +110,7 @@ export function ComposeDeployDialog({
               <Alert>
                 <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
                 <AlertDescription>
-                  Deploying to <span className="font-medium">production</span> will
-                  push to agents subscribed to this bundle immediately.
+                  <p>Deploying to <span className="font-medium">production</span> will push to agents subscribed to this bundle immediately.</p>
                 </AlertDescription>
               </Alert>
             )}

@@ -7,7 +7,7 @@ interface StatsState {
   error: string | null
 }
 
-const POLL_INTERVAL = 15_000
+const POLL_INTERVAL = 60_000
 
 export function useStats() {
   const [state, setState] = useState<StatsState>({
