@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  Sparkles,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { EventResponse } from "@/lib/api"
@@ -131,6 +132,13 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
             </div>
 
             <DecisionContextCard prov={prov} />
+
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/dashboard/contracts?tab=library&new=true&from_event=${encodeURIComponent(event.id)}`}>
+                <Sparkles className="size-3.5" />
+                Create Contract
+              </Link>
+            </Button>
           </div>
 
           {/* Right column: tool args, contracts, raw JSON */}

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { CheckCircle2, Code2, MessageSquare } from "lucide-react"
+import { Link } from "react-router"
+import { CheckCircle2, Code2, MessageSquare, Sparkles } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { formatDecisionSource } from "@/lib/payload-helpers"
 import { ChannelBadge } from "./badges"
@@ -105,6 +106,13 @@ export function ExpandedDetail({ approval, onApprove, onDeny, acting }: Expanded
               size="sm"
             />
           </div>
+
+          <Button variant="outline" size="sm" className="w-full" asChild>
+            <Link to={`/dashboard/contracts?tab=library&new=true&from_event=${encodeURIComponent(approval.id)}`}>
+              <Sparkles className="size-3.5" />
+              Create Contract
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

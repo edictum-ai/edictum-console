@@ -207,7 +207,10 @@ async def deploy(
     settings: Settings = Depends(get_settings),
 ) -> DeploymentResponse:
     """Deploy a bundle version to an environment (dashboard-authenticated)."""
-    signing_secret = bytes.fromhex(settings.signing_key_secret)
+    try:
+        signing_secret = settings.get_signing_secret()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
         deployment = await deploy_bundle(

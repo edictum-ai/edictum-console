@@ -49,6 +49,32 @@ class Settings(BaseSettings):
     # CORS allowed origins (comma-separated)
     cors_origins: str = "http://localhost:8000,http://localhost:3000"
 
+    def get_signing_secret(self) -> bytes:
+        """Validate and return signing_key_secret as 32 bytes.
+
+        Raises ValueError with a human-readable message if the secret is
+        missing, not valid hex, or the wrong length.  Routes should catch
+        this and return 422.
+        """
+        if not self.signing_key_secret:
+            raise ValueError(
+                "Server signing key secret is not configured "
+                "(EDICTUM_SIGNING_KEY_SECRET). "
+                "Bundle signing and deployment is unavailable."
+            )
+        try:
+            raw = bytes.fromhex(self.signing_key_secret)
+        except ValueError as exc:
+            raise ValueError(
+                "EDICTUM_SIGNING_KEY_SECRET is not valid hex."
+            ) from exc
+        if len(raw) != 32:
+            raise ValueError(
+                "EDICTUM_SIGNING_KEY_SECRET must be exactly 32 bytes "
+                f"(64 hex chars), got {len(raw)}."
+            )
+        return raw
+
     # Runtime environment
     env_name: str = "development"
 

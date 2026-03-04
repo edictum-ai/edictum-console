@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
@@ -22,7 +22,10 @@ async def rotate_key(
     settings: Settings = Depends(get_settings),
 ) -> RotateKeyResponse:
     """Rotate the tenant's Ed25519 signing key and re-sign active deployments."""
-    signing_secret = bytes.fromhex(settings.signing_key_secret)
+    try:
+        signing_secret = settings.get_signing_secret()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     result = await rotate_signing_key(db, auth.tenant_id, signing_secret)
     await db.commit()
     return RotateKeyResponse(

@@ -10,6 +10,7 @@ import type { BundleWithDeployments, EvaluateResponse } from "@/lib/api"
 import { validateBundle } from "./yaml-parser"
 import { EvaluateResult } from "./evaluate-result"
 import { ToolCallBuilder, type ToolCallFields } from "./tool-call-builder"
+import { CompositionSourceSelector } from "./composition-source-selector"
 
 interface EvaluateManualProps {
   bundles: BundleWithDeployments[]
@@ -31,7 +32,7 @@ const DEFAULT_FIELDS: ToolCallFields = {
 export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps) {
   const sorted = [...bundles].sort((a, b) => b.version - a.version)
 
-  const [sourceMode, setSourceMode] = useState<"deployed" | "custom">("deployed")
+  const [sourceMode, setSourceMode] = useState<"deployed" | "custom" | "composition">("deployed")
   const [sourceVersion, setSourceVersion] = useState(sorted[0]?.version ? String(sorted[0].version) : "")
   const [yamlContent, setYamlContent] = useState("")
   const [yamlError, setYamlError] = useState<string | null>(null)
@@ -121,12 +122,14 @@ export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps)
       <div className="space-y-3">
         <Label className="text-xs font-medium text-muted-foreground">Contract Source</Label>
         <Tabs value={sourceMode} onValueChange={(v) => {
-          const mode = v as "deployed" | "custom"
+          const mode = v as "deployed" | "custom" | "composition"
           setSourceMode(mode)
           if (mode === "custom") { setYamlContent(""); setYamlError(null) }
+          if (mode === "composition") { setYamlContent(""); setYamlError(null) }
         }}>
           <TabsList className="h-8">
             <TabsTrigger value="deployed" className="text-xs">Use deployed version</TabsTrigger>
+            <TabsTrigger value="composition" className="text-xs">Load from composition</TabsTrigger>
             <TabsTrigger value="custom" className="text-xs">Paste custom YAML</TabsTrigger>
           </TabsList>
           <TabsContent value="deployed" className="mt-2">
@@ -144,12 +147,18 @@ export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps)
               {loadingYaml && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
             </div>
           </TabsContent>
+          <TabsContent value="composition" className="mt-2">
+            <CompositionSourceSelector
+              onYamlLoaded={(yaml) => { setYamlContent(yaml); setYamlError(null) }}
+              onError={setYamlError}
+            />
+          </TabsContent>
           <TabsContent value="custom" className="mt-2">
             <Textarea className="font-mono text-xs" rows={8} placeholder="Paste contract bundle YAML..."
               value={yamlContent} onChange={(e) => handleCustomYamlChange(e.target.value)} />
-            {yamlError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{yamlError}</p>}
           </TabsContent>
         </Tabs>
+        {yamlError && <p className="text-xs text-red-600 dark:text-red-400">{yamlError}</p>}
       </div>
 
       <ToolCallBuilder fields={fields} onChange={handleFieldChange} />

@@ -19,7 +19,7 @@ import { Loader2, Upload } from "lucide-react"
 import { toast } from "sonner"
 import { uploadBundle } from "@/lib/api"
 import { validateBundle } from "./yaml-parser"
-import { DEVOPS_AGENT_TEMPLATE, GOVERNANCE_V5_TEMPLATE } from "./templates"
+import { STARTER_PACKS } from "./templates"
 
 interface UploadSheetProps {
   onRefresh: () => void
@@ -52,7 +52,7 @@ export function UploadSheet({ onRefresh }: UploadSheetProps) {
 
   const handleTemplateSelect = useCallback(
     (value: string) => {
-      const tpl = value === "devops" ? DEVOPS_AGENT_TEMPLATE : GOVERNANCE_V5_TEMPLATE
+      const tpl = value === "devops" ? STARTER_PACKS[1]?.yamlContent ?? "" : STARTER_PACKS[2]?.yamlContent ?? ""
       if (yaml.trim()) {
         setPendingContent(tpl)
         setConfirmOpen(true)

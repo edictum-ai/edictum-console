@@ -20,7 +20,10 @@ _DASHBOARD_EVENT_TYPES = frozenset({
     "approval_decided",
     "approval_timeout",
     "bundle_uploaded",
+    "composition_changed",
+    "contract_created",
     "contract_update",
+    "contract_updated",
 })
 
 # Cleanup interval and max connection age.

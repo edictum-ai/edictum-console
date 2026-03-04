@@ -64,7 +64,7 @@ export function ToolCoverageList({ tools }: ToolCoverageListProps) {
 
 function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
   const contractLink = tool.contract_name && tool.bundle_name
-    ? `/dashboard/contracts?bundle=${encodeURIComponent(tool.bundle_name)}&tab=contracts`
+    ? `/dashboard/contracts?bundle=${encodeURIComponent(tool.bundle_name)}&tab=bundles`
     : null
 
   const typeStyle = tool.contract_type

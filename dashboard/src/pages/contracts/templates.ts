@@ -1,4 +1,81 @@
-export const DEVOPS_AGENT_TEMPLATE = `apiVersion: edictum/v1
+export interface StarterPack {
+  name: string
+  description: string
+  contractCount: number
+  types: string[]
+  yamlContent: string
+}
+
+export const STARTER_PACKS: StarterPack[] = [
+  {
+    name: "Research Agent",
+    description:
+      "Safe browsing, no file writes, session limits. Ideal for agents that search and summarize.",
+    contractCount: 4,
+    types: ["pre", "post", "session"],
+    yamlContent: `apiVersion: edictum/v1
+kind: ContractBundle
+
+metadata:
+  name: research-agent
+  description: "Safe browsing, no file writes, session limits."
+
+defaults:
+  mode: enforce
+
+contracts:
+  - id: deny-file-writes
+    type: pre
+    tool: write_file
+    when: { tool.name: { exists: true } }
+    then:
+      effect: deny
+      message: "Research agents cannot write files."
+      tags: [safety, read-only]
+
+  - id: block-dangerous-urls
+    type: pre
+    tool: web_fetch
+    when:
+      args.url:
+        matches_any:
+          - '169\\.254\\.169\\.254'
+          - 'metadata\\.google\\.internal'
+    then:
+      effect: deny
+      message: "Blocked endpoint: {args.url}"
+      tags: [security, ssrf]
+
+  - id: pii-in-output
+    type: post
+    tool: "*"
+    when:
+      output.text:
+        matches_any:
+          - '\\b\\d{3}-\\d{2}-\\d{4}\\b'
+    then:
+      effect: warn
+      message: "PII pattern detected in output. Review before sharing."
+      tags: [pii, compliance]
+
+  - id: session-limits
+    type: session
+    limits:
+      max_tool_calls: 30
+      max_attempts: 100
+    then:
+      effect: deny
+      message: "Session limit reached. Summarize progress and stop."
+      tags: [rate-limit]
+`,
+  },
+  {
+    name: "DevOps Agent",
+    description:
+      "Deployment safety gates, prod protections, ticket requirements, PII detection.",
+    contractCount: 6,
+    types: ["pre", "post", "session"],
+    yamlContent: `apiVersion: edictum/v1
 kind: ContractBundle
 
 metadata:
@@ -25,8 +102,8 @@ contracts:
     tool: bash
     when:
       any:
-        - args.command: { matches: '\\\\brm\\\\s+(-rf?|--recursive)\\\\b' }
-        - args.command: { matches: '\\\\bmkfs\\\\b' }
+        - args.command: { matches: '\\brm\\s+(-rf?|--recursive)\\b' }
+        - args.command: { matches: '\\bmkfs\\b' }
         - args.command: { contains: '> /dev/' }
     then:
       effect: deny
@@ -63,7 +140,7 @@ contracts:
     when:
       output.text:
         matches_any:
-          - '\\\\b\\\\d{3}-\\\\d{2}-\\\\d{4}\\\\b'
+          - '\\b\\d{3}-\\d{2}-\\d{4}\\b'
     then:
       effect: warn
       message: "PII pattern detected in output. Redact before using."
@@ -78,30 +155,23 @@ contracts:
       effect: deny
       message: "Session limit reached. Summarize progress and stop."
       tags: [rate-limit]
-`
-
-export const GOVERNANCE_V5_TEMPLATE = `apiVersion: edictum/v1
+`,
+  },
+  {
+    name: "Production Governance",
+    description:
+      "Sandbox enforcement, rate limits, MCP approval gates. For production-grade agent fleets.",
+    contractCount: 5,
+    types: ["pre", "sandbox", "session"],
+    yamlContent: `apiVersion: edictum/v1
 kind: ContractBundle
 
 metadata:
-  name: edictum-agent
-  description: "Production governance v5 — L2 sandbox"
+  name: production-governance
+  description: "Production governance — sandboxes, rate limits, MCP approval gates."
 
 defaults:
   mode: enforce
-
-tools:
-  exec: { side_effect: irreversible }
-  write_file: { side_effect: irreversible }
-  edit_file: { side_effect: irreversible }
-  read_file: { side_effect: read }
-  list_dir: { side_effect: read }
-  web_search: { side_effect: read }
-  web_fetch: { side_effect: read }
-  message: { side_effect: write }
-  spawn: { side_effect: irreversible }
-  cron: { side_effect: write }
-  "mcp_*": { side_effect: irreversible }
 
 contracts:
   - id: deny-destructive
@@ -109,39 +179,20 @@ contracts:
     tool: exec
     when:
       args.command:
-        matches: '.*(rm\\s+-rf\\s+/|mkfs|dd\\s+if=/dev/|shutdown|reboot|kill\\s+-9\\s+1\\b|chmod\\s+777\\s+/).*'
+        matches: '.*(rm\\s+-rf\\s+/|mkfs|dd\\s+if=/dev/|shutdown|reboot).*'
     then:
       effect: deny
-      message: "Destructive: {args.command}"
-
-  - id: deny-shells
-    type: pre
-    tool: exec
-    when:
-      args.command:
-        matches: '.*(nc\\s+.*-e|ncat\\s+.*-e|bash\\s+-i|/dev/tcp/|socat.*exec).*'
-    then:
-      effect: deny
-      message: "Shell attack: {args.command}"
-
-  - id: deny-exec-metadata
-    type: pre
-    tool: exec
-    when:
-      args.command:
-        matches: '.*(169\\.254\\.169\\.254|metadata\\.google\\.internal|metadata\\.azure\\.com).*'
-    then:
-      effect: deny
-      message: "Cloud metadata blocked: {args.command}"
+      message: "Destructive command denied: {args.command}"
+      tags: [destructive, safety]
 
   - id: file-sandbox
     type: sandbox
     tools: [read_file, write_file, edit_file, list_dir]
     within:
-      - /root/.nanobot/workspace
+      - /app/workspace
       - /tmp
     not_within:
-      - /root/.nanobot/workspace/.git
+      - /app/workspace/.git
     outside: deny
     message: "File access outside workspace: {args.path}"
 
@@ -150,66 +201,34 @@ contracts:
     tools: [exec]
     allows:
       commands: [ls, pwd, echo, cat, head, tail, grep, find, sort,
-                 wc, date, uname, whoami, id, df, du, ps, tree,
-                 git, pip, pip3, python, python3, node, npm, npx, pnpm,
-                 mkdir, touch, cp, mv, rm, tar, gzip, unzip, zip, diff,
-                 curl, wget, docker, jq, yq, file, stat, which,
-                 free, uptime, top, htop, history, env, printenv,
-                 ssh-keygen, openssl, base64, md5sum, sha256sum,
-                 apt, dpkg, lsof, ss, netstat, ip, ping, dig, nslookup,
-                 sed, awk, cut, tr, xargs, tee, less, more]
+                 wc, date, git, python, node, npm, pnpm, pip,
+                 mkdir, touch, cp, mv, curl, jq, docker]
     within:
-      - /root/.nanobot/workspace
+      - /app/workspace
       - /tmp
-    not_within:
-      - /etc/shadow
-      - /etc/sudoers
-      - /etc/gshadow
-      - /proc
-      - /sys
-      - /root/.ssh
-      - /root/.git-credentials
-      - /root/.nanobot/config.json
-      - /var/run/secrets
-    outside: approve
-    message: "Command outside sandbox: {args.command}"
-
-  - id: web-sandbox
-    type: sandbox
-    tools: [web_fetch]
-    allows:
-      domains: ['*']
-    not_allows:
-      domains: [169.254.169.254, metadata.google.internal, metadata.azure.com,
-                webhook.site, requestbin.com, canarytokens.org,
-                burpcollaborator.net, interactsh.com, pipedream.net, hookbin.com]
     outside: deny
-    message: "Blocked endpoint: {args.url}"
-
-  - id: observe-spawn
-    type: pre
-    mode: observe
-    tool: spawn
-    when: { tool.name: { exists: true } }
-    then: { effect: deny, message: "Spawn: {args.task}" }
-
-  - id: observe-cron
-    type: pre
-    mode: observe
-    tool: cron
-    when: { tool.name: { exists: true } }
-    then: { effect: deny, message: "Cron: {args.schedule}" }
+    message: "Command outside sandbox: {args.command}"
 
   - id: approve-mcp
     type: pre
     tool: "mcp_*"
     when: { tool.name: { exists: true } }
-    then: { effect: approve, message: "MCP: {tool.name}", timeout: 120, timeout_effect: deny }
+    then:
+      effect: approve
+      message: "MCP call requires approval: {tool.name}"
+      timeout: 120
+      timeout_effect: deny
+    tags: [mcp, approval]
 
-  - id: observe-all
-    type: pre
-    mode: observe
-    tool: "*"
-    when: { tool.name: { exists: true } }
-    then: { effect: deny, message: "{tool.name}: {args}" }
-`
+  - id: session-limits
+    type: session
+    limits:
+      max_tool_calls: 50
+      max_attempts: 200
+    then:
+      effect: deny
+      message: "Session limit reached. Report progress and stop."
+      tags: [rate-limit]
+`,
+  },
+]

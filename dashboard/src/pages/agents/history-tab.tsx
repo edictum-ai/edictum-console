@@ -50,7 +50,7 @@ function EventDescription({ event }: { event: HistoryEvent }) {
           </p>
           {event.bundle_name && event.bundle_version != null && (
             <Link
-              to={`/dashboard/contracts?bundle=${encodeURIComponent(event.bundle_name)}&version=${event.bundle_version}&tab=diff`}
+              to={`/dashboard/contracts?bundle=${encodeURIComponent(event.bundle_name)}&version=${event.bundle_version}&tab=bundles`}
               className="text-xs text-primary hover:underline"
             >
               View Diff
