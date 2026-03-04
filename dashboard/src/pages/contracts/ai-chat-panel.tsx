@@ -133,10 +133,10 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
         <Alert>
           <Settings className="size-4" />
           <AlertDescription>
-            AI assistant not configured.{" "}
+            <p>AI assistant not configured.{" "}
             <a href="/dashboard/settings?section=ai" className="font-medium underline text-blue-600 dark:text-blue-400">
               Configure in Settings
-            </a>
+            </a></p>
           </AlertDescription>
         </Alert>
       </div>
@@ -144,14 +144,14 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
   }
 
   return (
-    <div className="flex h-full flex-col border-l border-border">
-      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+    <div className="flex h-full flex-col overflow-hidden border-l border-border">
+      <div className="flex-none flex items-center gap-2 border-b border-border px-3 py-2">
         <Sparkles className="size-4 text-violet-600 dark:text-violet-400" />
         <span className="text-sm font-medium">AI Assistant</span>
       </div>
 
-      <ScrollArea className="flex-1 p-3">
-        <div className="space-y-3">
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="space-y-3 p-3">
           {messages.map((msg, i) => (
             <MessageBubble key={i} message={msg} onApply={onApplyYaml} />
           ))}
@@ -165,7 +165,7 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 border-t border-border p-3">
+      <form onSubmit={handleSubmit} className="flex-none flex gap-2 border-t border-border p-3">
         <Input
           value={input} onChange={(e) => setInput(e.target.value)}
           placeholder="Describe the contract you need..."
@@ -179,22 +179,96 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
   )
 }
 
-/** Validate YAML is parseable and looks like a contract (has tool/when/effect keys). */
+/** Validate YAML is parseable and looks like an edictum contract. */
 function validateYamlBlock(raw: string): { valid: boolean; error?: string } {
   try {
     const parsed = yamlParser.load(raw)
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       return { valid: false, error: "Not a YAML mapping" }
     }
-    const keys = Object.keys(parsed as Record<string, unknown>)
-    const hasContractShape = keys.some((k) => ["tool", "when", "effect"].includes(k))
-    if (!hasContractShape) {
-      return { valid: false, error: "Missing tool/when/effect — may not be a valid contract" }
-    }
+    const obj = parsed as Record<string, unknown>
+    if (!obj.id) return { valid: false, error: "Missing 'id' field" }
+    if (!obj.type) return { valid: false, error: "Missing 'type' field" }
+    if (!obj.tool) return { valid: false, error: "Missing 'tool' field" }
+    if (!obj.then || typeof obj.then !== "object") return { valid: false, error: "Missing 'then' block" }
+    const then = obj.then as Record<string, unknown>
+    if (!then.effect) return { valid: false, error: "Missing 'then.effect'" }
     return { valid: true }
   } catch {
     return { valid: false, error: "Invalid YAML syntax" }
   }
+}
+
+/** Render basic markdown: headings, bold, inline code, lists. No dependency needed. */
+function renderMarkdown(text: string) {
+  const lines = text.split("\n")
+  const elements: React.ReactNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]!
+
+    // Headings
+    if (line.startsWith("## ")) {
+      elements.push(<h4 key={i} className="font-semibold text-xs mt-3 mb-1">{inlineFormat(line.slice(3))}</h4>)
+      i++; continue
+    }
+    if (line.startsWith("# ")) {
+      elements.push(<h3 key={i} className="font-semibold text-sm mt-3 mb-1">{inlineFormat(line.slice(2))}</h3>)
+      i++; continue
+    }
+
+    // List items
+    if (/^[-*]\s/.test(line)) {
+      const items: React.ReactNode[] = []
+      while (i < lines.length && /^[-*]\s/.test(lines[i]!) || (i < lines.length && /^\s+[-*]\s/.test(lines[i]!))) {
+        const item = lines[i]!.replace(/^\s*[-*]\s/, "")
+        items.push(<li key={i}>{inlineFormat(item)}</li>)
+        i++
+      }
+      elements.push(<ul key={`ul-${i}`} className="list-disc list-inside space-y-0.5 text-xs">{items}</ul>)
+      continue
+    }
+
+    // Numbered list
+    if (/^\d+\.\s/.test(line)) {
+      const items: React.ReactNode[] = []
+      while (i < lines.length && /^\d+\.\s/.test(lines[i]!)) {
+        const item = lines[i]!.replace(/^\d+\.\s/, "")
+        items.push(<li key={i}>{inlineFormat(item)}</li>)
+        i++
+      }
+      elements.push(<ol key={`ol-${i}`} className="list-decimal list-inside space-y-0.5 text-xs">{items}</ol>)
+      continue
+    }
+
+    // Empty line
+    if (!line.trim()) { i++; continue }
+
+    // Regular paragraph
+    elements.push(<p key={i} className="text-xs leading-relaxed">{inlineFormat(line)}</p>)
+    i++
+  }
+
+  return <>{elements}</>
+}
+
+/** Format inline markdown: **bold**, `code`, *italic* */
+function inlineFormat(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  const re = /(\*\*(.+?)\*\*|`([^`]+?)`|\*(.+?)\*)/g
+  let last = 0
+  let match: RegExpExecArray | null
+
+  while ((match = re.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index))
+    if (match[2]) parts.push(<strong key={match.index}>{match[2]}</strong>)
+    else if (match[3]) parts.push(<code key={match.index} className="rounded bg-background/80 px-1 py-0.5 text-[10px] font-mono">{match[3]}</code>)
+    else if (match[4]) parts.push(<em key={match.index}>{match[4]}</em>)
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push(text.slice(last))
+  return parts.length === 1 ? parts[0] : <>{parts}</>
 }
 
 function MessageBubble({ message, onApply }: { message: ChatMessage; onApply: (yaml: string) => void }) {
@@ -209,7 +283,11 @@ function MessageBubble({ message, onApply }: { message: ChatMessage; onApply: (y
           ? "bg-primary text-primary-foreground"
           : "bg-muted text-foreground"
       }`}>
-        {textWithoutYaml && <p className="whitespace-pre-wrap">{textWithoutYaml}</p>}
+        {textWithoutYaml && (
+          isUser
+            ? <p className="whitespace-pre-wrap text-xs">{textWithoutYaml}</p>
+            : <div className="space-y-1">{renderMarkdown(textWithoutYaml)}</div>
+        )}
         {yamlBlocks.map((raw, i) => {
           const check = validateYamlBlock(raw)
           return (

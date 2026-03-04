@@ -54,7 +54,7 @@ export function EvaluateTab({ bundles, selectedBundle, bundleNames, onBundleChan
       </div>
 
       {showAi && (
-        <div className="w-[40%]">
+        <div className="w-[40%] max-h-[70vh]">
           <AiChatPanel
             onApplyYaml={() => {
               // In evaluate tab, applying YAML is a no-op since there's no direct editor.

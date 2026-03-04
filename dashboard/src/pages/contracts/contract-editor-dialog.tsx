@@ -215,7 +215,7 @@ export function ContractEditorDialog({
           </div>
 
           {showAi && (
-            <div className="w-[40%] min-h-[400px]">
+            <div className="w-[40%] max-h-[60vh] min-h-[400px]">
               <AiChatPanel
                 onApplyYaml={handleDefinitionChange}
                 currentYaml={definition}
