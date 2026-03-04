@@ -8,11 +8,12 @@ import { formatRelativeTime } from "@/lib/format"
 interface EnvStatusCardsProps {
   deployments: DeploymentResponse[]
   agentCountByEnv: Record<string, number>
+  agentBundlesByEnv?: Record<string, Record<string, number>>
   loading: boolean
 }
 
 /** Derive the latest deployment per environment and render status cards. */
-export function EnvStatusCards({ deployments, agentCountByEnv, loading }: EnvStatusCardsProps) {
+export function EnvStatusCards({ deployments, agentCountByEnv, agentBundlesByEnv, loading }: EnvStatusCardsProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -75,7 +76,17 @@ export function EnvStatusCards({ deployments, agentCountByEnv, loading }: EnvSta
               {agentCount > 0 && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Users className="size-3" />
-                  {agentCount} agent{agentCount !== 1 ? "s" : ""} connected
+                  <span>
+                    {agentCount} agent{agentCount !== 1 ? "s" : ""} connected
+                    {agentBundlesByEnv?.[env] && Object.keys(agentBundlesByEnv[env]!).length > 1 && (
+                      <span className="ml-1 text-muted-foreground/70">
+                        ({Object.entries(agentBundlesByEnv[env]!)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([name, count]) => `${name} (${count})`)
+                          .join(", ")})
+                      </span>
+                    )}
+                  </span>
                 </div>
               )}
             </CardContent>

@@ -33,7 +33,10 @@ export function AgentHeader({ data, fleetEntry, loading, onBack }: AgentHeaderPr
           <EnvBadge env={data.environment} />
           <Badge variant="outline" className={driftStyle.className}>{driftStyle.label}</Badge>
           {data.deployed_bundle && (
-            <Badge variant="outline" className="text-xs font-mono">v{data.deployed_bundle.version}</Badge>
+            <>
+              <Badge variant="outline" className="text-xs font-mono">{data.deployed_bundle.name}</Badge>
+              <Badge variant="outline" className="text-xs font-mono">v{data.deployed_bundle.version}</Badge>
+            </>
           )}
           {fleetEntry?.last_seen && (
             <span className="text-xs text-muted-foreground">

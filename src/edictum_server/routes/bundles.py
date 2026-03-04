@@ -67,7 +67,7 @@ async def upload(
             db=db,
             tenant_id=auth.tenant_id,
             yaml_content=body.yaml_content.encode("utf-8"),
-            uploaded_by=auth.user_id or "unknown",
+            uploaded_by=auth.email or auth.user_id or "unknown",
             source_hub_slug=None,
             source_hub_revision=None,
         )
@@ -80,7 +80,7 @@ async def upload(
         "bundle_name": bundle.name,
         "version": bundle.version,
         "revision_hash": bundle.revision_hash,
-        "uploaded_by": auth.user_id or "unknown",
+        "uploaded_by": auth.email or auth.user_id or "unknown",
     })
 
     return _bundle_to_response(bundle)
@@ -219,7 +219,7 @@ async def deploy(
             bundle_name=name,
             version=version,
             env=body.env,
-            deployed_by=auth.user_id or "unknown",
+            deployed_by=auth.email or auth.user_id or "unknown",
             signing_secret=signing_secret,
             push_manager=push,
         )

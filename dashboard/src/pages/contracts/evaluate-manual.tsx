@@ -16,7 +16,7 @@ import { CompositionSourceSelector } from "./composition-source-selector"
 function formatEvalError(raw: string): string {
   // Try to extract JSON from "API Error NNN: {...}" pattern
   const jsonMatch = raw.match(/API Error \d+:\s*(.+)$/s)
-  if (jsonMatch) {
+  if (jsonMatch?.[1]) {
     try {
       const parsed = JSON.parse(jsonMatch[1])
       if (parsed.detail) return String(parsed.detail)

@@ -111,14 +111,14 @@ export function ComposeDeployDialog({
                 <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
                 <AlertDescription>
                   Deploying to <span className="font-medium">production</span> will
-                  push to all connected agents immediately.
+                  push to agents subscribed to this bundle immediately.
                 </AlertDescription>
               </Alert>
             )}
 
             <p className="text-sm text-muted-foreground">
               This will assemble {contractCount} contract
-              {contractCount !== 1 ? "s" : ""} and push to connected agents in{" "}
+              {contractCount !== 1 ? "s" : ""} and push to agents subscribed to this bundle in{" "}
               <span className="font-medium">{env}</span>.
             </p>
 

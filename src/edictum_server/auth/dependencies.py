@@ -28,6 +28,7 @@ class AuthContext:
     env: str | None = None
     user_id: str | None = None
     agent_id: str | None = None
+    email: str | None = None
 
 
 def _extract_bearer(authorization: str) -> str:
@@ -90,6 +91,7 @@ async def require_dashboard_auth(
         tenant_id=ctx.tenant_id,
         auth_type="dashboard",
         user_id=str(ctx.user_id),
+        email=ctx.email,
     )
 
 

@@ -86,7 +86,7 @@ async def create_composition_endpoint(
     """Create a new bundle composition."""
     try:
         comp = await create_composition(
-            db, auth.tenant_id, body.name, auth.user_id or "unknown",
+            db, auth.tenant_id, body.name, auth.email or auth.user_id or "unknown",
             description=body.description, defaults_mode=body.defaults_mode,
             update_strategy=body.update_strategy, contracts=body.contracts,
             tools_config=body.tools_config, observability=body.observability,
@@ -189,7 +189,7 @@ async def deploy_endpoint(
     try:
         result = await deploy_composition(
             db, auth.tenant_id, comp, body.env,
-            auth.user_id or "unknown", signing_secret, push,
+            auth.email or auth.user_id or "unknown", signing_secret, push,
         )
         await db.commit()
     except ValueError as exc:
