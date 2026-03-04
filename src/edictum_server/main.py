@@ -12,13 +12,13 @@ from pathlib import Path
 
 import sqlalchemy as sa
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import HTTPException as StarletteHTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
-from edictum_server.config import get_settings
+from edictum_server.config import Settings, get_settings
 from edictum_server.db.engine import async_session_factory, get_engine, init_engine
 from edictum_server.notifications.base import NotificationManager
 from edictum_server.notifications.loader import load_db_channels
@@ -26,9 +26,12 @@ from edictum_server.push.manager import PushManager
 from edictum_server.redis.client import create_redis_client
 from edictum_server.routes import (
     agents,
+    ai,
     approvals,
     auth,
     bundles,
+    compositions,
+    contracts,
     deployments,
     discord,
     evaluate,
@@ -112,9 +115,9 @@ async def _bootstrap_admin(_app: FastAPI) -> None:
     """Create default tenant + admin user on first run if no users exist."""
     settings = get_settings()
     from edictum_server.auth.local import LocalAuthProvider
+    from edictum_server.db.models import SigningKey as SigningKeyModel
     from edictum_server.db.models import Tenant, User
     from edictum_server.services.signing_service import generate_signing_keypair
-    from edictum_server.db.models import SigningKey as SigningKeyModel
 
     async with async_session_factory()() as db:
         result = await db.execute(select(func.count()).select_from(User))
@@ -181,7 +184,8 @@ async def _ensure_signing_keys(settings: Settings) -> None:
     if not settings.signing_key_secret:
         return
 
-    from edictum_server.db.models import SigningKey as SigningKeyModel, Tenant
+    from edictum_server.db.models import SigningKey as SigningKeyModel
+    from edictum_server.db.models import Tenant
     from edictum_server.services.signing_service import generate_signing_keypair
 
     async with async_session_factory()() as db:
@@ -218,6 +222,12 @@ async def _ensure_signing_keys(settings: Settings) -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Startup / shutdown lifecycle hook."""
     settings = get_settings()
+
+    # Validate signing key secret early — log clearly if misconfigured
+    try:
+        settings.get_signing_secret()
+    except ValueError as exc:
+        logger.warning("Signing key config issue: %s", exc)
 
     # Database
     engine = init_engine(settings.database_url)
@@ -307,6 +317,8 @@ app.include_router(setup.router)
 app.include_router(auth.router)
 app.include_router(keys.router)
 app.include_router(bundles.router)
+app.include_router(compositions.router)
+app.include_router(contracts.router)
 app.include_router(evaluate.router)
 app.include_router(deployments.router)
 app.include_router(stream.router)
@@ -320,15 +332,17 @@ app.include_router(slack.router)
 app.include_router(agents.router)
 app.include_router(notifications.router)
 app.include_router(settings.router)
+app.include_router(ai.router)
 
 # --- 404 handler: redirect non-API paths to dashboard -------------------------
 @app.exception_handler(404)
 async def not_found_handler(
-    request: Request, exc: StarletteHTTPException  # noqa: ARG001
+    request: Request, exc: StarletteHTTPException
 ) -> JSONResponse | RedirectResponse:
     """API routes get JSON 404; everything else redirects to the dashboard."""
     if request.url.path.startswith("/api/"):
-        return JSONResponse({"detail": "Not Found"}, status_code=404)
+        detail = exc.detail if exc.detail else "Not Found"
+        return JSONResponse({"detail": detail}, status_code=404)
     return RedirectResponse(url="/dashboard", status_code=302)
 
 

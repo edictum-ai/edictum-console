@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "react-router"
 import { toast } from "sonner"
-import { Settings2, Monitor, Bell, AlertTriangle } from "lucide-react"
+import { Settings2, Monitor, Bell, AlertTriangle, Sparkles } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getHealth, type HealthResponse } from "@/lib/api"
@@ -9,6 +9,7 @@ import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { SystemSection } from "./settings/system-section"
 import { NotificationsSection } from "./settings/notifications-section"
 import { DangerZoneSection } from "./settings/danger-zone-section"
+import { AiSettingsSection } from "./settings/ai-settings-section"
 
 export default function SettingsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -51,6 +52,7 @@ export default function SettingsPage() {
       case "notifications": return channelCount > 0
         ? `${channelCount} channel${channelCount !== 1 ? "s" : ""} configured`
         : "No channels configured"
+      case "ai": return "LLM provider for evaluation playground"
       case "danger": return "Irreversible administrative actions"
       default: return ""
     }
@@ -87,6 +89,10 @@ export default function SettingsPage() {
               </Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="ai">
+            <Sparkles className="mr-2 size-4" />
+            AI
+          </TabsTrigger>
           <TabsTrigger value="danger">
             <AlertTriangle className="mr-2 size-4" />
             Danger Zone
@@ -98,6 +104,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="notifications" className="mt-4">
           <NotificationsSection onChannelCountChange={setChannelCount} />
+        </TabsContent>
+        <TabsContent value="ai" className="mt-4">
+          <AiSettingsSection />
         </TabsContent>
         <TabsContent value="danger" className="mt-4">
           <DangerZoneSection />

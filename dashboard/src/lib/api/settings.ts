@@ -94,3 +94,46 @@ export function purgeEvents(olderThanDays: number) {
     { method: "DELETE" },
   )
 }
+
+// --- AI Configuration ---
+
+export interface AiConfigResponse {
+  provider: string
+  api_key_masked: string
+  model: string | null
+  base_url: string | null
+  configured: boolean
+}
+
+export interface UpdateAiConfigRequest {
+  provider: string
+  api_key?: string
+  model?: string | null
+  base_url?: string | null
+}
+
+export interface TestAiResult {
+  ok: boolean
+  model?: string
+  latency_ms?: number
+  error?: string
+}
+
+export function getAiConfig() {
+  return request<AiConfigResponse>("/settings/ai")
+}
+
+export function updateAiConfig(data: UpdateAiConfigRequest) {
+  return request<{ configured: boolean }>("/settings/ai", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteAiConfig() {
+  return requestVoid("/settings/ai", { method: "DELETE" })
+}
+
+export function testAiConnection() {
+  return request<TestAiResult>("/settings/ai/test", { method: "POST" })
+}
