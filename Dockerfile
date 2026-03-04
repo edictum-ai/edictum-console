@@ -25,7 +25,7 @@ WORKDIR /app
 RUN addgroup --system app && adduser --system --ingroup app app
 
 COPY --from=builder /app/dist/*.whl /tmp/
-RUN pip install --no-cache-dir /tmp/edictum_console-*.whl[ai] && rm /tmp/*.whl
+RUN pip install --no-cache-dir "/tmp/edictum_console-0.1.0-py3-none-any.whl[ai]" && rm /tmp/*.whl
 
 COPY alembic.ini ./
 COPY alembic/ alembic/
