@@ -143,7 +143,7 @@ export function ContractEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`max-h-[90vh] overflow-y-auto ${showAi ? "sm:max-w-5xl" : "sm:max-w-2xl"}`}>
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-6">
             <DialogTitle>{isEdit ? `Edit: ${contract.name}` : "New Contract"}</DialogTitle>
             {!isEdit && (
               <Button

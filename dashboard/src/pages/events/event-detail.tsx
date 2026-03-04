@@ -134,7 +134,7 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
             <DecisionContextCard prov={prov} />
 
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/dashboard/contracts?tab=library&new=true&from_event=${encodeURIComponent(event.id)}`}>
+              <Link to={`/dashboard/contracts?tab=library&new=true&from_tool=${encodeURIComponent(event.tool_name)}&from_verdict=${encodeURIComponent(event.verdict)}${toolArgs ? `&from_args=${encodeURIComponent(JSON.stringify(toolArgs))}` : ""}`}>
                 <Sparkles className="size-3.5" />
                 Create Contract
               </Link>

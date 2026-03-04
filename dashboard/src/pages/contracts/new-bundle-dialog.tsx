@@ -148,15 +148,15 @@ export function NewBundleDialog({
             </div>
             <Select value={strategy} onValueChange={setStrategy}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{strategy.replace(/_/g, " ")}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(STRATEGY_TIPS).map(([key, tip]) => (
                   <SelectItem key={key} value={key}>
-                    <span>{key.replace(/_/g, " ")}</span>
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      — {tip}
-                    </span>
+                    <div>
+                      <span className="font-medium">{key.replace(/_/g, " ")}</span>
+                      <p className="text-xs text-muted-foreground mt-0.5">{tip}</p>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

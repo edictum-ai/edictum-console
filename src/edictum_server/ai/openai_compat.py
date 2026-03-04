@@ -16,8 +16,8 @@ try:
 except ImportError:
     _HAS_OPENAI = False
 
-DEFAULT_OPENAI_MODEL = "gpt-4o"
-DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-4-20250514"
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
+DEFAULT_OPENROUTER_MODEL = "qwen/qwen3-4b:free"
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 

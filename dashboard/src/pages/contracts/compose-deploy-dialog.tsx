@@ -81,12 +81,8 @@ export function ComposeDeployDialog({
           <div className="space-y-3">
             <Alert>
               <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
-              <AlertDescription>
-                Deployed <span className="font-medium">{result.bundle_name}</span>{" "}
-                v{result.bundle_version} to{" "}
-                <span className="font-medium">{env}</span>.{" "}
-                {result.contracts_assembled.length} contract
-                {result.contracts_assembled.length !== 1 ? "s" : ""} assembled.
+              <AlertDescription className="leading-relaxed">
+                Deployed <strong>{result.bundle_name}</strong> v{result.bundle_version} to <strong>{env}</strong>. {result.contracts_assembled.length} contract{result.contracts_assembled.length !== 1 ? "s" : ""} assembled.
               </AlertDescription>
             </Alert>
           </div>

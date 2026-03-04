@@ -95,7 +95,7 @@ function AgentDetail() {
   const fleetEntry = fleetData?.agents.find((a) => a.agent_id === data.agent_id)
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-5xl">
+    <div className="flex flex-col gap-6 p-6">
       <AgentHeader data={data} fleetEntry={fleetEntry} loading={loading} onBack={goBack} />
 
       {/* Metric Cards */}

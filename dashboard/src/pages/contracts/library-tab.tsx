@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { listContracts, type LibraryContractSummary } from "@/lib/api/contracts"
 import { subscribeDashboardSSE } from "@/lib/sse"
 import { ContractCard } from "./contract-card"
-import { ContractEditorDialog } from "./contract-editor-dialog"
+import { ContractEditorDialog, type FromEventContext } from "./contract-editor-dialog"
 import { ImportDialog } from "./import-dialog"
 import { DeleteDialog } from "./delete-dialog"
 import { ContractDetailSheet } from "./contract-detail-sheet"
@@ -75,14 +75,29 @@ export function LibraryTab() {
     return () => clearTimeout(debounceRef.current)
   }, [searchInput, setSearchParams])
 
+  // "Create from Event" context
+  const [fromEvent, setFromEvent] = useState<FromEventContext | undefined>()
+
   // "Create from Event" — run once on mount
   useEffect(() => {
     if (searchParams.get("new") === "true") {
+      const toolName = searchParams.get("from_tool")
+      const verdict = searchParams.get("from_verdict")
+      const argsRaw = searchParams.get("from_args")
+      if (toolName && verdict) {
+        let toolArgs: Record<string, unknown> | undefined
+        if (argsRaw) {
+          try { toolArgs = JSON.parse(argsRaw) } catch { /* ignore */ }
+        }
+        setFromEvent({ tool_name: toolName, verdict, tool_args: toolArgs })
+      }
       actions.openNewContract()
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
         next.delete("new")
-        next.delete("from_event")
+        next.delete("from_tool")
+        next.delete("from_verdict")
+        next.delete("from_args")
         return next
       })
     }
@@ -167,8 +182,9 @@ export function LibraryTab() {
       )}
 
       <ContractEditorDialog
-        open={actions.editorOpen} onOpenChange={actions.setEditorOpen}
+        open={actions.editorOpen} onOpenChange={(v) => { actions.setEditorOpen(v); if (!v) setFromEvent(undefined) }}
         contract={actions.editingContract} initialDefinition={actions.initialDef}
+        fromEvent={fromEvent}
         onSaved={fetchContracts}
       />
       <ImportDialog open={actions.importOpen} onOpenChange={actions.setImportOpen} onImported={fetchContracts} />

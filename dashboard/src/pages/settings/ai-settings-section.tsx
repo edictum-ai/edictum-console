@@ -17,9 +17,9 @@ import { getAiConfig, updateAiConfig, deleteAiConfig, testAiConnection } from "@
 import type { AiConfigResponse, TestAiResult } from "@/lib/api"
 
 const PROVIDERS = [
-  { value: "anthropic", label: "Anthropic", placeholder: "claude-sonnet-4-20250514" },
-  { value: "openai", label: "OpenAI", placeholder: "gpt-4o" },
-  { value: "openrouter", label: "OpenRouter", placeholder: "anthropic/claude-sonnet-4-20250514" },
+  { value: "anthropic", label: "Anthropic", placeholder: "claude-haiku-4-5-20251001" },
+  { value: "openai", label: "OpenAI", placeholder: "gpt-5-mini" },
+  { value: "openrouter", label: "OpenRouter", placeholder: "qwen/qwen3-4b:free" },
   { value: "ollama", label: "Ollama", placeholder: "llama3" },
 ] as const
 

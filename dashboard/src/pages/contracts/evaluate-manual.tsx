@@ -12,6 +12,21 @@ import { EvaluateResult } from "./evaluate-result"
 import { ToolCallBuilder, type ToolCallFields } from "./tool-call-builder"
 import { CompositionSourceSelector } from "./composition-source-selector"
 
+/** Extract and pretty-format API error details from raw error messages. */
+function formatEvalError(raw: string): string {
+  // Try to extract JSON from "API Error NNN: {...}" pattern
+  const jsonMatch = raw.match(/API Error \d+:\s*(.+)$/s)
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[1])
+      if (parsed.detail) return String(parsed.detail)
+    } catch { /* not JSON, fall through */ }
+    // Might be a raw string after the colon
+    return jsonMatch[1]
+  }
+  return raw
+}
+
 interface EvaluateManualProps {
   bundles: BundleWithDeployments[]
   selectedBundle: string | null
@@ -172,10 +187,17 @@ export function EvaluateManual({ bundles, selectedBundle }: EvaluateManualProps)
       {state.status === "done" && <EvaluateResult result={state.result} />}
 
       {state.status === "error" && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-          <AlertTriangle className="size-4 text-destructive" />
-          <p className="text-sm text-destructive">Evaluation failed: {state.message}</p>
-          <Button variant="outline" size="sm" className="ml-auto" onClick={handleEvaluate}>Retry</Button>
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="size-4 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-destructive">Evaluation failed</p>
+              <pre className="mt-1 text-xs text-destructive/80 whitespace-pre-wrap break-words font-mono">
+                {formatEvalError(state.message)}
+              </pre>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={handleEvaluate}>Retry</Button>
+          </div>
         </div>
       )}
     </div>
