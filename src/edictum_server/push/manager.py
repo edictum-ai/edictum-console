@@ -19,6 +19,7 @@ _DASHBOARD_EVENT_TYPES = frozenset({
     "approval_created",
     "approval_decided",
     "approval_timeout",
+    "assignment_changed",
     "bundle_uploaded",
     "composition_changed",
     "contract_created",
@@ -156,6 +157,15 @@ class PushManager:
             return
         for conn in self._dashboard_connections.get(tenant_id, set()):
             conn.queue.put_nowait(data)
+
+    def push_to_agent(
+        self, agent_id: str, data: dict[str, Any], *, tenant_id: uuid.UUID
+    ) -> None:
+        """Push an event to all connections for a specific agent (across all envs)."""
+        for conns in self._connections.values():
+            for conn in conns:
+                if conn.tenant_id == tenant_id and conn.agent_id == agent_id:
+                    conn.queue.put_nowait(data)
 
     def get_agent_connections(
         self,

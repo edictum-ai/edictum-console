@@ -25,9 +25,11 @@ from edictum_server.notifications.loader import load_db_channels
 from edictum_server.push.manager import PushManager
 from edictum_server.redis.client import create_redis_client
 from edictum_server.routes import (
+    agent_registrations,
     agents,
     ai,
     approvals,
+    assignment_rules,
     auth,
     bundles,
     compositions,
@@ -330,6 +332,8 @@ app.include_router(telegram.router)
 app.include_router(discord.router)
 app.include_router(slack.router)
 app.include_router(agents.router)
+app.include_router(agent_registrations.router)
+app.include_router(assignment_rules.router)
 app.include_router(notifications.router)
 app.include_router(settings.router)
 app.include_router(ai.router)

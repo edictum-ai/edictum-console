@@ -133,3 +133,83 @@ export function getAgentHistory(agentId: string, limit?: number) {
   if (limit) params.set("limit", String(limit))
   return request<AgentHistory>(`/agents/${encodeURIComponent(agentId)}/history?${params}`)
 }
+
+
+// --- Agent Registrations ---
+
+export interface AgentRegistration {
+  id: string
+  agent_id: string
+  display_name: string | null
+  tags: Record<string, string>
+  bundle_name: string | null
+  resolved_bundle: string | null
+  last_seen_at: string | null
+  created_at: string
+}
+
+export interface AssignmentRule {
+  id: string
+  priority: number
+  pattern: string
+  tag_match: Record<string, string> | null
+  bundle_name: string
+  env: string
+  created_at: string
+}
+
+export interface ResolvedAssignment {
+  bundle_name: string | null
+  source: "explicit" | "rule" | "agent_provided" | "none"
+  rule_id: string | null
+  rule_pattern: string | null
+}
+
+export function getAgentRegistrations() {
+  return request<AgentRegistration[]>("/agent-registrations")
+}
+
+export function updateAgentRegistration(
+  agentId: string,
+  body: { display_name?: string; tags?: Record<string, string>; bundle_name?: string | null }
+) {
+  return request<AgentRegistration>(`/agent-registrations/${encodeURIComponent(agentId)}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  })
+}
+
+export function bulkAssignBundle(agentIds: string[], bundleName: string) {
+  return request<{ updated: number }>("/agent-registrations/bulk-assign", {
+    method: "POST",
+    body: JSON.stringify({ agent_ids: agentIds, bundle_name: bundleName }),
+  })
+}
+
+// --- Assignment Rules ---
+
+export function getAssignmentRules() {
+  return request<AssignmentRule[]>("/assignment-rules")
+}
+
+export function createAssignmentRule(body: Omit<AssignmentRule, "id" | "created_at">) {
+  return request<AssignmentRule>("/assignment-rules", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}
+
+export function updateAssignmentRule(ruleId: string, body: Partial<Omit<AssignmentRule, "id" | "created_at">>) {
+  return request<AssignmentRule>(`/assignment-rules/${ruleId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  })
+}
+
+export function deleteAssignmentRule(ruleId: string) {
+  return request<void>(`/assignment-rules/${ruleId}`, { method: "DELETE" })
+}
+
+export function resolveAgentBundle(agentId: string) {
+  return request<ResolvedAssignment>(`/assignment-rules/resolve/${encodeURIComponent(agentId)}`)
+}
