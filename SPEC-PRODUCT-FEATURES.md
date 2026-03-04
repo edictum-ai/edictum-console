@@ -9,9 +9,9 @@
 ## Table of Contents
 
 1. [First-Start Wizard](#1-first-start-wizard)
-2. [Contract Editor](#2-contract-editor)
-3. [Contract Library](#3-contract-library)
-4. [AI Contract Chat Wizard](#4-ai-contract-chat-wizard)
+2. ~~Contract Editor~~ — **Moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.5**
+3. ~~Contract Library~~ — **Moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.1 (Templates)**
+4. ~~AI Contract Chat Wizard~~ — **Moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.6**
 5. [Notification Settings Polish](#5-notification-settings-polish)
 6. [Product Tour / Guided Tooltips](#6-product-tour--guided-tooltips)
 7. [Custom Environments](#7-custom-environments)
@@ -275,11 +275,14 @@ After creation:
 
 ---
 
-## 2. Contract Editor
+## 2. Contract Editor — MOVED
 
-### Problem
+> **This section has been moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.5 (Contract Editor Component).**
+> The contract editor is now part of the Composable Contracts spec, which redesigns the entire Contracts page.
 
-Currently, contracts are edited in a raw `<textarea>` inside a sheet (slide-over panel). No syntax highlighting, no line numbers, no auto-completion, no schema validation inline. For a product whose core value is YAML contracts, the editing experience is critical.
+~~### Problem~~
+
+~~Currently, contracts are edited in a raw `<textarea>` inside a sheet (slide-over panel). No syntax highlighting, no line numbers, no auto-completion, no schema validation inline. For a product whose core value is YAML contracts, the editing experience is critical.~~
 
 ### User Story
 
@@ -410,11 +413,14 @@ interface YamlEditorProps {
 
 ---
 
-## 3. Contract Library
+## 3. Contract Library (Templates) — MOVED
 
-### Problem
+> **This section has been moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.1 (Library tab — Templates section).**
+> Templates are now a section within the composable contracts Library tab.
 
-New users don't know what contracts to write. The two built-in templates ("DevOps Agent" and "Production Governance") are hidden in a dropdown and have no explanation of what they do.
+~~### Problem~~
+
+~~New users don't know what contracts to write. The two built-in templates ("DevOps Agent" and "Production Governance") are hidden in a dropdown and have no explanation of what they do.~~
 
 ### User Story
 
@@ -555,11 +561,14 @@ interface ContractTemplate {
 
 ---
 
-## 4. AI Contract Chat Wizard
+## 4. AI Contract Chat Wizard — MOVED
 
-### Problem
+> **This section has been moved to [SPEC-COMPOSABLE-CONTRACTS.md](./SPEC-COMPOSABLE-CONTRACTS.md) §9.6 (AI Contract Chat Wizard) and §7 (AI endpoints).**
+> The AI wizard is now part of the composable contracts spec with expanded scope: 4 providers (Anthropic, OpenAI, OpenRouter, Ollama), DB-backed config via Settings page, and "Create from Event" AI flow.
 
-Writing YAML contracts requires knowing the edictum schema — selectors, operators, effects, contract types. Even with templates, users need to customize. An AI-powered chat that understands the contract format can guide users through authoring.
+~~### Problem~~
+
+~~Writing YAML contracts requires knowing the edictum schema — selectors, operators, effects, contract types. Even with templates, users need to customize. An AI-powered chat that understands the contract format can guide users through authoring.~~
 
 ### User Story
 

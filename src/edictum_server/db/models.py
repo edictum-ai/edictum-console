@@ -5,7 +5,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, LargeBinary, String, UniqueConstraint
+from sqlalchemy import (
+    JSON, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, LargeBinary, String, UniqueConstraint, func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -82,6 +84,11 @@ class Bundle(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "bundles"
     __table_args__ = (
         UniqueConstraint("tenant_id", "name", "version", name="uq_bundle_tenant_name_version"),
+        ForeignKeyConstraint(
+            ["tenant_id", "composition_id"],
+            ["bundle_compositions.tenant_id", "bundle_compositions.id"],
+            ondelete="SET NULL",
+        ),
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
@@ -93,6 +100,8 @@ class Bundle(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     source_hub_slug: Mapped[str | None] = mapped_column(String, nullable=True)
     source_hub_revision: Mapped[str | None] = mapped_column(String, nullable=True)
     uploaded_by: Mapped[str] = mapped_column(String)
+    composition_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    composition_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     tenant: Mapped[Tenant] = relationship(back_populates="bundles")
 
@@ -176,3 +185,79 @@ class NotificationChannel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     last_test_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     filters: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class Contract(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """A single reusable governance rule in the contract library."""
+    __tablename__ = "contracts"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "contract_id", "version", name="uq_contract_tenant_id_version"),
+        UniqueConstraint("tenant_id", "id", name="uq_contract_tenant_pk"),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
+    contract_id: Mapped[str] = mapped_column(String, index=True)
+    version: Mapped[int]
+    type: Mapped[str] = mapped_column(String)
+    name: Mapped[str] = mapped_column(String)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    definition: Mapped[dict] = mapped_column(JSON)
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    is_latest: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str] = mapped_column(String)
+
+
+class BundleComposition(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Defines which contracts compose a bundle, with mode and ordering."""
+    __tablename__ = "bundle_compositions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_composition_tenant_name"),
+        UniqueConstraint("tenant_id", "id", name="uq_composition_tenant_pk"),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
+    name: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str | None] = mapped_column(String, nullable=True)
+    defaults_mode: Mapped[str] = mapped_column(String, default="enforce")
+    update_strategy: Mapped[str] = mapped_column(String, default="manual")
+    tools_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    observability: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[str] = mapped_column(String)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class BundleCompositionItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Join table: contract membership within a bundle composition."""
+    __tablename__ = "bundle_composition_items"
+    __table_args__ = (
+        UniqueConstraint("composition_id", "contract_id", name="uq_item_composition_contract"),
+        ForeignKeyConstraint(
+            ["tenant_id", "composition_id"],
+            ["bundle_compositions.tenant_id", "bundle_compositions.id"],
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id", "contract_id"],
+            ["contracts.tenant_id", "contracts.id"],
+        ),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"))
+    composition_id: Mapped[uuid.UUID] = mapped_column()
+    contract_id: Mapped[uuid.UUID] = mapped_column()
+    position: Mapped[int]
+    mode_override: Mapped[str | None] = mapped_column(String, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class TenantAiConfig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Per-tenant AI provider configuration for the contract assistant."""
+    __tablename__ = "tenant_ai_configs"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), unique=True)
+    provider: Mapped[str] = mapped_column(String)
+    api_key_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    model: Mapped[str | None] = mapped_column(String, nullable=True)
+    base_url: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_by: Mapped[str] = mapped_column(String)
