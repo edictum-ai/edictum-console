@@ -299,6 +299,18 @@ All prefixed with `EDICTUM_` where possible.
 
 Apache License 2.0 (same as ArgoCD/Argo project). Standard for infrastructure OSS, permissive, CNCF-compatible.
 
+## Ecosystem Context
+
+Edictum is three repos that work together. This is the **server companion** to the core library.
+
+- **edictum** (core): `/Users/acartagena/project/edictum` — MIT Python library agents use for runtime contract enforcement. Console never evaluates contracts in production (agents do). Console stores events, manages approvals, pushes contract updates.
+- **edictum-hub**: `/Users/acartagena/project/edictum-hub` — Next.js 16 public website at edictum.ai. Hub's dashboard calls this server's API. API contract documented in `SDK_COMPAT.md`.
+
+**Integration rules:**
+- `pip install edictum[server]` is the bridge. Server SDK implements core protocols (`ApprovalBackend`, `AuditSink`, `StorageBackend`) over HTTP.
+- Contract YAML schema is defined in the core repo — source of truth. Console stores and distributes bundles but does not define the schema.
+- Core works fully standalone. Console is an optional enhancement. Never introduce a console dependency into core.
+
 ## Decision Log
 
 | Decision | Rationale |
