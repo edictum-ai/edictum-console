@@ -12,16 +12,16 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="EDICTUM_")
 
-    # Database
+    # Database (required — no insecure default in production)
     database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/edictum"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
-    # Secret key for session signing (required, no default)
+    # Secret key for session signing (required — server refuses to start without it)
     secret_key: str = ""
 
-    # Admin bootstrap (first run only)
+    # Admin bootstrap (first run only — optional, use /dashboard/setup wizard instead)
     admin_email: str = ""
     admin_password: str = ""
 
@@ -80,6 +80,14 @@ class Settings(BaseSettings):
 
     # Telegram env-var config removed — all notification channels
     # are now DB-configured via Settings → Notifications in the dashboard.
+
+    def validate_required(self) -> None:
+        """Validate that required secrets are set. Call at startup."""
+        if not self.secret_key:
+            raise SystemExit(
+                "EDICTUM_SECRET_KEY is required. "
+                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            )
 
 
 @lru_cache

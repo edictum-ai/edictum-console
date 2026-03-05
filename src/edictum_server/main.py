@@ -248,6 +248,7 @@ async def _cleanup_ai_usage() -> None:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Startup / shutdown lifecycle hook."""
     settings = get_settings()
+    settings.validate_required()
 
     # Validate signing key secret early — log clearly if misconfigured
     try:

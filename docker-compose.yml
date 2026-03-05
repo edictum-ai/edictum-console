@@ -37,6 +37,8 @@ services:
       EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:?Set EDICTUM_SECRET_KEY in .env}
       EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-}
       EDICTUM_ADMIN_PASSWORD: ${EDICTUM_ADMIN_PASSWORD:-}
+      # Note: ADMIN_EMAIL + ADMIN_PASSWORD are optional here — if unset,
+      # use the /dashboard/setup wizard on first run instead.
       EDICTUM_BASE_URL: ${EDICTUM_BASE_URL:-http://localhost:8000}
       EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:?Set EDICTUM_SIGNING_KEY_SECRET in .env}
 
