@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { login, ApiError } from "@/lib/api"
 import { useHealth } from "@/hooks/use-health"
 import { useAuth } from "@/hooks/use-auth"
@@ -13,6 +13,7 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { EdictumLogo } from "@/components/edictum-logo"
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -25,11 +26,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [retryAfter, setRetryAfter] = useState(0)
 
-  useEffect(() => {
-    if (health && !health.bootstrap_complete) {
-      void navigate("/dashboard/setup", { replace: true })
-    }
-  }, [health, navigate])
+  const showSetupHint = health != null && !health.bootstrap_complete
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -78,7 +75,10 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1 text-center">
+        <CardHeader className="space-y-3 text-center">
+          <div className="flex justify-center">
+            <EdictumLogo size={48} />
+          </div>
           <h1 className="text-xl font-semibold tracking-tight">
             Edictum Console
           </h1>
@@ -114,6 +114,20 @@ export function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
+
+            {showSetupHint && (
+              <Alert>
+                <AlertDescription>
+                  No admin account found.{" "}
+                  <Link to="/dashboard/setup" className="underline font-medium">
+                    Run the setup wizard
+                  </Link>{" "}
+                  or set <code className="text-xs">EDICTUM_ADMIN_EMAIL</code> and{" "}
+                  <code className="text-xs">EDICTUM_ADMIN_PASSWORD</code> environment
+                  variables and restart.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {error && (
               <Alert variant="destructive">

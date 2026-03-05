@@ -11,11 +11,11 @@ import {
   KeyRound,
   Settings,
   LogOut,
-  Shield,
   PanelLeftClose,
   PanelLeftOpen,
   Bot,
 } from "lucide-react"
+import { EdictumLogo } from "@/components/edictum-logo"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/hooks/use-auth"
@@ -93,10 +93,8 @@ export function Sidebar({ user, pendingApprovals, forceExpanded }: SidebarProps)
             isCollapsed ? "flex-col gap-2 px-2 py-3" : "gap-3 px-4 py-3.5",
           )}
         >
-          {/* Logo — not a toggle */}
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
-            <Shield className="h-4 w-4 text-white" />
-          </div>
+          {/* Logo */}
+          <EdictumLogo size={32} />
 
           {!isCollapsed && (
             <div className="min-w-0 flex-1">

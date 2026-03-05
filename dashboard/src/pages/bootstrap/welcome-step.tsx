@@ -1,11 +1,16 @@
+import { Link } from "react-router"
 import { Button } from "@/components/ui/button"
-import { CardContent, CardHeader } from "@/components/ui/card"
+import { CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { ArrowRight } from "lucide-react"
+import { EdictumLogo } from "@/components/edictum-logo"
 
 export function WelcomeStep({ onNext }: { onNext: () => void }) {
   return (
     <>
-      <CardHeader className="space-y-2 text-center">
+      <CardHeader className="space-y-3 text-center">
+        <div className="flex justify-center">
+          <EdictumLogo size={56} />
+        </div>
         <h1 className="text-2xl font-semibold tracking-tight">
           Welcome to Edictum Console
         </h1>
@@ -20,6 +25,15 @@ export function WelcomeStep({ onNext }: { onNext: () => void }) {
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </CardContent>
+      <CardFooter className="justify-center pb-6">
+        <Link
+          to="/dashboard/login"
+          replace
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Already configured via environment variables? Skip to login
+        </Link>
+      </CardFooter>
     </>
   )
 }
