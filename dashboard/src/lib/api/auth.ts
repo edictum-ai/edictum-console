@@ -20,7 +20,7 @@ export interface HealthResponse {
 }
 
 export function getHealth() {
-  return request<HealthResponse>("/health")
+  return request<HealthResponse>("/health", { skipAuthRedirect: true })
 }
 
 // --- Auth ---
@@ -46,7 +46,7 @@ export function logout() {
 }
 
 export function getMe() {
-  return request<UserInfo>("/auth/me")
+  return request<UserInfo>("/auth/me", { skipAuthRedirect: true })
 }
 
 // --- Setup (Bootstrap) ---

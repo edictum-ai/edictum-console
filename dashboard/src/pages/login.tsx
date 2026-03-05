@@ -34,6 +34,13 @@ export function LoginPage() {
     }
   }, [user, authLoading, navigate])
 
+  // No admin exists — go straight to the setup wizard
+  useEffect(() => {
+    if (health && !health.bootstrap_complete) {
+      void navigate("/dashboard/setup", { replace: true })
+    }
+  }, [health, navigate])
+
   useEffect(() => {
     if (retryAfter <= 0) return
     const timer = setInterval(() => {

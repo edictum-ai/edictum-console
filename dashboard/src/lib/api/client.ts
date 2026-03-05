@@ -11,22 +11,28 @@ export class ApiError extends Error {
   }
 }
 
+interface RequestOptions extends RequestInit {
+  /** Skip the automatic redirect to /dashboard/login on 401. */
+  skipAuthRedirect?: boolean
+}
+
 export async function request<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestOptions = {},
 ): Promise<T> {
+  const { skipAuthRedirect, ...fetchOptions } = options
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "X-Requested-With": "XMLHttpRequest",
-      ...options.headers,
+      ...fetchOptions.headers,
     },
-    ...options,
+    ...fetchOptions,
   })
 
   if (!res.ok) {
-    if (res.status === 401) {
+    if (res.status === 401 && !skipAuthRedirect) {
       window.location.href = "/dashboard/login"
       throw new ApiError(401, "Session expired")
     }
