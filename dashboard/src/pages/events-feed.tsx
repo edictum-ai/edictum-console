@@ -67,8 +67,8 @@ export function EventsFeed() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Buffer SSE events before showing (Vercel "Show N New" pattern)
-  const [bufferedEvents, setBufferedEvents] = useState<EventResponse[]>([])
+  // Count of new events received via SSE since last fetch (for "Show N New" banner)
+  const [newEventCount, setNewEventCount] = useState(0)
 
   // UI state
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
@@ -127,6 +127,7 @@ export function EventsFeed() {
         limit: 200,
       })
       setEvents(data)
+      setNewEventCount(0)
     } catch {
       setError("Failed to load events")
     } finally {
@@ -139,19 +140,19 @@ export function EventsFeed() {
     void fetchEvents()
   }, [fetchEvents])
 
-  // SSE for real-time events
+  // SSE for real-time events — accumulate count, don't buffer fake objects
   useDashboardSSE({
     event_created: (data) => {
-      const event = data as EventResponse
-      setBufferedEvents((prev) => [event, ...prev].slice(0, 100))
+      const payload = data as { accepted?: number }
+      setNewEventCount((prev) => prev + (payload.accepted ?? 1))
     },
   })
 
-  // Show buffered events
+  // Show new events — re-fetch from server then reset counter
   const handleShowNewEvents = useCallback(() => {
-    setEvents((prev) => [...bufferedEvents, ...prev])
-    setBufferedEvents([])
-  }, [bufferedEvents])
+    setNewEventCount(0)
+    void fetchEvents()
+  }, [fetchEvents])
 
   // Apply client-side filters + search
   const filteredEvents = useMemo(
@@ -324,7 +325,7 @@ export function EventsFeed() {
     onSearchChange: setSearchQuery,
     selectedEventId,
     onSelectEvent: setSelectedEventId,
-    newEventCount: bufferedEvents.length,
+    newEventCount,
     onShowNewEvents: handleShowNewEvents,
     timeWindow,
     onTimeWindowChange: setTimeWindow,

@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+import os
 import uuid
+
+# Set test signing key secret before any app imports (32 bytes = 64 hex chars)
+os.environ.setdefault(
+    "EDICTUM_SIGNING_KEY_SECRET",
+    "0" * 64,
+)
+# Set required config so Settings.validate_required() doesn't raise SystemExit
+os.environ.setdefault("EDICTUM_SECRET_KEY", "test-secret-key-for-unit-tests")
+os.environ.setdefault("EDICTUM_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("EDICTUM_REDIS_URL", "redis://localhost:6379/0")
 from collections.abc import AsyncGenerator, Callable
 
 import bcrypt
@@ -93,16 +104,20 @@ def _make_auth_a_api_key() -> AuthContext:
     return AuthContext(tenant_id=TENANT_A_ID, auth_type="api_key", env="production")
 
 
-def _make_auth_a_dashboard() -> AuthContext:
-    return AuthContext(tenant_id=TENANT_A_ID, auth_type="dashboard", user_id="user_test_123")
+def _make_auth_a_admin() -> AuthContext:
+    return AuthContext(
+        tenant_id=TENANT_A_ID, auth_type="dashboard", user_id="user_test_123", is_admin=True
+    )
 
 
 def _make_auth_b_api_key() -> AuthContext:
     return AuthContext(tenant_id=TENANT_B_ID, auth_type="api_key", env="production")
 
 
-def _make_auth_b_dashboard() -> AuthContext:
-    return AuthContext(tenant_id=TENANT_B_ID, auth_type="dashboard", user_id="user_test_456")
+def _make_auth_b_admin() -> AuthContext:
+    return AuthContext(
+        tenant_id=TENANT_B_ID, auth_type="dashboard", user_id="user_test_456", is_admin=True
+    )
 
 
 @pytest.fixture()
@@ -123,6 +138,7 @@ async def client(
 ) -> AsyncGenerator[AsyncClient, None]:
     from edictum_server.auth.dependencies import (
         get_current_tenant,
+        require_admin,
         require_api_key,
         require_dashboard_auth,
     )
@@ -132,7 +148,8 @@ async def client(
     app.dependency_overrides[get_redis] = lambda: test_redis
     app.dependency_overrides[get_push_manager] = lambda: push_manager
     app.dependency_overrides[require_api_key] = _make_auth_a_api_key
-    app.dependency_overrides[require_dashboard_auth] = _make_auth_a_dashboard
+    app.dependency_overrides[require_dashboard_auth] = _make_auth_a_admin
+    app.dependency_overrides[require_admin] = _make_auth_a_admin
     app.dependency_overrides[get_current_tenant] = _make_auth_a_api_key
 
     # Set app state for routes that access it directly
@@ -142,7 +159,12 @@ async def client(
     app.state.notification_manager = NotificationManager()
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    # Include X-Requested-With to pass CSRF middleware on cookie-auth requests
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
@@ -164,7 +186,11 @@ async def no_auth_client(
     app.state.notification_manager = NotificationManager()
 
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ) as ac:
         yield ac
 
     app.dependency_overrides.clear()
@@ -174,6 +200,7 @@ async def no_auth_client(
 def set_auth_tenant_b() -> Callable[[], None]:
     from edictum_server.auth.dependencies import (
         get_current_tenant,
+        require_admin,
         require_api_key,
         require_dashboard_auth,
     )
@@ -181,7 +208,8 @@ def set_auth_tenant_b() -> Callable[[], None]:
     def _swap() -> None:
         app = _get_app()
         app.dependency_overrides[require_api_key] = _make_auth_b_api_key
-        app.dependency_overrides[require_dashboard_auth] = _make_auth_b_dashboard
+        app.dependency_overrides[require_dashboard_auth] = _make_auth_b_admin
+        app.dependency_overrides[require_admin] = _make_auth_b_admin
         app.dependency_overrides[get_current_tenant] = _make_auth_b_api_key
 
     return _swap
@@ -191,6 +219,7 @@ def set_auth_tenant_b() -> Callable[[], None]:
 def set_auth_tenant_a() -> Callable[[], None]:
     from edictum_server.auth.dependencies import (
         get_current_tenant,
+        require_admin,
         require_api_key,
         require_dashboard_auth,
     )
@@ -198,7 +227,8 @@ def set_auth_tenant_a() -> Callable[[], None]:
     def _swap() -> None:
         app = _get_app()
         app.dependency_overrides[require_api_key] = _make_auth_a_api_key
-        app.dependency_overrides[require_dashboard_auth] = _make_auth_a_dashboard
+        app.dependency_overrides[require_dashboard_auth] = _make_auth_a_admin
+        app.dependency_overrides[require_admin] = _make_auth_a_admin
         app.dependency_overrides[get_current_tenant] = _make_auth_a_api_key
 
     return _swap

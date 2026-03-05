@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -12,11 +16,11 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="EDICTUM_")
 
-    # Database (required — no insecure default in production)
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/edictum"
+    # Database (required — no default, must be explicitly configured)
+    database_url: str = ""
 
-    # Redis
-    redis_url: str = "redis://localhost:6379/0"
+    # Redis (required — no default, must be explicitly configured)
+    redis_url: str = ""
 
     # Secret key for session signing (required — server refuses to start without it)
     secret_key: str = ""
@@ -65,9 +69,7 @@ class Settings(BaseSettings):
         try:
             raw = bytes.fromhex(self.signing_key_secret)
         except ValueError as exc:
-            raise ValueError(
-                "EDICTUM_SIGNING_KEY_SECRET is not valid hex."
-            ) from exc
+            raise ValueError("EDICTUM_SIGNING_KEY_SECRET is not valid hex.") from exc
         if len(raw) != 32:
             raise ValueError(
                 "EDICTUM_SIGNING_KEY_SECRET must be exactly 32 bytes "
@@ -81,13 +83,44 @@ class Settings(BaseSettings):
     # Telegram env-var config removed — all notification channels
     # are now DB-configured via Settings → Notifications in the dashboard.
 
+    # Trusted proxies for rate limiting (comma-separated IPs)
+    trusted_proxies: str = ""
+
     def validate_required(self) -> None:
         """Validate that required secrets are set. Call at startup."""
         if not self.secret_key:
             raise SystemExit(
                 "EDICTUM_SECRET_KEY is required. "
-                "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+                'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
             )
+        if not self.database_url:
+            raise SystemExit(
+                "EDICTUM_DATABASE_URL is required. "
+                "Example: postgresql+asyncpg://user:pass@localhost:5432/edictum"
+            )
+        if not self.redis_url:
+            raise SystemExit("EDICTUM_REDIS_URL is required. Example: redis://localhost:6379/0")
+
+        # CORS wildcard is never acceptable — require explicit origins
+        origins = [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        if "*" in origins:
+            raise SystemExit(
+                "EDICTUM_CORS_ORIGINS must not contain '*' — specify explicit origins"
+            )
+
+        # Strip localhost origins when base_url is not localhost
+        parsed_base = urlparse(self.base_url)
+        if parsed_base.hostname not in ("localhost", "127.0.0.1"):
+            localhost_prefixes = ("http://localhost", "http://127.0.0.1")
+            filtered = [o for o in origins if not o.startswith(localhost_prefixes)]
+            if len(filtered) < len(origins):
+                removed = [o for o in origins if o.startswith(localhost_prefixes)]
+                logger.warning(
+                    "Stripped localhost origins from CORS config (base_url=%s): %s",
+                    self.base_url,
+                    ", ".join(removed),
+                )
+                self.cors_origins = ",".join(filtered)
 
 
 @lru_cache

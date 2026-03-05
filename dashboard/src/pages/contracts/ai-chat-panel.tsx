@@ -58,8 +58,22 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
   // Check if AI is configured
   useEffect(() => {
     fetch(`${API_BASE}/settings/ai`, { credentials: "include" })
-      .then((r) => r.json())
-      .then((d: { configured?: boolean }) => setConfigured(d.configured ?? false))
+      .then((r) => {
+        if (r.status === 401 || r.status === 403) {
+          // Session expired — don't treat as "not configured"
+          setError("Session expired. Please refresh and log in again.")
+          setConfigured(true) // avoid showing "not configured" state
+          return null
+        }
+        if (!r.ok) {
+          setConfigured(false)
+          return null
+        }
+        return r.json()
+      })
+      .then((d: { configured?: boolean } | null) => {
+        if (d != null) setConfigured(d.configured ?? false)
+      })
       .catch(() => setConfigured(false))
   }, [])
 

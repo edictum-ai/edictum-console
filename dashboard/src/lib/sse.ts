@@ -81,16 +81,32 @@ class DashboardSSEPool {
     }
 
     this.source.onerror = () => {
+      // EventSource doesn't expose HTTP status directly, but readyState CLOSED
+      // after an immediate error (before any onopen) suggests auth failure.
+      // We check via a lightweight HEAD request to confirm 401.
+      const failedSource = this.source
       this.source?.close()
       this.source = null
 
       if (this.shouldReconnect) {
-        const jitter = this.reconnectDelay * (0.5 + Math.random())
-        this.reconnectTimer = setTimeout(() => {
-          this.reconnectTimer = null
-          this.createConnection()
-        }, jitter)
-        this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay)
+        // Probe for 401 before reconnecting — avoids infinite reconnect loop
+        // when session has expired.
+        if (failedSource?.readyState === EventSource.CLOSED) {
+          fetch(DASHBOARD_SSE_URL, { method: "HEAD", credentials: "include" })
+            .then((res) => {
+              if (res.status === 401) {
+                this.shouldReconnect = false
+                window.location.href = "/dashboard/login"
+              } else {
+                this.scheduleReconnect()
+              }
+            })
+            .catch(() => {
+              this.scheduleReconnect()
+            })
+        } else {
+          this.scheduleReconnect()
+        }
       }
     }
 
@@ -98,6 +114,15 @@ class DashboardSSEPool {
     for (const name of this.knownEvents) {
       this.attachListener(name)
     }
+  }
+
+  private scheduleReconnect() {
+    const jitter = this.reconnectDelay * (0.5 + Math.random())
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.createConnection()
+    }, jitter)
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay)
   }
 
   /** Add a named event listener that fans out to all matching subscribers. */

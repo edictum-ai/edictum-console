@@ -1,5 +1,5 @@
 # -- Stage 1: Frontend build ---------------------------------------------------
-FROM node:20-slim AS frontend
+FROM node:24-slim AS frontend
 WORKDIR /app/dashboard
 COPY dashboard/package.json dashboard/pnpm-lock.yaml ./
 RUN corepack enable && pnpm install --frozen-lockfile

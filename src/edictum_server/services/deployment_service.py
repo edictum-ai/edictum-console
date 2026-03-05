@@ -85,4 +85,13 @@ async def deploy_bundle(
     push_manager.push_to_env(env, contract_data, tenant_id=tenant_id)
     push_manager.push_to_dashboard(tenant_id, contract_data)
 
+    # Notify dashboard of the deployment (separate from contract_update which is for agents)
+    push_manager.push_to_dashboard(tenant_id, {
+        "type": "bundle_deployed",
+        "bundle_name": bundle_name,
+        "version": version,
+        "env": env,
+        "deployed_by": deployed_by,
+    })
+
     return deployment

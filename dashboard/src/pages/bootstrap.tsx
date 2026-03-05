@@ -1,6 +1,7 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router"
 import { setup, ApiError } from "@/lib/api"
+import { useHealth } from "@/hooks/use-health"
 import { Card } from "@/components/ui/card"
 import { StepIndicator } from "./bootstrap/step-indicator"
 import { WelcomeStep } from "./bootstrap/welcome-step"
@@ -14,7 +15,15 @@ const STEPS: Step[] = ["welcome", "create-admin", "capabilities", "done"]
 
 export function BootstrapPage() {
   const navigate = useNavigate()
+  const { health } = useHealth()
   const [step, setStep] = useState<Step>("welcome")
+
+  // If bootstrap is already complete (admin created via env vars), redirect to login
+  useEffect(() => {
+    if (health?.bootstrap_complete) {
+      void navigate("/dashboard/login", { replace: true })
+    }
+  }, [health, navigate])
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")

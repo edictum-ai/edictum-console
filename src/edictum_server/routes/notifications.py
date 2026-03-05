@@ -8,7 +8,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
+from edictum_server.auth.dependencies import AuthContext, require_admin, require_dashboard_auth
 from edictum_server.config import get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.notifications.base import NotificationManager
@@ -91,10 +91,12 @@ async def _reload_manager(request: Request, db: AsyncSession) -> None:
     settings = get_settings()
     secret = _get_secret()
     channels_by_tenant = await load_db_channels(
-        db, request.app.state.redis, settings.base_url, secret=secret,
+        db,
+        request.app.state.redis,
+        settings.base_url,
+        secret=secret,
     )
     await mgr.reload(channels_by_tenant)
-
 
 
 @router.get("", response_model=list[ChannelResponse])
@@ -116,11 +118,16 @@ async def list_channels(
 async def create_channel(
     body: CreateChannelRequest,
     request: Request,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
     """Create a new notification channel."""
     secret = _get_secret()
+    if secret is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Notification channels require EDICTUM_SIGNING_KEY_SECRET to be configured.",
+        )
     try:
         channel = await notification_service.create_channel(
             db,
@@ -147,11 +154,16 @@ async def update_channel(
     channel_id: uuid.UUID,
     body: UpdateChannelRequest,
     request: Request,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
     """Update a notification channel."""
     secret = _get_secret()
+    if secret is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Notification channels require EDICTUM_SIGNING_KEY_SECRET to be configured.",
+        )
     kwargs: dict = {}
     if body.name is not None:
         kwargs["name"] = body.name
@@ -187,7 +199,7 @@ async def update_channel(
 async def delete_channel(
     channel_id: uuid.UUID,
     request: Request,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """Delete a notification channel."""
@@ -204,14 +216,22 @@ async def delete_channel(
 @router.post("/{channel_id}/test", response_model=TestResult)
 async def test_channel(
     channel_id: uuid.UUID,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> TestResult:
     """Send a test message through a notification channel."""
     secret = _get_secret()
+    if secret is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Notification channels require EDICTUM_SIGNING_KEY_SECRET to be configured.",
+        )
     try:
         success, message = await notification_service.test_channel(
-            db, auth.tenant_id, channel_id, secret=secret,
+            db,
+            auth.tenant_id,
+            channel_id,
+            secret=secret,
         )
     except ValueError as exc:
         raise HTTPException(

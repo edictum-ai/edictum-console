@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { useSearchParams } from "react-router"
+import { useSearchParams, useLocation } from "react-router"
 import { Plus, Upload, Search, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +22,7 @@ const TYPE_OPTIONS = ["all", "pre", "post", "session", "sandbox"] as const
 
 export function LibraryTab() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const search = searchParams.get("search") ?? ""
   const typeFilter = searchParams.get("type") ?? ""
 
@@ -83,13 +84,10 @@ export function LibraryTab() {
     if (searchParams.get("new") === "true") {
       const toolName = searchParams.get("from_tool")
       const verdict = searchParams.get("from_verdict")
-      const argsRaw = searchParams.get("from_args")
+      // Tool args come from React Router state (not URL) to avoid leaking sensitive data
+      const stateArgs = (location.state as { fromArgs?: Record<string, unknown> } | null)?.fromArgs
       if (toolName && verdict) {
-        let toolArgs: Record<string, unknown> | undefined
-        if (argsRaw) {
-          try { toolArgs = JSON.parse(argsRaw) } catch { /* ignore */ }
-        }
-        setFromEvent({ tool_name: toolName, verdict, tool_args: toolArgs })
+        setFromEvent({ tool_name: toolName, verdict, tool_args: stateArgs })
       }
       actions.openNewContract()
       setSearchParams((prev) => {
@@ -97,7 +95,6 @@ export function LibraryTab() {
         next.delete("new")
         next.delete("from_tool")
         next.delete("from_verdict")
-        next.delete("from_args")
         return next
       })
     }

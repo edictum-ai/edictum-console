@@ -297,7 +297,7 @@ All prefixed with `EDICTUM_` where possible.
 
 ## License
 
-Apache License 2.0 (same as ArgoCD/Argo project). Standard for infrastructure OSS, permissive, CNCF-compatible.
+AGPL-3.0-only.
 
 ## Ecosystem Context
 
@@ -315,7 +315,7 @@ Edictum is three repos that work together. This is the **server companion** to t
 
 | Decision | Rationale |
 |----------|-----------|
-| Apache 2.0 | Standard for infra OSS, permissive, CNCF-compatible |
+| AGPL-3.0-only | Copyleft for self-hosted infra. Ensures improvements flow back. |
 | Fresh initial commit | Clean start, no secrets audit needed |
 | Local auth only for first push | Lowest barrier. Clerk abstraction adds complexity without users. |
 | No auth provider protocol yet | Removed — AuthProvider protocol is in first push. OIDC is on the roadmap, justifying the abstraction. |

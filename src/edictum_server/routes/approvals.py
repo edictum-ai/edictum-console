@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 def _fire(coro: object) -> None:
     """Schedule a coroutine as a background task, logging any unhandled exception."""
+
     async def _run() -> None:
         try:
             await coro  # type: ignore[misc]
@@ -18,6 +19,7 @@ def _fire(coro: object) -> None:
             logger.exception("Unhandled error in background notification task")
 
     asyncio.create_task(_run())
+
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -29,6 +31,7 @@ from edictum_server.auth.dependencies import (
     AuthContext,
     get_current_tenant,
     require_api_key,
+    require_dashboard_auth,
 )
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import Approval
@@ -105,18 +108,20 @@ async def create_approval(
     # Use NotificationManager from app.state instead of direct telegram_notifier
     notification_mgr = getattr(request.app.state, "notification_manager", None)
     if notification_mgr is not None:
-        _fire(notification_mgr.notify_approval_request(
-            approval_id=str(approval.id),
-            agent_id=approval.agent_id,
-            tool_name=approval.tool_name,
-            tool_args=approval.tool_args,
-            message=approval.message,
-            env=approval.env,
-            timeout_seconds=approval.timeout_seconds,
-            timeout_effect=approval.timeout_effect,
-            tenant_id=str(approval.tenant_id),
-            contract_name=approval.contract_name,
-        ))
+        _fire(
+            notification_mgr.notify_approval_request(
+                approval_id=str(approval.id),
+                agent_id=approval.agent_id,
+                tool_name=approval.tool_name,
+                tool_args=approval.tool_args,
+                message=approval.message,
+                env=approval.env,
+                timeout_seconds=approval.timeout_seconds,
+                timeout_effect=approval.timeout_effect,
+                tenant_id=str(approval.tenant_id),
+                contract_name=approval.contract_name,
+            )
+        )
 
     return _to_response(approval)
 
@@ -139,7 +144,7 @@ async def list_approvals(
     status: ApprovalStatusType | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
-    auth: AuthContext = Depends(get_current_tenant),
+    auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[ApprovalResponse]:
     """List approvals, optionally filtered by status."""
@@ -157,7 +162,7 @@ async def submit_decision(
     approval_id: uuid.UUID,
     body: SubmitDecisionRequest,
     request: Request,
-    auth: AuthContext = Depends(get_current_tenant),
+    auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
 ) -> ApprovalResponse:
@@ -186,12 +191,14 @@ async def submit_decision(
 
     notification_mgr = getattr(request.app.state, "notification_manager", None)
     if notification_mgr is not None:
-        _fire(notification_mgr.notify_approval_decided(
-            approval_id=str(approval.id),
-            status=approval.status,
-            decided_by=approval.decided_by,
-            reason=approval.decision_reason,
-            tenant_id=str(auth.tenant_id),
-        ))
+        _fire(
+            notification_mgr.notify_approval_decided(
+                approval_id=str(approval.id),
+                status=approval.status,
+                decided_by=approval.decided_by,
+                reason=approval.decision_reason,
+                tenant_id=str(auth.tenant_id),
+            )
+        )
 
     return _to_response(approval)

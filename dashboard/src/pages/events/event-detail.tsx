@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 import {
   X,
   Clock,
@@ -25,6 +25,7 @@ interface EventDetailProps {
 }
 
 export function EventDetail({ event, onClose }: EventDetailProps) {
+  const navigate = useNavigate()
   const [jsonExpanded, setJsonExpanded] = useState(false)
 
   const payload = event.payload ?? {}
@@ -133,11 +134,18 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
 
             <DecisionContextCard prov={prov} />
 
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/dashboard/contracts?tab=library&new=true&from_tool=${encodeURIComponent(event.tool_name)}&from_verdict=${encodeURIComponent(event.verdict)}${toolArgs ? `&from_args=${encodeURIComponent(JSON.stringify(toolArgs))}` : ""}`}>
-                <Sparkles className="size-3.5" />
-                Create Contract
-              </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                void navigate(
+                  `/dashboard/contracts?tab=library&new=true&from_tool=${encodeURIComponent(event.tool_name)}&from_verdict=${encodeURIComponent(event.verdict)}`,
+                  { state: { fromArgs: toolArgs } },
+                )
+              }}
+            >
+              <Sparkles className="size-3.5" />
+              Create Contract
             </Button>
           </div>
 

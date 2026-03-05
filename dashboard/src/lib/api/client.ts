@@ -26,6 +26,10 @@ export async function request<T>(
   })
 
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = "/dashboard/login"
+      throw new ApiError(401, "Session expired")
+    }
     const body = await res.text()
     const retryAfter = res.headers.get("Retry-After")
     throw new ApiError(
@@ -53,6 +57,10 @@ export async function requestVoid(
   })
 
   if (!res.ok) {
+    if (res.status === 401) {
+      window.location.href = "/dashboard/login"
+      throw new ApiError(401, "Session expired")
+    }
     const body = await res.text()
     const retryAfter = res.headers.get("Retry-After")
     throw new ApiError(

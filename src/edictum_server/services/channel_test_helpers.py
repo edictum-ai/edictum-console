@@ -78,10 +78,17 @@ async def test_email(config: dict) -> tuple[bool, str]:  # noqa: ANN001
 
     import aiosmtplib
 
+    raw_to = config["to_addresses"]
+    to_list = (
+        [a.strip() for a in raw_to.split(",") if a.strip()]
+        if isinstance(raw_to, str)
+        else list(raw_to)
+    )
+
     msg = EmailMessage()
     msg["Subject"] = "[Edictum] Test Notification"
     msg["From"] = config["from_address"]
-    msg["To"] = ", ".join(config["to_addresses"])
+    msg["To"] = ", ".join(to_list)
     msg.set_content("Edictum test notification — email channel is working.")
 
     await aiosmtplib.send(

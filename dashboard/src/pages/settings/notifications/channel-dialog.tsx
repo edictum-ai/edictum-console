@@ -115,7 +115,7 @@ export function ChannelDialog({ open, onOpenChange, channel, onSaved }: ChannelD
                 <SelectItem value="slack">Slack (Webhook)</SelectItem>
                 <SelectItem value="slack_app">Slack (Interactive)</SelectItem>
                 <SelectItem value="webhook">Webhook</SelectItem>
-                <SelectItem value="email" disabled>Email (coming soon)</SelectItem>
+                <SelectItem value="email">Email</SelectItem>
                 <SelectItem value="discord">Discord</SelectItem>
               </SelectContent>
             </Select>

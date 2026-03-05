@@ -16,15 +16,20 @@ logger = logging.getLogger(__name__)
 
 # Event types forwarded to dashboard SSE subscribers.
 _DASHBOARD_EVENT_TYPES = frozenset({
+    "api_key_created",
+    "api_key_revoked",
     "approval_created",
     "approval_decided",
     "approval_timeout",
     "assignment_changed",
+    "bundle_deployed",
     "bundle_uploaded",
     "composition_changed",
     "contract_created",
     "contract_update",
     "contract_updated",
+    "event_created",
+    "signing_key_rotated",
 })
 
 # Cleanup interval and max connection age.

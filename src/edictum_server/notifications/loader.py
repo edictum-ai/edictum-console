@@ -127,13 +127,19 @@ def _build_channel(
     if row.channel_type == "email":
         from edictum_server.notifications.email import EmailChannel
 
+        raw_to = config["to_addresses"]
+        to_list = (
+            [a.strip() for a in raw_to.split(",") if a.strip()]
+            if isinstance(raw_to, str)
+            else list(raw_to)
+        )
         return EmailChannel(
             smtp_host=config["smtp_host"],
             smtp_port=int(config["smtp_port"]),
             smtp_user=config["smtp_user"],
             smtp_password=config["smtp_password"],
             from_address=config["from_address"],
-            to_addresses=config["to_addresses"],
+            to_addresses=to_list,
             base_url=base_url,
             channel_name=row.name,
             channel_id=channel_id,

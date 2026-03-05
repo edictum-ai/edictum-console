@@ -14,11 +14,13 @@ from nacl.signing import VerifyKey
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from edictum_server.config import get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import NotificationChannel as ChannelModel
 from edictum_server.notifications.base import NotificationManager
 from edictum_server.push.manager import PushManager
 from edictum_server.services import approval_service
+from edictum_server.services.notification_service import get_channel_config
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,13 @@ async def discord_interaction(
         return Response(status_code=401)
 
     # Find matching Discord channel by trying each channel's public key
+    # Decrypt config to access public_key (may be encrypted at rest)
+    settings = get_settings()
+    try:
+        encryption_secret = settings.get_signing_secret()
+    except ValueError:
+        encryption_secret = None
+
     result = await db.execute(
         select(ChannelModel).where(
             ChannelModel.channel_type == "discord",
@@ -64,8 +73,11 @@ async def discord_interaction(
 
     matched_channel: ChannelModel | None = None
     for ch in db_channels:
-        public_key = ch.config.get("public_key", "")
-        if verify_discord_signature(public_key, timestamp, body, signature):
+        config = (
+            get_channel_config(ch, encryption_secret) if encryption_secret else (ch.config or {})
+        )
+        public_key = config.get("public_key", "")
+        if public_key and verify_discord_signature(public_key, timestamp, body, signature):
             matched_channel = ch
             break
 
@@ -118,13 +130,15 @@ async def _handle_component(
 
     # Expired: Redis key gone — show expired embed, no decision submitted
     if tenant_id_str is None:
-        return JSONResponse({
-            "type": 7,
-            "data": {
-                "embeds": [{"title": "Approval Expired", "color": 0x99AAB5}],
-                "components": [],
-            },
-        })
+        return JSONResponse(
+            {
+                "type": 7,
+                "data": {
+                    "embeds": [{"title": "Approval Expired", "color": 0x99AAB5}],
+                    "components": [],
+                },
+            }
+        )
 
     tenant_id = uuid.UUID(tenant_id_str)
     member = body_json.get("member") or {}
@@ -142,13 +156,15 @@ async def _handle_component(
     )
 
     if approval is None:
-        return JSONResponse({
-            "type": 7,
-            "data": {
-                "embeds": [{"title": "Already Decided", "color": 0x99AAB5}],
-                "components": [],
-            },
-        })
+        return JSONResponse(
+            {
+                "type": 7,
+                "data": {
+                    "embeds": [{"title": "Already Decided", "color": 0x99AAB5}],
+                    "components": [],
+                },
+            }
+        )
 
     await db.commit()
 
@@ -178,18 +194,18 @@ async def _handle_component(
     # Type 7 = UPDATE_MESSAGE: update original embed, remove buttons
     color = 0x57F287 if approval.status == "approved" else 0xED4245
     label = "Approved \u2705" if approval.status == "approved" else "Denied \u274c"
-    return JSONResponse({
-        "type": 7,
-        "data": {
-            "embeds": [
-                {
-                    "title": f"Approval {approval.status.capitalize()}",
-                    "description": (
-                        f"**Decision:** {label}\n**Decided by:** {decided_by}"
-                    ),
-                    "color": color,
-                }
-            ],
-            "components": [],
-        },
-    })
+    return JSONResponse(
+        {
+            "type": 7,
+            "data": {
+                "embeds": [
+                    {
+                        "title": f"Approval {approval.status.capitalize()}",
+                        "description": (f"**Decision:** {label}\n**Decided by:** {decided_by}"),
+                        "color": color,
+                    }
+                ],
+                "components": [],
+            },
+        }
+    )

@@ -10,9 +10,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.api_keys import generate_api_key
-from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
+from edictum_server.auth.dependencies import AuthContext, require_admin, require_dashboard_auth
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import ApiKey
+from edictum_server.push.manager import PushManager, get_push_manager
 from edictum_server.schemas.keys import ApiKeyInfo, CreateKeyRequest, CreateKeyResponse
 
 router = APIRouter(prefix="/api/v1/keys", tags=["keys"])
@@ -25,8 +26,9 @@ router = APIRouter(prefix="/api/v1/keys", tags=["keys"])
 )
 async def create_key(
     body: CreateKeyRequest,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    push: PushManager = Depends(get_push_manager),
 ) -> CreateKeyResponse:
     """Create a new API key for the authenticated tenant.
 
@@ -45,6 +47,16 @@ async def create_key(
     db.add(api_key)
     await db.commit()
     await db.refresh(api_key)
+
+    push.push_to_dashboard(
+        auth.tenant_id,
+        {
+            "type": "api_key_created",
+            "key_id": str(api_key.id),
+            "env": body.env,
+            "label": body.label,
+        },
+    )
 
     return CreateKeyResponse(
         id=str(api_key.id),
@@ -85,8 +97,9 @@ async def list_keys(
 @router.delete("/{key_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def revoke_key(
     key_id: uuid.UUID,
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
+    push: PushManager = Depends(get_push_manager),
 ) -> None:
     """Revoke an API key by setting its revoked_at timestamp.
 
@@ -111,3 +124,11 @@ async def revoke_key(
         update(ApiKey).where(ApiKey.id == key_id).values(revoked_at=datetime.now(UTC))
     )
     await db.commit()
+
+    push.push_to_dashboard(
+        auth.tenant_id,
+        {
+            "type": "api_key_revoked",
+            "key_id": str(key_id),
+        },
+    )

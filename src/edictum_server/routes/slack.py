@@ -22,6 +22,7 @@ from edictum_server.db.models import NotificationChannel as ChannelModel
 from edictum_server.notifications.base import NotificationManager
 from edictum_server.push.manager import PushManager
 from edictum_server.services import approval_service
+from edictum_server.services.notification_service import get_channel_config
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,10 @@ def _verify_slack_signature(
     signature: str,
 ) -> bool:
     sig_basestring = f"v0:{timestamp}:{body.decode()}"
-    expected = "v0=" + hmac.new(
-        signing_secret.encode(), sig_basestring.encode(), hashlib.sha256
-    ).hexdigest()
+    expected = (
+        "v0="
+        + hmac.new(signing_secret.encode(), sig_basestring.encode(), hashlib.sha256).hexdigest()
+    )
     return hmac.compare_digest(expected, signature)
 
 
@@ -63,6 +65,13 @@ async def slack_interaction(
         return Response(status_code=403)
 
     # Find matching slack_app channel by signing secret
+    # Decrypt config to access signing_secret (may be encrypted at rest)
+    settings = get_settings()
+    try:
+        encryption_secret = settings.get_signing_secret()
+    except ValueError:
+        encryption_secret = None
+
     result = await db.execute(
         select(ChannelModel).where(
             ChannelModel.channel_type == "slack_app",
@@ -73,7 +82,10 @@ async def slack_interaction(
 
     matched_channel = None
     for ch in db_channels:
-        secret = ch.config.get("signing_secret", "")
+        config = (
+            get_channel_config(ch, encryption_secret) if encryption_secret else (ch.config or {})
+        )
+        secret = config.get("signing_secret", "")
         if secret and _verify_slack_signature(secret, timestamp, body, signature):
             matched_channel = ch
             break
@@ -177,6 +189,7 @@ async def slack_interaction(
 
     # Notify other channels
     notification_mgr: NotificationManager = request.app.state.notification_manager
+
     async def _notify() -> None:
         try:
             await notification_mgr.notify_approval_decided(
@@ -188,6 +201,7 @@ async def slack_interaction(
             )
         except Exception:
             logger.exception("Unhandled error in background notification task")
+
     asyncio.create_task(_notify())
 
     emoji = "\u2705" if decision == "approve" else "\u274c"

@@ -96,9 +96,7 @@ def _validate_config(channel_type: str, config: dict) -> None:  # noqa: ANN001
     required = REQUIRED_CONFIG.get(channel_type, [])
     missing = [k for k in required if k not in config]
     if missing:
-        raise ValueError(
-            f"Missing required config keys for {channel_type}: {', '.join(missing)}"
-        )
+        raise ValueError(f"Missing required config keys for {channel_type}: {', '.join(missing)}")
 
 
 async def _validate_urls(channel_type: str, config: dict) -> None:  # noqa: ANN001
@@ -161,16 +159,19 @@ async def create_channel(
     if channel_type == "telegram" and "webhook_secret" not in config:
         config = {**config, "webhook_secret": secrets.token_urlsafe(32)}
 
+    if secret is None:
+        raise ValueError(
+            "Encryption secret is required to create notification channels. "
+            "Configure EDICTUM_SIGNING_KEY_SECRET."
+        )
+
     channel = NotificationChannel(
         tenant_id=tenant_id,
         name=name,
         channel_type=channel_type,
         filters=filters,
     )
-    if secret is not None:
-        _set_channel_config(channel, config, secret)
-    else:
-        channel.config = config
+    _set_channel_config(channel, config, secret)
     db.add(channel)
     await db.flush()
     return channel
@@ -202,10 +203,12 @@ async def update_channel(
     if config is not None:
         _validate_config(channel.channel_type, config)
         await _validate_urls(channel.channel_type, config)
-        if secret is not None:
-            _set_channel_config(channel, config, secret)
-        else:
-            channel.config = config
+        if secret is None:
+            raise ValueError(
+                "Encryption secret is required to update notification channel config. "
+                "Configure EDICTUM_SIGNING_KEY_SECRET."
+            )
+        _set_channel_config(channel, config, secret)
     if enabled is not None:
         channel.enabled = enabled
     if filters is not _UNSET:
@@ -257,9 +260,7 @@ async def test_channel(
             success, message = await test_email(config)
         else:
             async with httpx.AsyncClient(timeout=10) as client:
-                success, message = await test_http_channel(
-                    client, channel.channel_type, config
-                )
+                success, message = await test_http_channel(client, channel.channel_type, config)
     except httpx.HTTPStatusError as exc:
         message = f"HTTP {exc.response.status_code}: {exc.response.text[:200]}"
     except httpx.RequestError as exc:

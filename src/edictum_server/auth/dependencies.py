@@ -29,6 +29,7 @@ class AuthContext:
     user_id: str | None = None
     agent_id: str | None = None
     email: str | None = None
+    is_admin: bool = False
 
 
 def _extract_bearer(authorization: str) -> str:
@@ -92,7 +93,20 @@ async def require_dashboard_auth(
         auth_type="dashboard",
         user_id=str(ctx.user_id),
         email=ctx.email,
+        is_admin=ctx.is_admin,
     )
+
+
+async def require_admin(
+    auth: AuthContext = Depends(require_dashboard_auth),
+) -> AuthContext:
+    """Require dashboard auth with admin role. Raises 403 if not admin."""
+    if not auth.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return auth
 
 
 async def get_current_tenant(

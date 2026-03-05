@@ -10,6 +10,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlparse
 
 import sqlalchemy as sa
 from fastapi import FastAPI, Request
@@ -91,9 +92,7 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                             "agent_id": item["agent_id"],
                             "tool_name": item["tool_name"],
                         }
-                        push.push_to_env(
-                            item["env"], timeout_data, tenant_id=item["tenant_id"]
-                        )
+                        push.push_to_env(item["env"], timeout_data, tenant_id=item["tenant_id"])
                         push.push_to_dashboard(item["tenant_id"], timeout_data)
                     # Group expired items by tenant for tenant-scoped notification
                     mgr: NotificationManager = app.state.notification_manager
@@ -107,9 +106,7 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
                                 try:
                                     await ch.update_expired(tenant_items)
                                 except Exception:
-                                    logger.exception(
-                                        "Failed to update expired notifications"
-                                    )
+                                    logger.exception("Failed to update expired notifications")
         except Exception:
             logger.exception("Approval timeout worker error")
         await asyncio.sleep(10)
@@ -195,9 +192,7 @@ async def _ensure_signing_keys(settings: Settings) -> None:
     async with async_session_factory()() as db:
         # Find tenants without an active signing key
         tenants_with_keys = (
-            select(SigningKeyModel.tenant_id)
-            .where(SigningKeyModel.active.is_(True))
-            .subquery()
+            select(SigningKeyModel.tenant_id).where(SigningKeyModel.active.is_(True)).subquery()
         )
         result = await db.execute(
             select(Tenant).where(Tenant.id.not_in(select(tenants_with_keys.c.tenant_id)))
@@ -234,9 +229,7 @@ async def _cleanup_ai_usage() -> None:
     try:
         cutoff = datetime.now(UTC) - timedelta(days=90)
         async with async_session_factory()() as db:
-            result = await db.execute(
-                sa.delete(AiUsageLog).where(AiUsageLog.created_at < cutoff)
-            )
+            result = await db.execute(sa.delete(AiUsageLog).where(AiUsageLog.created_at < cutoff))
             if result.rowcount:
                 await db.commit()
                 logger.info("Cleaned up %d old AI usage log(s)", result.rowcount)
@@ -250,11 +243,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     settings = get_settings()
     settings.validate_required()
 
+    # Warn if base_url is not HTTPS in non-local environments
+    parsed = urlparse(settings.base_url)
+    if not settings.base_url.startswith("https://") and parsed.hostname not in (
+        "localhost",
+        "127.0.0.1",
+    ):
+        logger.warning(
+            "EDICTUM_BASE_URL is not HTTPS (%s) — session cookies will not have "
+            "the Secure flag. Set EDICTUM_BASE_URL to your public HTTPS URL in production.",
+            settings.base_url,
+        )
+
     # Validate signing key secret early — log clearly if misconfigured
     try:
         settings.get_signing_secret()
     except ValueError as exc:
-        logger.warning("Signing key config issue: %s", exc)
+        logger.warning(
+            "EDICTUM_SIGNING_KEY_SECRET not set — bundle signing and "
+            "notification encryption disabled: %s",
+            exc,
+        )
 
     # Database
     engine = init_engine(settings.database_url)
@@ -287,7 +296,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             pass
         async with async_session_factory()() as db:
             channels_by_tenant = await load_db_channels(
-                db, app.state.redis, settings.base_url, secret=signing_secret,
+                db,
+                app.state.redis,
+                settings.base_url,
+                secret=signing_secret,
             )
             await notification_mgr.reload(channels_by_tenant)
             total = sum(len(chs) for chs in channels_by_tenant.values())
@@ -353,6 +365,13 @@ from edictum_server.auth.csrf import CSRFMiddleware  # noqa: E402
 
 app.add_middleware(CSRFMiddleware)
 
+# Trusted proxy support — properly resolve client IPs behind reverse proxies
+if _settings.trusted_proxies:
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware  # noqa: E402
+
+    _trusted_hosts = [h.strip() for h in _settings.trusted_proxies.split(",") if h.strip()]
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=_trusted_hosts)
+
 # Routers
 app.include_router(health.router)
 app.include_router(setup.router)
@@ -379,6 +398,7 @@ app.include_router(settings.router)
 app.include_router(ai.router)
 app.include_router(ai_usage.router)
 
+
 # --- 404 handler: redirect non-API paths to dashboard -------------------------
 @app.exception_handler(404)
 async def not_found_handler(
@@ -399,11 +419,7 @@ _STATIC_DIR = Path(os.environ.get("EDICTUM_STATIC_DIR", "/app/static/dashboard")
 async def serve_spa(request: Request, full_path: str) -> FileResponse | HTMLResponse:  # noqa: ARG001
     """Serve the React SPA — static files or index.html for client-side routing."""
     file_path = (_STATIC_DIR / full_path).resolve()
-    if (
-        full_path
-        and file_path.is_file()
-        and str(file_path).startswith(str(_STATIC_DIR.resolve()))
-    ):
+    if full_path and file_path.is_file() and str(file_path).startswith(str(_STATIC_DIR.resolve())):
         return FileResponse(file_path)
     index = _STATIC_DIR / "index.html"
     if index.is_file():

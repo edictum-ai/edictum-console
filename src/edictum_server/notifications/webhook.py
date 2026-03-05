@@ -11,12 +11,12 @@ from typing import Any
 import httpx
 
 from edictum_server.notifications.base import NotificationChannel
+from edictum_server.security.safe_transport import SafeTransport
 
 logger = logging.getLogger(__name__)
 
 
 class WebhookChannel(NotificationChannel):
-
     def __init__(
         self,
         *,
@@ -31,7 +31,7 @@ class WebhookChannel(NotificationChannel):
         self._name = channel_name
         self._channel_id = channel_id
         self._filters = filters
-        self._client = httpx.AsyncClient(timeout=10.0)
+        self._client = httpx.AsyncClient(timeout=10.0, transport=SafeTransport())
 
     @property
     def name(self) -> str:
@@ -96,9 +96,7 @@ class WebhookChannel(NotificationChannel):
         headers: dict[str, str] = {"Content-Type": "application/json"}
         body = json.dumps(payload)
         if self._secret:
-            sig = hmac.new(
-                self._secret.encode(), body.encode(), hashlib.sha256
-            ).hexdigest()
+            sig = hmac.new(self._secret.encode(), body.encode(), hashlib.sha256).hexdigest()
             headers["X-Edictum-Signature"] = f"sha256={sig}"
         await self._client.post(self._url, content=body, headers=headers)
 

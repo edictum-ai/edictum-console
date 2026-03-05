@@ -28,6 +28,7 @@ from edictum_server.schemas.bundles import (
 from edictum_server.services.bundle_service import (
     get_bundle_by_version,
     get_current_bundle,
+    get_deployed_envs_by_bundle_name,
     get_deployed_envs_map,
     list_bundle_names,
     list_bundle_versions,
@@ -93,20 +94,17 @@ async def list_bundles(
 ) -> list[BundleSummaryResponse]:
     """List distinct bundle names with summaries."""
     names = await list_bundle_names(db, auth.tenant_id)
-    # TODO: batch deployed_envs query across all bundle names to avoid N+1
-    # At 20 bundles this is ~20 lightweight indexed queries — acceptable for v1
-    result = []
-    for entry in names:
-        envs_map = await get_deployed_envs_map(db, auth.tenant_id, entry["name"])
-        all_envs = sorted({env for envs in envs_map.values() for env in envs})
-        result.append(BundleSummaryResponse(
+    envs_by_name = await get_deployed_envs_by_bundle_name(db, auth.tenant_id)
+    return [
+        BundleSummaryResponse(
             name=entry["name"],
             latest_version=entry["latest_version"],
             version_count=entry["version_count"],
             last_updated=entry["last_updated"],
-            deployed_envs=all_envs,
-        ))
-    return result
+            deployed_envs=envs_by_name.get(entry["name"], []),
+        )
+        for entry in names
+    ]
 
 
 # Register /{name}/current BEFORE /{name}/{version} — FastAPI matches top-to-bottom.

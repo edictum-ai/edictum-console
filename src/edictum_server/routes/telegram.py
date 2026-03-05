@@ -12,21 +12,21 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from edictum_server.config import get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import NotificationChannel as ChannelModel
 from edictum_server.notifications.base import NotificationManager
 from edictum_server.notifications.telegram import TelegramChannel
 from edictum_server.push.manager import PushManager
 from edictum_server.services import approval_service
+from edictum_server.services.notification_service import get_channel_config
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/telegram", tags=["telegram"])
 
 
-def _find_telegram_channel(
-    mgr: NotificationManager, channel_id: str
-) -> TelegramChannel | None:
+def _find_telegram_channel(mgr: NotificationManager, channel_id: str) -> TelegramChannel | None:
     """Find a TelegramChannel in the manager by its channel_id."""
     for ch in mgr.channels:
         if isinstance(ch, TelegramChannel) and ch.channel_id == channel_id:
@@ -57,9 +57,7 @@ async def _process_callback(
 
     # Resolve tenant from Redis (namespaced by channel_id)
     redis = request.app.state.redis
-    tenant_id_str = await redis.get(
-        f"telegram:tenant:{channel_id}:{approval_id}"
-    )
+    tenant_id_str = await redis.get(f"telegram:tenant:{channel_id}:{approval_id}")
 
     if tenant_id_str is None:
         try:
@@ -73,9 +71,7 @@ async def _process_callback(
 
     tenant_id = uuid.UUID(tenant_id_str)
     tg_user = callback_query.get("from", {})
-    decided_by = (
-        f"telegram:{tg_user.get('username') or tg_user.get('id', 'unknown')}"
-    )
+    decided_by = f"telegram:{tg_user.get('username') or tg_user.get('id', 'unknown')}"
 
     approval = await approval_service.submit_decision(
         db,
@@ -128,9 +124,7 @@ async def _process_callback(
         logger.exception("Failed to update Telegram message")
     try:
         result_text = "Approved \u2705" if action == "approve" else "Denied \u274c"
-        await tg_channel.client.answer_callback_query(
-            callback_query["id"], result_text
-        )
+        await tg_channel.client.answer_callback_query(callback_query["id"], result_text)
     except Exception:
         logger.exception("Failed to answer callback query")
 
@@ -161,8 +155,20 @@ async def db_channel_webhook(
     if db_channel is None:
         return Response(status_code=404)
 
+    # Decrypt config to access webhook_secret (may be encrypted at rest)
+    settings = get_settings()
+    try:
+        encryption_secret = settings.get_signing_secret()
+    except ValueError:
+        encryption_secret = None
+    config = (
+        get_channel_config(db_channel, encryption_secret)
+        if encryption_secret
+        else (db_channel.config or {})
+    )
+
     # Validate the secret token header
-    expected_secret = db_channel.config.get("webhook_secret", "")
+    expected_secret = config.get("webhook_secret", "")
     actual_secret = request.headers.get("x-telegram-bot-api-secret-token", "")
     if not expected_secret or actual_secret != expected_secret:
         return Response(status_code=403)
@@ -184,6 +190,4 @@ async def db_channel_webhook(
     if tg_channel is None:
         return Response(status_code=200)
 
-    return await _process_callback(
-        request, db, callback_query, tg_channel, normalized_id
-    )
+    return await _process_callback(request, db, callback_query, tg_channel, normalized_id)

@@ -70,15 +70,16 @@ export function DashboardHome() {
 
   // SSE for real-time updates
   useDashboardSSE({
-    stats_update: () => {
+    event_created: () => {
       void refreshStats()
-    },
-    new_event: () => {
-      // Background sync — re-fetch to get a fully typed EventResponse
       void listEvents({ limit: 100 }).then(setEvents).catch(() => {})
     },
-    approval_update: () => {
-      // Background sync — SSE will retry; don't toast on transient failures
+    approval_created: () => {
+      void refreshStats()
+      void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
+    },
+    approval_decided: () => {
+      void refreshStats()
       void listApprovals({ status: "pending", limit: 50 }).then(setApprovals).catch(() => {})
     },
   })

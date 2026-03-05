@@ -7,12 +7,12 @@ from typing import Any
 import httpx
 
 from edictum_server.notifications.base import NotificationChannel
+from edictum_server.security.safe_transport import SafeTransport
 
 _STATUS_EMOJI = {"approved": "✅", "denied": "❌", "timeout": "⏰"}
 
 
 class SlackChannel(NotificationChannel):
-
     def __init__(
         self,
         *,
@@ -27,7 +27,7 @@ class SlackChannel(NotificationChannel):
         self._name = channel_name
         self._channel_id = channel_id
         self._filters = filters
-        self._client = httpx.AsyncClient(timeout=10.0)
+        self._client = httpx.AsyncClient(timeout=10.0, transport=SafeTransport())
 
     @property
     def name(self) -> str:

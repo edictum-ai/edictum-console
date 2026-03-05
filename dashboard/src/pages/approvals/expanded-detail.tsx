@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Link } from "react-router"
+import { useNavigate } from "react-router"
 import { CheckCircle2, Code2, MessageSquare, Sparkles } from "lucide-react"
 import type { ApprovalResponse } from "@/lib/api"
 import { formatDecisionSource } from "@/lib/payload-helpers"
@@ -16,6 +16,7 @@ interface ExpandedDetailProps {
 }
 
 export function ExpandedDetail({ approval, onApprove, onDeny, acting }: ExpandedDetailProps) {
+  const navigate = useNavigate()
   const { zone } = getTimerState(approval.created_at, approval.timeout_seconds)
 
   return (
@@ -107,11 +108,19 @@ export function ExpandedDetail({ approval, onApprove, onDeny, acting }: Expanded
             />
           </div>
 
-          <Button variant="outline" size="sm" className="w-full" asChild>
-            <Link to={`/dashboard/contracts?tab=library&new=true&from_event=${encodeURIComponent(approval.id)}`}>
-              <Sparkles className="size-3.5" />
-              Create Contract
-            </Link>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              void navigate(
+                `/dashboard/contracts?tab=library&new=true&from_tool=${encodeURIComponent(approval.tool_name)}&from_verdict=denied&from_event=${encodeURIComponent(approval.id)}`,
+                { state: { fromArgs: approval.tool_args } },
+              )
+            }}
+          >
+            <Sparkles className="size-3.5" />
+            Create Contract
           </Button>
         </div>
       </div>

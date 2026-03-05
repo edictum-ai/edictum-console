@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from email.message import EmailMessage
+from html import escape
 from typing import Any
 
 import aiosmtplib
@@ -68,15 +69,15 @@ class EmailChannel(NotificationChannel):
         tenant_id: str,  # noqa: ARG002
         contract_name: str | None = None,  # noqa: ARG002
     ) -> None:
-        deep_link = f"{self._base_url}/dashboard/approvals?id={approval_id}"
+        deep_link = f"{self._base_url}/dashboard/approvals?id={escape(approval_id)}"
         subject = f"[Edictum] Approval Requested — {agent_id} wants to call {tool_name}"
         html = (
             "<h2>HITL Approval Request</h2>"
-            f"<p><b>Agent:</b> {agent_id}<br>"
-            f"<b>Tool:</b> {tool_name}<br>"
-            f"<b>Env:</b> {env}<br>"
-            f"<b>Timeout:</b> {timeout_seconds}s ({timeout_effect})</p>"
-            f"<p><b>Message:</b> {message}</p>"
+            f"<p><b>Agent:</b> {escape(agent_id)}<br>"
+            f"<b>Tool:</b> {escape(tool_name)}<br>"
+            f"<b>Env:</b> {escape(env)}<br>"
+            f"<b>Timeout:</b> {escape(str(timeout_seconds))}s ({escape(timeout_effect)})</p>"
+            f"<p><b>Message:</b> {escape(message)}</p>"
             f'<p><a href="{deep_link}" style="display:inline-block;padding:10px 20px;'
             'background:#2563eb;color:#fff;text-decoration:none;border-radius:6px;">'
             "Review &amp; Decide</a></p>"
@@ -94,12 +95,12 @@ class EmailChannel(NotificationChannel):
         emoji = _STATUS_EMOJI.get(status, "")
         subject = f"[Edictum] Approval {status} — {approval_id[:8]}"
         html = (
-            f"<h2>{emoji} Approval {status.upper()}</h2>"
-            f"<p><b>Decision:</b> {status}<br>"
-            f"<b>Decided by:</b> {decided_by or 'system'}</p>"
+            f"<h2>{emoji} Approval {escape(status.upper())}</h2>"
+            f"<p><b>Decision:</b> {escape(status)}<br>"
+            f"<b>Decided by:</b> {escape(decided_by or 'system')}</p>"
         )
         if reason:
-            html += f"<p><b>Reason:</b> {reason}</p>"
+            html += f"<p><b>Reason:</b> {escape(reason)}</p>"
         await self._send_email(subject, html)
 
     async def _send_email(self, subject: str, html_body: str) -> None:

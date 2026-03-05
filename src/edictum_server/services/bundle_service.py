@@ -211,6 +211,42 @@ async def get_deployed_envs_map(
     return dict(mapping)
 
 
+async def get_deployed_envs_by_bundle_name(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+) -> dict[str, list[str]]:
+    """Return mapping of bundle_name -> list of currently deployed env names.
+
+    Single query for all bundles — avoids the N+1 problem of calling
+    ``get_deployed_envs_map`` per bundle name.
+    """
+    ranked = (
+        select(
+            Deployment.bundle_name,
+            Deployment.env,
+            func.row_number()
+            .over(
+                partition_by=[Deployment.bundle_name, Deployment.env],
+                order_by=Deployment.created_at.desc(),
+            )
+            .label("rn"),
+        )
+        .where(Deployment.tenant_id == tenant_id)
+        .subquery()
+    )
+
+    result = await db.execute(
+        select(ranked.c.bundle_name, ranked.c.env).where(ranked.c.rn == 1)
+    )
+
+    mapping: dict[str, list[str]] = defaultdict(list)
+    for name, env in result.all():
+        mapping[name].append(env)
+    for envs in mapping.values():
+        envs.sort()
+    return dict(mapping)
+
+
 async def get_bundle_by_version(
     db: AsyncSession,
     tenant_id: uuid.UUID,

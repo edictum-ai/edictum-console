@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -51,12 +51,21 @@ async def setup(
     body: SetupRequest,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    x_requested_with: str | None = Header(default=None, alias="X-Requested-With"),
 ) -> SetupResponse:
     """Create the first admin user and tenant.
 
     Only works when no users exist (bootstrap lock -- S7).
     Returns 409 if already bootstrapped.
     """
+    # CSRF protection: require X-Requested-With header (browsers block this on
+    # cross-origin requests without a preflight, closing the CSRF vector)
+    if not x_requested_with:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Missing X-Requested-With header.",
+        )
+
     result = await db.execute(select(func.count()).select_from(User))
     user_count = result.scalar() or 0
 
