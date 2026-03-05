@@ -7,7 +7,7 @@ name = "edictum-console"
 version = "0.1.0"
 description = "Self-hostable agent operations console — runtime governance for AI agents"
 requires-python = ">=3.12"
-license = "Apache-2.0"
+license = "AGPL-3.0-only"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",

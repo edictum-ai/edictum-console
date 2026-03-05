@@ -18,8 +18,12 @@ interface YamlSheetProps {
 
 export function YamlSheet({ bundleName, version, yamlContent }: YamlSheetProps) {
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(yamlContent)
-    toast.success("Copied to clipboard")
+    try {
+      await navigator.clipboard.writeText(yamlContent)
+      toast.success("Copied to clipboard")
+    } catch {
+      toast.error("Failed to copy — clipboard access denied")
+    }
   }
 
   return (

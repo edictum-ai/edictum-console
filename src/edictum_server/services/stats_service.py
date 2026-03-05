@@ -62,7 +62,7 @@ async def get_overview(db: AsyncSession, tenant_id: uuid.UUID) -> StatsOverviewR
         .where(
             Event.tenant_id == tenant_id,
             Event.timestamp >= twenty_four_hours_ago,
-            Event.verdict == "denied",
+            Event.verdict == "call_denied",
         )
     )
     denials_24h = denials_24h_result.scalar() or 0
@@ -120,7 +120,7 @@ async def get_contract_stats(
         select(
             decision_col.label("decision_name"),
             func.count().label("total_evaluations"),
-            func.sum(case((Event.verdict == "denied", 1), else_=0)).label("total_denials"),
+            func.sum(case((Event.verdict == "call_denied", 1), else_=0)).label("total_denials"),
             func.sum(
                 case((Event.verdict == "call_would_deny", 1), else_=0)
             ).label("total_warnings"),

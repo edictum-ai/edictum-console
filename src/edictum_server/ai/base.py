@@ -8,6 +8,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, slots=True)
+class AiUsageResult:
+    """Token usage from a single AI request."""
+
+    input_tokens: int
+    output_tokens: int
+    model: str
 
 
 class AIProvider(ABC):
@@ -27,6 +37,11 @@ class AIProvider(ABC):
     def model(self) -> str:
         """Model identifier currently configured."""
         ...
+
+    @property
+    def last_usage(self) -> AiUsageResult | None:
+        """Token usage from the most recent stream_response call."""
+        return getattr(self, "_last_usage", None)
 
     @abstractmethod
     def stream_response(

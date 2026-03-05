@@ -6,7 +6,17 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    JSON, Boolean, DateTime, ForeignKey, ForeignKeyConstraint, Integer, LargeBinary, String, UniqueConstraint, func,
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Integer,
+    LargeBinary,
+    Numeric,
+    String,
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -170,14 +180,29 @@ class Approval(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
 
 class NotificationChannel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """Configuration for a notification channel (e.g. Telegram, Slack)."""
+    """Configuration for a notification channel (e.g. Telegram, Slack).
+
+    The ``config`` dict is encrypted at rest in ``config_encrypted`` using
+    NaCl SecretBox (same pattern as ``SigningKey.private_key_encrypted``
+    and ``TenantAiConfig.api_key_encrypted``).
+
+    After migration 006, new rows store secrets in ``config_encrypted``
+    only; the ``config`` JSON column is NULL.  Pre-migration rows may
+    still have plain-text config until the migration runs.
+
+    Encryption/decryption is handled by the service layer — see
+    ``notification_service.encrypt_config()`` / ``decrypt_config()``.
+    """
 
     __tablename__ = "notification_channels"
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
     name: Mapped[str] = mapped_column(String)
     channel_type: Mapped[str] = mapped_column(String)
-    config: Mapped[dict] = mapped_column(JSON)
+    config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    config_encrypted: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True,
+    )
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_test_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
@@ -291,3 +316,21 @@ class TenantAiConfig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     base_url: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_by: Mapped[str] = mapped_column(String)
+
+
+class AiUsageLog(UUIDPrimaryKeyMixin, Base):
+    """Tracks AI token usage and estimated costs per request."""
+    __tablename__ = "ai_usage_logs"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    provider: Mapped[str] = mapped_column(String)
+    model: Mapped[str] = mapped_column(String)
+    input_tokens: Mapped[int] = mapped_column(Integer)
+    output_tokens: Mapped[int] = mapped_column(Integer)
+    total_tokens: Mapped[int] = mapped_column(Integer)
+    duration_ms: Mapped[int] = mapped_column(Integer)
+    estimated_cost_usd: Mapped[float | None] = mapped_column(Numeric(10, 6), nullable=True)
+    request_type: Mapped[str] = mapped_column(String, default="assist")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(),
+    )

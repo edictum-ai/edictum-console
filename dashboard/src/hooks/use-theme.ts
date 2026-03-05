@@ -5,8 +5,12 @@ type Theme = "light" | "dark"
 const STORAGE_KEY = "edictum_theme"
 
 function getInitialTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === "light" || stored === "dark") return stored
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored === "light" || stored === "dark") return stored
+  } catch {
+    // localStorage unavailable (private browsing, hardened browser)
+  }
   return "dark"
 }
 
@@ -16,7 +20,11 @@ export function useTheme() {
   useEffect(() => {
     const root = document.documentElement
     root.classList.toggle("dark", theme === "dark")
-    localStorage.setItem(STORAGE_KEY, theme)
+    try {
+      localStorage.setItem(STORAGE_KEY, theme)
+    } catch {
+      // localStorage unavailable
+    }
   }, [theme])
 
   const toggle = useCallback(() => {

@@ -46,3 +46,4 @@ dashboard/dist/
 dashboard/.vite/
 
 to-implement/
+.CLAUDE.local.md

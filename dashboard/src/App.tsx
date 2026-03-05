@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
+import { AuthProvider } from "@/hooks/use-auth"
 import { AuthGuard } from "@/components/auth-guard"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { LoginPage } from "@/pages/login"
@@ -31,6 +32,7 @@ export function App() {
     <TooltipProvider>
       <Toaster position="top-right" richColors />
       <BrowserRouter>
+        <AuthProvider>
         <Routes>
           <Route path="/dashboard/login" element={<LoginPage />} />
           <Route path="/dashboard/setup" element={<BootstrapPage />} />
@@ -56,6 +58,7 @@ export function App() {
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   )

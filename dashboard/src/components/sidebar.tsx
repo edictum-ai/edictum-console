@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { logout } from "@/lib/api"
+import { useAuth } from "@/hooks/use-auth"
 import type { UserInfo } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,7 +33,6 @@ const STORAGE_KEY = "edictum-sidebar-collapsed"
 interface SidebarProps {
   user: UserInfo
   pendingApprovals?: number
-  onLogout: () => void
   /** When true, render expanded and hide the collapse toggle (used inside mobile Sheet). */
   forceExpanded?: boolean
 }
@@ -50,7 +49,8 @@ const navManage = [
   { to: "/dashboard/keys", icon: KeyRound, label: "API Keys" },
 ]
 
-export function Sidebar({ user, pendingApprovals, onLogout, forceExpanded }: SidebarProps) {
+export function Sidebar({ user, pendingApprovals, forceExpanded }: SidebarProps) {
+  const { logout } = useAuth()
   const [collapsed, setCollapsed] = useState(() => {
     if (forceExpanded) return false
     try {
@@ -71,12 +71,8 @@ export function Sidebar({ user, pendingApprovals, onLogout, forceExpanded }: Sid
     }
   }, [collapsed, forceExpanded])
 
-  async function handleLogout() {
-    try {
-      await logout()
-    } finally {
-      onLogout()
-    }
+  function handleLogout() {
+    void logout()
   }
 
   const initials = user.email?.charAt(0).toUpperCase() ?? "U"

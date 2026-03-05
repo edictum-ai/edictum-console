@@ -8,6 +8,7 @@ import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import sqlalchemy as sa
@@ -28,6 +29,7 @@ from edictum_server.routes import (
     agent_registrations,
     agents,
     ai,
+    ai_usage,
     approvals,
     assignment_rules,
     auth,
@@ -220,6 +222,28 @@ async def _ensure_signing_keys(settings: Settings) -> None:
         await db.commit()
 
 
+async def _cleanup_ai_usage() -> None:
+    """Delete AI usage log rows older than 90 days.
+
+    NOTE: Intentionally cross-tenant — this is an internal maintenance
+    operation that only deletes expired rows and never returns data.
+    Do not copy this pattern for data-access queries.
+    """
+    from edictum_server.db.models import AiUsageLog
+
+    try:
+        cutoff = datetime.now(UTC) - timedelta(days=90)
+        async with async_session_factory()() as db:
+            result = await db.execute(
+                sa.delete(AiUsageLog).where(AiUsageLog.created_at < cutoff)
+            )
+            if result.rowcount:
+                await db.commit()
+                logger.info("Cleaned up %d old AI usage log(s)", result.rowcount)
+    except Exception:
+        logger.exception("AI usage cleanup error")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Startup / shutdown lifecycle hook."""
@@ -243,6 +267,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app.state.auth_provider = LocalAuthProvider(
         redis=app.state.redis,
         session_ttl_hours=settings.session_ttl_hours,
+        secure_cookies=settings.base_url.startswith("https://"),
     )
 
     # Push manager (SSE)
@@ -254,9 +279,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Load DB-configured notification channels and register Telegram webhooks
     try:
+        signing_secret: bytes | None = None
+        try:
+            signing_secret = settings.get_signing_secret()
+        except ValueError:
+            pass
         async with async_session_factory()() as db:
             channels_by_tenant = await load_db_channels(
-                db, app.state.redis, settings.base_url
+                db, app.state.redis, settings.base_url, secret=signing_secret,
             )
             await notification_mgr.reload(channels_by_tenant)
             total = sum(len(chs) for chs in channels_by_tenant.values())
@@ -269,6 +299,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # Ensure every tenant has an active signing key
     await _ensure_signing_keys(settings)
+
+    # Clean up old AI usage logs
+    await _cleanup_ai_usage()
 
     # Background workers
     timeout_task = asyncio.create_task(_approval_timeout_worker(app))
@@ -313,6 +346,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# CSRF protection — must be added after CORS so it runs on the inner request.
+# Requires X-Requested-With header on cookie-auth mutating requests.
+from edictum_server.auth.csrf import CSRFMiddleware  # noqa: E402
+
+app.add_middleware(CSRFMiddleware)
+
 # Routers
 app.include_router(health.router)
 app.include_router(setup.router)
@@ -337,6 +376,7 @@ app.include_router(assignment_rules.router)
 app.include_router(notifications.router)
 app.include_router(settings.router)
 app.include_router(ai.router)
+app.include_router(ai_usage.router)
 
 # --- 404 handler: redirect non-API paths to dashboard -------------------------
 @app.exception_handler(404)

@@ -19,6 +19,7 @@ export async function request<T>(
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...options.headers,
     },
     ...options,
@@ -45,6 +46,7 @@ export async function requestVoid(
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...options.headers,
     },
     ...options,

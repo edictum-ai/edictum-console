@@ -45,3 +45,24 @@ class AssistRequest(BaseModel):
 
     messages: list[AssistMessage] = Field(..., max_length=50)
     current_yaml: str | None = Field(None, max_length=50_000)
+
+
+class DailyUsage(BaseModel):
+    """Aggregated AI usage for a single day."""
+
+    date: str
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float | None
+    queries: int
+
+
+class AiUsageResponse(BaseModel):
+    """AI usage statistics over a date range."""
+
+    total_input_tokens: int
+    total_output_tokens: int
+    total_cost_usd: float | None
+    query_count: int
+    avg_tokens_per_second: float
+    daily: list[DailyUsage]

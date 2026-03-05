@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router"
+import { Outlet } from "react-router"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sidebar } from "@/components/sidebar"
@@ -10,7 +10,6 @@ import { useIsMobile } from "@/hooks/use-mobile"
 export function DashboardLayout() {
   const { user, loading } = useAuth()
   const { data: stats } = useStats()
-  const navigate = useNavigate()
   const isMobile = useIsMobile()
 
   if (loading) {
@@ -25,22 +24,18 @@ export function DashboardLayout() {
     return null
   }
 
-  const handleLogout = () => void navigate("/dashboard/login")
-
   return (
     <div className={cn("flex h-screen", isMobile ? "flex-col" : "flex-row")}>
       {!isMobile && (
         <Sidebar
           user={user}
           pendingApprovals={stats?.pending_approvals}
-          onLogout={handleLogout}
         />
       )}
       {isMobile && (
         <MobileHeader
           user={user}
           pendingApprovals={stats?.pending_approvals}
-          onLogout={handleLogout}
         />
       )}
 

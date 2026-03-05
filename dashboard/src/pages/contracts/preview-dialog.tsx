@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, Copy, Check, Rocket } from "lucide-react"
+import { toast } from "sonner"
 import { previewComposition, type PreviewResponse } from "@/lib/api/compositions"
 import { YamlEditor } from "@/components/yaml-editor"
 
@@ -59,10 +60,14 @@ export function PreviewDialog({
 
   const handleCopy = async () => {
     if (!preview) return
-    await navigator.clipboard.writeText(preview.yaml_content)
-    setCopied(true)
-    clearTimeout(copyTimerRef.current)
-    copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(preview.yaml_content)
+      setCopied(true)
+      clearTimeout(copyTimerRef.current)
+      copyTimerRef.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast.error("Failed to copy — clipboard access denied")
+    }
   }
 
   return (

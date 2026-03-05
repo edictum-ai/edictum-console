@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
-import { CheckCircle, XCircle, Loader2, Trash2, Zap } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, Trash2, Zap, BarChart3 } from "lucide-react"
+import { Bar, BarChart, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { getAiConfig, updateAiConfig, deleteAiConfig, testAiConnection } from "@/lib/api"
-import type { AiConfigResponse, TestAiResult } from "@/lib/api"
+import { getAiConfig, updateAiConfig, deleteAiConfig, testAiConnection, getAiUsage } from "@/lib/api"
+import type { AiConfigResponse, TestAiResult, AiUsageResponse } from "@/lib/api"
 
 const PROVIDERS = [
   { value: "anthropic", label: "Anthropic", placeholder: "claude-haiku-4-5-20251001" },
@@ -257,6 +259,149 @@ export function AiSettingsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {isConfigured && (
+        <>
+          <Separator />
+          <AiUsageSection />
+        </>
+      )}
+    </div>
+  )
+}
+
+// --- Usage Dashboard ---
+
+const usageChartConfig = {
+  input_tokens: {
+    label: "Input Tokens",
+    color: "hsl(160, 60%, 55%)",
+  },
+  output_tokens: {
+    label: "Output Tokens",
+    color: "hsl(160, 60%, 35%)",
+  },
+} satisfies ChartConfig
+
+function formatCost(usd: number | null): string {
+  if (usd == null) return "—"
+  return usd < 0.01 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`
+}
+
+function AiUsageSection() {
+  const [usage, setUsage] = useState<AiUsageResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getAiUsage(30)
+      .then(setUsage)
+      .catch(() => { /* no usage data */ })
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (!usage || usage.query_count === 0) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="size-4 text-muted-foreground" />
+          <h3 className="text-sm font-medium">Usage</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">No AI usage data yet.</p>
+      </div>
+    )
+  }
+
+  const totalTokens = usage.total_input_tokens + usage.total_output_tokens
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <BarChart3 className="size-4 text-muted-foreground" />
+        <h3 className="text-sm font-medium">Usage (Last 30 Days)</h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Total Tokens</p>
+            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              {totalTokens.toLocaleString()}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Estimated Cost</p>
+            <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+              {formatCost(usage.total_cost_usd)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Queries</p>
+            <p className="text-sm font-semibold">{usage.query_count.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Avg Speed</p>
+            <p className="text-sm font-semibold">{Math.round(usage.avg_tokens_per_second)} tok/s</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {usage.daily.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Daily Token Usage</CardTitle>
+            <CardDescription className="text-xs">Input and output tokens per day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={usageChartConfig} className="h-[200px] w-full [&>div]:!aspect-auto">
+              <BarChart data={usage.daily} accessibilityLayer>
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: string) => {
+                    const d = new Date(v)
+                    return `${d.getMonth() + 1}/${d.getDate()}`
+                  }}
+                  className="text-xs"
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+                  width={40}
+                  className="text-xs"
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      formatter={(value, name) => {
+                        const label = name === "input_tokens" ? "Input" : "Output"
+                        return `${label}: ${(value as number).toLocaleString()}`
+                      }}
+                    />
+                  }
+                />
+                <Bar dataKey="input_tokens" stackId="tokens" fill="var(--color-input_tokens)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="output_tokens" stackId="tokens" fill="var(--color-output_tokens)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

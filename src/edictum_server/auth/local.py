@@ -20,9 +20,16 @@ _SESSION_PREFIX = "session:"
 class LocalAuthProvider(AuthProvider):
     """Bcrypt password auth with Redis-backed sessions."""
 
-    def __init__(self, redis: aioredis.Redis, session_ttl_hours: int = 24) -> None:
+    def __init__(
+        self,
+        redis: aioredis.Redis,
+        session_ttl_hours: int = 24,
+        *,
+        secure_cookies: bool = False,
+    ) -> None:
         self._redis = redis
         self._session_ttl = session_ttl_hours * 3600
+        self._secure_cookies = secure_cookies
 
     async def authenticate(self, request: Request) -> DashboardAuthContext:
         token = request.cookies.get(_COOKIE_NAME)
@@ -75,6 +82,7 @@ class LocalAuthProvider(AuthProvider):
             "samesite": "lax",
             "path": "/",
             "max_age": self._session_ttl,
+            "secure": self._secure_cookies,
         }
         return token, cookie_params
 

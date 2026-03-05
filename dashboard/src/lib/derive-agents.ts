@@ -1,5 +1,6 @@
 import type { EventResponse } from "@/lib/api"
 import { formatRelativeTime } from "@/lib/format"
+import { normalizeVerdict } from "@/lib/verdict-helpers"
 
 /** Agent is considered offline if no activity for this duration. */
 const OFFLINE_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
@@ -45,7 +46,7 @@ export function deriveAgents(events: EventResponse[]): AgentSummary[] {
     )
     const lastTs = sorted[0]?.timestamp ?? ""
     const msSinceLastActivity = lastTs ? Date.now() - new Date(lastTs).getTime() : Infinity
-    const deniedCount = sorted.filter((e) => e.verdict === "denied").length
+    const deniedCount = sorted.filter((e) => normalizeVerdict(e.verdict) === "denied").length
     const deniedRate = sorted.length > 0 ? deniedCount / sorted.length : 0
 
     let status: AgentStatus = "healthy"

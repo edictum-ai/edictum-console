@@ -5,6 +5,7 @@
 
 import type { ChartConfig } from "@/components/ui/chart"
 import { isObserveFinding } from "@/lib/payload-helpers"
+import { normalizeVerdict } from "@/lib/verdict-helpers"
 
 // -- Types ------------------------------------------------------------------
 
@@ -167,9 +168,9 @@ export function buildHistogram(events: EventForHistogram[], tw: TimeWindow): His
         if (isObserveFinding(e)) {
           bucket.observed++
         } else {
-          const v = e.verdict.toLowerCase()
+          const v = normalizeVerdict(e.verdict)
           if (v === "allowed") bucket.allowed++
-          else if (v === "denied") bucket.denied++
+          else if (v === "denied" || v === "would_deny") bucket.denied++
           else if (v === "pending") bucket.pending++
         }
       }

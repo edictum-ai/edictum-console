@@ -36,7 +36,12 @@ class UpdateChannelRequest(BaseModel):
 
 
 class ChannelResponse(BaseModel):
-    """Public-facing notification channel info."""
+    """Public-facing notification channel info.
+
+    The ``config`` dict is **redacted** — secret fields (tokens, passwords,
+    signing secrets) are masked.  Non-secret fields (chat IDs, URLs, usernames)
+    are returned as-is so the UI can display them.
+    """
 
     id: uuid.UUID
     name: str

@@ -20,6 +20,7 @@ from edictum_server.schemas.notifications import (
     UpdateChannelRequest,
 )
 from edictum_server.services import notification_service
+from edictum_server.services.notification_service import get_channel_config
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +30,53 @@ router = APIRouter(
 )
 
 
-def _to_response(ch) -> ChannelResponse:  # noqa: ANN001
-    """Map ORM model to response schema."""
+def _get_secret() -> bytes | None:
+    """Return the signing secret for config encryption, or None if not set."""
+    try:
+        return get_settings().get_signing_secret()
+    except ValueError:
+        return None
+
+
+# Fields that contain secrets and must be masked per channel type.
+# Any field NOT listed here is returned as-is (e.g. chat_id, url, from_address).
+_SECRET_FIELDS: dict[str, set[str]] = {
+    "telegram": {"bot_token", "webhook_secret"},
+    "slack": {"webhook_url"},  # Slack webhook URLs are bearer-equivalent
+    "slack_app": {"bot_token", "signing_secret"},
+    "webhook": {"secret"},
+    "email": {"smtp_password"},
+    "discord": {"bot_token"},
+}
+
+
+def _mask_value(value: str) -> str:
+    """Mask a secret value for display: prefix...suffix or just ***."""
+    if not isinstance(value, str) or len(value) <= 8:
+        return "••••••••"
+    return f"{value[:4]}••••{value[-4:]}"
+
+
+def _redact_config(channel_type: str, config: dict) -> dict:
+    """Return a copy of config with secret fields masked."""
+    secret_keys = _SECRET_FIELDS.get(channel_type, set())
+    redacted: dict = {}
+    for key, value in config.items():
+        if key in secret_keys:
+            redacted[key] = _mask_value(str(value)) if value else ""
+        else:
+            redacted[key] = value
+    return redacted
+
+
+def _to_response(ch, *, secret: bytes | None = None) -> ChannelResponse:  # noqa: ANN001
+    """Map ORM model to response schema with redacted secrets."""
+    config = get_channel_config(ch, secret) if secret else (ch.config or {})
     return ChannelResponse(
         id=ch.id,
         name=ch.name,
         channel_type=ch.channel_type,
-        config=ch.config,
+        config=_redact_config(ch.channel_type, config),
         enabled=ch.enabled,
         filters=ch.filters,
         created_at=ch.created_at,
@@ -48,8 +89,9 @@ async def _reload_manager(request: Request, db: AsyncSession) -> None:
     """Reload notification manager with fresh DB channels."""
     mgr: NotificationManager = request.app.state.notification_manager
     settings = get_settings()
+    secret = _get_secret()
     channels_by_tenant = await load_db_channels(
-        db, request.app.state.redis, settings.base_url
+        db, request.app.state.redis, settings.base_url, secret=secret,
     )
     await mgr.reload(channels_by_tenant)
 
@@ -61,8 +103,9 @@ async def list_channels(
     db: AsyncSession = Depends(get_db),
 ) -> list[ChannelResponse]:
     """List all notification channels for the authenticated tenant."""
+    secret = _get_secret()
     channels = await notification_service.list_channels(db, auth.tenant_id)
-    return [_to_response(ch) for ch in channels]
+    return [_to_response(ch, secret=secret) for ch in channels]
 
 
 @router.post(
@@ -77,6 +120,7 @@ async def create_channel(
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
     """Create a new notification channel."""
+    secret = _get_secret()
     try:
         channel = await notification_service.create_channel(
             db,
@@ -85,6 +129,7 @@ async def create_channel(
             channel_type=body.channel_type,
             config=body.config,
             filters=body.filters.model_dump() if body.filters else None,
+            secret=secret,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -94,7 +139,7 @@ async def create_channel(
     await db.commit()
     await db.refresh(channel)
     await _reload_manager(request, db)
-    return _to_response(channel)
+    return _to_response(channel, secret=secret)
 
 
 @router.put("/{channel_id}", response_model=ChannelResponse)
@@ -106,6 +151,7 @@ async def update_channel(
     db: AsyncSession = Depends(get_db),
 ) -> ChannelResponse:
     """Update a notification channel."""
+    secret = _get_secret()
     kwargs: dict = {}
     if body.name is not None:
         kwargs["name"] = body.name
@@ -118,7 +164,7 @@ async def update_channel(
 
     try:
         channel = await notification_service.update_channel(
-            db, auth.tenant_id, channel_id, **kwargs
+            db, auth.tenant_id, channel_id, secret=secret, **kwargs
         )
     except ValueError as exc:
         raise HTTPException(
@@ -134,7 +180,7 @@ async def update_channel(
     await db.commit()
     await db.refresh(channel)
     await _reload_manager(request, db)
-    return _to_response(channel)
+    return _to_response(channel, secret=secret)
 
 
 @router.delete("/{channel_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -162,9 +208,10 @@ async def test_channel(
     db: AsyncSession = Depends(get_db),
 ) -> TestResult:
     """Send a test message through a notification channel."""
+    secret = _get_secret()
     try:
         success, message = await notification_service.test_channel(
-            db, auth.tenant_id, channel_id
+            db, auth.tenant_id, channel_id, secret=secret,
         )
     except ValueError as exc:
         raise HTTPException(

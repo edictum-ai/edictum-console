@@ -93,11 +93,11 @@ async def _get_tool_rows_with_verdicts(
         entry["event_count"] += row.event_count
         if row.last_used > entry["last_used"]:
             entry["last_used"] = row.last_used
-        if row.verdict == "deny":
+        if row.verdict == "call_denied":
             entry["deny_count"] += row.event_count
-        elif row.verdict == "allow":
+        elif row.verdict in ("call_allowed", "call_executed"):
             entry["allow_count"] += row.event_count
-        elif row.verdict in ("observe", "would_deny"):
+        elif row.verdict == "call_would_deny":
             entry["observe_count"] += row.event_count
     return list(tool_map.values())
 

@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import NotificationChannel as ChannelModel
 from edictum_server.notifications.base import NotificationChannel
+from edictum_server.services.notification_service import get_channel_config
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +24,17 @@ async def load_db_channels(
     db: AsyncSession,
     redis: aioredis.Redis,  # type: ignore[type-arg]
     base_url: str,
+    *,
+    secret: bytes | None = None,
 ) -> dict[str, list[NotificationChannel]]:
     """Query all enabled channels, group by tenant, return live instances.
 
     Telegram channels get their webhooks registered with the Telegram API
     so callback queries are routed to our endpoint.
+
+    Args:
+        secret: 32-byte key to decrypt ``config_encrypted``. If None,
+                falls back to plain ``config`` column (un-migrated rows).
     """
     result = await db.execute(
         select(ChannelModel).where(ChannelModel.enabled == True)  # noqa: E712
@@ -35,7 +42,7 @@ async def load_db_channels(
     channels_by_tenant: dict[str, list[NotificationChannel]] = defaultdict(list)
     for row in result.scalars():
         try:
-            ch = _build_channel(row, redis=redis, base_url=base_url)
+            ch = _build_channel(row, redis=redis, base_url=base_url, secret=secret)
             if ch is not None:
                 channels_by_tenant[str(row.tenant_id)].append(ch)
                 await _register_webhook_if_telegram(ch, base_url)
@@ -85,11 +92,12 @@ def _build_channel(
     *,
     redis: aioredis.Redis,  # type: ignore[type-arg]
     base_url: str,
+    secret: bytes | None = None,
 ) -> NotificationChannel | None:
     """Factory: create a live channel instance from a DB row."""
     channel_id = str(row.id)
     filters = row.filters
-    config = row.config
+    config = get_channel_config(row, secret) if secret else (row.config or {})
 
     if row.channel_type == "telegram":
         from edictum_server.notifications.telegram import TelegramChannel, TelegramClient

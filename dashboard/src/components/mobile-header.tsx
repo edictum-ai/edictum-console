@@ -38,13 +38,11 @@ function resolveTitle(pathname: string): string {
 interface MobileHeaderProps {
   user: UserInfo
   pendingApprovals?: number
-  onLogout: () => void
 }
 
 export function MobileHeader({
   user,
   pendingApprovals,
-  onLogout,
 }: MobileHeaderProps) {
   const [open, setOpen] = useState(false)
   const { pathname } = useLocation()
@@ -74,7 +72,6 @@ export function MobileHeader({
           <Sidebar
             user={user}
             pendingApprovals={pendingApprovals}
-            onLogout={onLogout}
             forceExpanded
           />
         </SheetContent>

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import time
+import uuid
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -110,9 +111,10 @@ async def test_connection(
     if not config:
         return TestConnectionResponse(ok=False, error="AI not configured")
 
+    api_key: str | None = None
+    provider = None
     try:
         secret = settings.get_signing_secret()
-        api_key = None
         if config.api_key_encrypted:
             api_key = decrypt_api_key(config.api_key_encrypted, secret)
 
@@ -147,6 +149,9 @@ async def test_connection(
         if api_key and api_key in err_msg:
             err_msg = err_msg.replace(api_key, "***")
         return TestConnectionResponse(ok=False, error=err_msg)
+    finally:
+        if provider:
+            await provider.close()
 
 
 @router.post("/api/v1/contracts/assist")
@@ -161,9 +166,9 @@ async def assist(
     if not config:
         raise HTTPException(status_code=503, detail="AI assistant not configured")
 
+    api_key: str | None = None
     try:
         secret = settings.get_signing_secret()
-        api_key = None
         if config.api_key_encrypted:
             api_key = decrypt_api_key(config.api_key_encrypted, secret)
 
@@ -177,7 +182,11 @@ async def assist(
             base_url=config.base_url,
         )
     except Exception as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        # Sanitize — never leak API keys in error responses
+        err_msg = str(exc)
+        if api_key and api_key in err_msg:
+            err_msg = err_msg.replace(api_key, "***")
+        raise HTTPException(status_code=503, detail=err_msg) from exc
 
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
 
@@ -198,16 +207,65 @@ async def assist(
 
     system = CONTRACT_ASSISTANT_SYSTEM_PROMPT
 
+    # Capture tenant context before entering the generator
+    tenant_id = auth.tenant_id
+    provider_name = config.provider
+
     async def event_stream() -> AsyncIterator[str]:
+        start = time.monotonic()
         try:
             async for chunk in provider.stream_response(messages, system):
                 data = json.dumps({"content": chunk})
                 yield f"data: {data}\n\n"
+
+            # Emit usage stats before [DONE]
+            duration_ms = int((time.monotonic() - start) * 1000)
+            usage = provider.last_usage
+            if usage is not None:
+                total_tokens = usage.input_tokens + usage.output_tokens
+                tokens_per_second = (
+                    usage.output_tokens / (duration_ms / 1000)
+                    if duration_ms > 0
+                    else 0.0
+                )
+
+                # Fetch pricing and estimate cost
+                from edictum_server.ai.pricing import estimate_cost, fetch_model_pricing
+
+                pricing = await fetch_model_pricing(usage.model, provider_name)
+                cost = estimate_cost(usage.input_tokens, usage.output_tokens, pricing)
+
+                usage_event = {
+                    "type": "usage",
+                    "input_tokens": usage.input_tokens,
+                    "output_tokens": usage.output_tokens,
+                    "total_tokens": total_tokens,
+                    "duration_ms": duration_ms,
+                    "tokens_per_second": round(tokens_per_second, 1),
+                    "estimated_cost_usd": round(cost, 6) if cost is not None else None,
+                    "model": usage.model,
+                }
+                yield f"data: {json.dumps(usage_event)}\n\n"
+
+                # Persist usage log
+                await _log_usage(
+                    tenant_id=tenant_id,
+                    provider_name=provider_name,
+                    model=usage.model,
+                    input_tokens=usage.input_tokens,
+                    output_tokens=usage.output_tokens,
+                    total_tokens=total_tokens,
+                    duration_ms=duration_ms,
+                    cost=cost,
+                )
+
             yield "data: [DONE]\n\n"
         except Exception:
-            logger.exception("AI assist stream error for tenant %s", auth.tenant_id)
+            logger.exception("AI assist stream error for tenant %s", tenant_id)
             error = json.dumps({"error": "AI provider error — check Settings > AI"})
             yield f"data: {error}\n\n"
+        finally:
+            await provider.close()
 
     return StreamingResponse(
         event_stream(),
@@ -217,3 +275,36 @@ async def assist(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+async def _log_usage(
+    *,
+    tenant_id: uuid.UUID,
+    provider_name: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    total_tokens: int,
+    duration_ms: int,
+    cost: float | None,
+) -> None:
+    """Persist an AI usage log entry. Fire-and-forget — errors are logged, not raised."""
+    try:
+        from edictum_server.db.engine import async_session_factory
+        from edictum_server.db.models import AiUsageLog
+
+        async with async_session_factory()() as session:
+            log = AiUsageLog(
+                tenant_id=tenant_id,
+                provider=provider_name,
+                model=model,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=total_tokens,
+                duration_ms=duration_ms,
+                estimated_cost_usd=cost,
+            )
+            session.add(log)
+            await session.commit()
+    except Exception:
+        logger.exception("Failed to log AI usage for tenant %s", tenant_id)

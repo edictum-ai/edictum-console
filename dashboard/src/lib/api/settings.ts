@@ -137,3 +137,26 @@ export function deleteAiConfig() {
 export function testAiConnection() {
   return request<TestAiResult>("/settings/ai/test", { method: "POST" })
 }
+
+// --- AI Usage ---
+
+export interface DailyUsage {
+  date: string
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number | null
+  queries: number
+}
+
+export interface AiUsageResponse {
+  total_input_tokens: number
+  total_output_tokens: number
+  total_cost_usd: number | null
+  query_count: number
+  avg_tokens_per_second: number
+  daily: DailyUsage[]
+}
+
+export function getAiUsage(days = 30) {
+  return request<AiUsageResponse>(`/settings/ai/usage?days=${days}`)
+}

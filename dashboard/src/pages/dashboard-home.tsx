@@ -129,7 +129,12 @@ export function DashboardHome() {
   }
 
   const isEmpty = events.length === 0
-  const wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
+  let wizardCompleted = false
+  try {
+    wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
+  } catch {
+    // localStorage unavailable — treat as not completed
+  }
 
   if (isEmpty && !wizardCompleted) {
     return (

@@ -4,28 +4,41 @@ services:
     environment:
       POSTGRES_DB: edictum
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   server:
     build: .
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
     environment:
-      EDICTUM_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/edictum
+      EDICTUM_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?}@postgres:5432/edictum
       EDICTUM_REDIS_URL: redis://redis:6379/0
-      EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:-changeme-generate-a-real-secret}
-      EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-admin@example.com}
+      EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:?Set EDICTUM_SECRET_KEY in .env}
+      EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-}
       EDICTUM_ADMIN_PASSWORD: ${EDICTUM_ADMIN_PASSWORD:-}
       EDICTUM_BASE_URL: ${EDICTUM_BASE_URL:-http://localhost:8000}
-      EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:-}
+      EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:?Set EDICTUM_SIGNING_KEY_SECRET in .env}
 
 volumes:
   pgdata:

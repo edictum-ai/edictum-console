@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator"
 import { Activity, Zap, ShieldCheck } from "lucide-react"
 import type { EventResponse } from "@/lib/api"
 import { contractLabel, extractProvenance, isObserveFinding, extractArgsPreview } from "@/lib/payload-helpers"
-import { VERDICT_STYLES } from "@/lib/verdict-helpers"
+import { VERDICT_STYLES, normalizeVerdict } from "@/lib/verdict-helpers"
 import { formatRelativeTime } from "@/lib/format"
 import { buildSimpleHistogram, activityChartConfig } from "@/lib/histogram"
 import {
@@ -20,7 +20,7 @@ import { BarChart, Bar, XAxis } from "recharts"
 type ActivityTab = "all" | "enforced" | "observed"
 
 function VerdictBadge({ verdict }: { verdict: string }) {
-  const style = VERDICT_STYLES[verdict] ?? VERDICT_STYLES["timeout"]
+  const style = VERDICT_STYLES[normalizeVerdict(verdict)] ?? VERDICT_STYLES["timeout"]
   return (
     <Badge variant="outline" className={style}>
       {verdict}
@@ -29,8 +29,9 @@ function VerdictBadge({ verdict }: { verdict: string }) {
 }
 
 function EventIcon({ verdict }: { verdict: string }) {
-  switch (verdict) {
+  switch (normalizeVerdict(verdict)) {
     case "denied":
+    case "would_deny":
       return <ShieldCheck className="size-3.5 text-red-600 dark:text-red-400" />
     case "pending":
       return <ShieldCheck className="size-3.5 text-amber-600 dark:text-amber-400" />

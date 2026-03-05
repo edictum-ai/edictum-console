@@ -17,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 export function LoginPage() {
   const navigate = useNavigate()
   const { health } = useHealth()
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, refresh } = useAuth()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -54,6 +54,7 @@ export function LoginPage() {
 
     try {
       await login(email, password)
+      await refresh()
       void navigate("/dashboard", { replace: true })
     } catch (err) {
       if (err instanceof ApiError) {

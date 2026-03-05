@@ -11,6 +11,7 @@ import { HistoryTab } from "./history-tab"
 import { useAgentCoverage } from "@/hooks/use-agent-coverage"
 import { listEvents, type EventResponse } from "@/lib/api/events"
 import { getFleetCoverage, type FleetCoverage } from "@/lib/api/agents"
+import { normalizeVerdict } from "@/lib/verdict-helpers"
 
 const COVERAGE_TIME_OPTIONS = [
   { value: "1h", label: "Last 1h" },
@@ -74,7 +75,7 @@ function AgentDetail() {
   }
 
   const totalEvents = events.length
-  const denialCount = events.filter((e) => e.verdict === "denied").length
+  const denialCount = events.filter((e) => normalizeVerdict(e.verdict) === "denied").length
   const goBack = () => navigate("/dashboard/agents")
 
   // Loading skeleton (first load only)

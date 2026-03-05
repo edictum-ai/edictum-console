@@ -15,9 +15,20 @@ interface AiChatPanelProps {
   initialMessage?: string
 }
 
+interface UsageStats {
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  duration_ms: number
+  tokens_per_second: number
+  estimated_cost_usd: number | null
+  model: string
+}
+
 interface ChatMessage {
   role: "user" | "assistant"
   content: string
+  usage?: UsageStats
 }
 
 const YAML_BLOCK_RE = /```ya?ml\n([\s\S]*?)```/g
@@ -30,10 +41,19 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [streaming, setStreaming] = useState(false)
+  const [streamStart, setStreamStart] = useState<number | null>(null)
+  const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [configured, setConfigured] = useState<boolean | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const sentInitial = useRef(false)
+
+  // Elapsed time ticker while streaming
+  useEffect(() => {
+    if (!streamStart) { setElapsed(0); return }
+    const id = setInterval(() => setElapsed((Date.now() - streamStart) / 1000), 100)
+    return () => clearInterval(id)
+  }, [streamStart])
 
   // Check if AI is configured
   useEffect(() => {
@@ -65,12 +85,16 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
     setMessages(updated)
     setInput("")
     setStreaming(true)
+    setStreamStart(Date.now())
 
     try {
       const res = await fetch(`${API_BASE}/contracts/assist`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         body: JSON.stringify({
           messages: updated.map((m) => ({ role: m.role, content: m.content })),
           current_yaml: currentYaml || null,
@@ -98,7 +122,17 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
           const payload = line.slice(6)
           if (payload === "[DONE]") break
           try {
-            const parsed = JSON.parse(payload) as { content?: string; error?: string }
+            const parsed = JSON.parse(payload) as { content?: string; error?: string; type?: string; [key: string]: unknown }
+            if (parsed.type === "usage") {
+              const usage = parsed as unknown as UsageStats
+              setMessages((prev) => {
+                const copy = [...prev]
+                const last = copy[copy.length - 1]
+                if (last) copy[copy.length - 1] = { ...last, usage }
+                return copy
+              })
+              continue
+            }
             if (parsed.error) { setError(parsed.error); break }
             if (parsed.content) {
               assistantContent += parsed.content
@@ -115,6 +149,7 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
       setError(e instanceof Error ? e.message : "Stream failed")
     } finally {
       setStreaming(false)
+      setStreamStart(null)
     }
   }
 
@@ -157,7 +192,7 @@ export function AiChatPanel({ onApplyYaml, currentYaml, initialMessage }: AiChat
           ))}
           {streaming && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="size-3 animate-spin" /> Generating...
+              <Loader2 className="size-3 animate-spin" /> Generating{elapsed > 0 ? ` (${elapsed.toFixed(1)}s)` : ""}...
             </div>
           )}
           {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
@@ -319,6 +354,21 @@ function MessageBubble({ message, onApply }: { message: ChatMessage; onApply: (y
             </div>
           )
         })}
+        {!isUser && message.usage && (
+          <div className="mt-1.5 text-[10px] text-muted-foreground text-right">
+            {message.usage.total_tokens.toLocaleString()} tokens
+            {" · "}
+            {Math.round(message.usage.tokens_per_second)} tok/s
+            {" · "}
+            {message.usage.estimated_cost_usd != null
+              ? `~$${message.usage.estimated_cost_usd < 0.01
+                  ? message.usage.estimated_cost_usd.toFixed(4)
+                  : message.usage.estimated_cost_usd.toFixed(2)}`
+              : "local"}
+            {" · "}
+            {(message.usage.duration_ms / 1000).toFixed(1)}s
+          </div>
+        )}
       </div>
     </div>
   )
