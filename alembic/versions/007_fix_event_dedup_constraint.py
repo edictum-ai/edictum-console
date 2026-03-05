@@ -1,16 +1,18 @@
-"""Fix event dedup constraint — remove created_at.
+"""Fix event dedup constraint — no-op for partitioned tables.
 
-The original constraint included ``created_at`` which is auto-generated
-by ``TimestampMixin`` (server_default=func.now()), so every insert got a
-unique timestamp and dedup never fired.  Drop the old constraint and
-recreate with just ``tenant_id`` + ``call_id``.
+The original intent was to remove ``created_at`` from the unique constraint
+so that ``(tenant_id, call_id)`` alone prevents duplicate events.  However,
+PostgreSQL requires all partition key columns in unique constraints on
+partitioned tables.  Since ``events`` is partitioned by ``created_at``, we
+cannot exclude it from the constraint.
+
+Deduplication is enforced at the application layer instead (upsert with
+ON CONFLICT on the full constraint including created_at).
 
 Revision ID: 007
 Revises: 006
 Create Date: 2026-03-05
 """
-
-from alembic import op
 
 revision = "007"
 down_revision = "006"
@@ -19,12 +21,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_constraint("uq_event_tenant_call", "events", type_="unique")
-    op.create_unique_constraint("uq_event_tenant_call", "events", ["tenant_id", "call_id"])
+    # No-op: partitioned table constraint must include created_at.
+    # Dedup handled at application layer.
+    pass
 
 
 def downgrade() -> None:
-    op.drop_constraint("uq_event_tenant_call", "events", type_="unique")
-    op.create_unique_constraint(
-        "uq_event_tenant_call", "events", ["tenant_id", "call_id", "created_at"]
-    )
+    pass
