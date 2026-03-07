@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: edictum
+
+resources:
+  - namespace.yaml
+  - secret.yaml
+  - postgres.yaml
+  - redis.yaml
+  - server.yaml
+  # Uncomment to enable ingress (requires nginx ingress controller)
+  # - ingress.yaml
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/version: "0.1.0"
+
+# Override the server image tag for upgrades:
+# images:
+#   - name: edictum-console
+#     newTag: "0.2.0"

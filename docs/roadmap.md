@@ -97,7 +97,7 @@ The first public release. Self-hostable operations console for governed AI agent
 - Single Docker image (multi-stage: pnpm build → python build → slim runtime)
 - Docker Compose (Postgres 16 + Redis 7 + server)
 - Railway deployment config (`railway.toml`)
-- Render deployment config (`render.yaml`)
+- Kubernetes manifests (`deploy/k8s/`)
 
 ---
 

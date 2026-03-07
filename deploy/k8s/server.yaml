@@ -1,0 +1,120 @@
+# Edictum Console server — FastAPI + React SPA.
+# Runs Alembic migrations on startup via docker-entrypoint.sh.
+apiVersion: v1
+kind: Service
+metadata:
+  name: edictum-console
+  namespace: edictum
+  labels:
+    app.kubernetes.io/name: edictum-console
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: edictum-console
+spec:
+  selector:
+    app.kubernetes.io/name: edictum-console
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edictum-console
+  namespace: edictum
+  labels:
+    app.kubernetes.io/name: edictum-console
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: edictum-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: edictum-console
+  # Recreate strategy — single replica, migrations must not run concurrently
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: edictum-console
+        app.kubernetes.io/component: server
+        app.kubernetes.io/part-of: edictum-console
+      annotations:
+        # Change this value to trigger a rollout when the image tag stays the same
+        edictum.dev/restart-trigger: "1"
+    spec:
+      containers:
+        - name: server
+          image: edictum-console:latest
+          # Set to Never for local builds, IfNotPresent for registry images
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            # Constructed from secret — references the K8s service DNS name
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: edictum-console
+                  key: POSTGRES_PASSWORD
+            - name: EDICTUM_DATABASE_URL
+              value: "postgresql+asyncpg://postgres:$(POSTGRES_PASSWORD)@postgres:5432/edictum"
+            - name: EDICTUM_REDIS_URL
+              value: "redis://redis:6379/0"
+            - name: EDICTUM_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: edictum-console
+                  key: EDICTUM_SECRET_KEY
+            - name: EDICTUM_SIGNING_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: edictum-console
+                  key: EDICTUM_SIGNING_KEY_SECRET
+            - name: EDICTUM_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: edictum-console
+                  key: EDICTUM_ADMIN_EMAIL
+                  optional: true
+            - name: EDICTUM_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: edictum-console
+                  key: EDICTUM_ADMIN_PASSWORD
+                  optional: true
+            # Override this via kustomize or patch for your domain
+            - name: EDICTUM_BASE_URL
+              value: "http://localhost:8000"
+          # Readiness: pod accepts traffic only after migrations + startup complete
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 6
+          # Liveness: restart if the process becomes unresponsive
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 3
+          # Startup probe: give migrations up to 120s to complete before
+          # liveness kicks in. Prevents restart loops on first deploy with
+          # large migration sets.
+          startupProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 24
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi

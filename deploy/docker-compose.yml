@@ -1,0 +1,106 @@
+# =============================================================================
+# Edictum Console — Production Docker Compose
+# =============================================================================
+#
+# Self-hostable agent operations console for the edictum governance library.
+# Runtime contract enforcement, HITL approvals, audit feeds, fleet monitoring.
+#
+# Quick start:
+#   1. Download this file:
+#      curl -O https://raw.githubusercontent.com/acartag7/edictum-console/master/deploy/docker-compose.yml
+#
+#   2. Create a .env file next to it (see required variables below):
+#      POSTGRES_PASSWORD=<random-password>
+#      EDICTUM_SECRET_KEY=<random-32-byte-hex>
+#      EDICTUM_SIGNING_KEY_SECRET=<random-32-byte-hex>
+#      EDICTUM_ADMIN_EMAIL=admin@example.com
+#      EDICTUM_ADMIN_PASSWORD=<strong-password>
+#
+#   3. Generate secrets (macOS/Linux):
+#      echo "POSTGRES_PASSWORD=$(openssl rand -hex 24)" >> .env
+#      echo "EDICTUM_SECRET_KEY=$(openssl rand -hex 32)" >> .env
+#      echo "EDICTUM_SIGNING_KEY_SECRET=$(openssl rand -hex 32)" >> .env
+#
+#   4. Start:
+#      docker compose up -d
+#
+#   5. Open http://localhost:8000 — log in with your admin credentials.
+#
+#   6. Connect an agent:
+#      pip install edictum[server]
+#
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: edictum
+      POSTGRES_USER: postgres
+      # Set in .env — used by both Postgres and the server's DATABASE_URL.
+      # Generate: openssl rand -hex 24
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    image: ghcr.io/acartag7/edictum-console:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      # --- Database & Cache (internal networking, no need to change) ---
+
+      # Async Postgres connection string. Uses the POSTGRES_PASSWORD from .env.
+      EDICTUM_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?}@postgres:5432/edictum
+
+      # Redis for session tokens (TTL), SSE pub/sub, and agent presence.
+      EDICTUM_REDIS_URL: redis://redis:6379/0
+
+      # --- Secrets (required, no defaults — generate before first run) ---
+
+      # Signs session cookies (HttpOnly). Compromise = full account takeover.
+      # Generate: openssl rand -hex 32
+      EDICTUM_SECRET_KEY: ${EDICTUM_SECRET_KEY:?Set EDICTUM_SECRET_KEY in .env}
+
+      # Signs contract bundles (Ed25519 seed). Agents verify bundle authenticity.
+      # Generate: openssl rand -hex 32
+      EDICTUM_SIGNING_KEY_SECRET: ${EDICTUM_SIGNING_KEY_SECRET:?Set EDICTUM_SIGNING_KEY_SECRET in .env}
+
+      # --- Admin bootstrap (used on first run only, ignored after) ---
+
+      # Email and password for the initial admin user. Created automatically on
+      # first startup if no users exist (S7 bootstrap lock). Can be omitted if
+      # using the /dashboard/setup wizard instead.
+      EDICTUM_ADMIN_EMAIL: ${EDICTUM_ADMIN_EMAIL:-}
+      EDICTUM_ADMIN_PASSWORD: ${EDICTUM_ADMIN_PASSWORD:-}
+
+      # --- Optional ---
+
+      # Public URL for CORS origins, webhook callbacks, and links in notifications.
+      # Change this if you're behind a reverse proxy or custom domain.
+      EDICTUM_BASE_URL: ${EDICTUM_BASE_URL:-http://localhost:8000}
+
+volumes:
+  pgdata:

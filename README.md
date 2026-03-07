@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue?cacheSeconds=86400)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue?cacheSeconds=86400)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue?cacheSeconds=86400)](Dockerfile)
+[![Docker](https://img.shields.io/badge/docker-ghcr.io-blue?logo=docker&cacheSeconds=86400)](https://ghcr.io/acartag7/edictum-console)
 
 Self-hostable operations console for governed AI agents.
 
@@ -22,6 +22,31 @@ Edictum Console solves all three. One Docker image. Five minutes to deploy.
 
 ## The 5-Minute Demo
 
+### Option A: Pull and Run (recommended)
+
+```bash
+# 1. Download the compose file
+$ curl -fsSL https://raw.githubusercontent.com/acartag7/edictum-console/master/deploy/docker-compose.yml -o docker-compose.yml
+
+# 2. Create .env with your secrets
+$ cat <<EOF > .env
+POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+EDICTUM_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+EDICTUM_SIGNING_KEY_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+EOF
+
+# 3. Start everything
+$ docker compose up -d
+
+# 4. Open http://localhost:8000/dashboard/setup
+#    Create your admin account (min 12 characters password)
+
+# 5. Create an API key
+#    Dashboard → API Keys → Create Key → Copy the full key (shown once)
+```
+
+### Option B: Build from Source
+
 ```bash
 # 1. Clone and configure
 $ git clone https://github.com/acartag7/edictum-console.git
@@ -36,8 +61,7 @@ $ python -c "import secrets; print(f'POSTGRES_PASSWORD={secrets.token_hex(16)}')
 # 3. Start everything
 $ docker compose up -d
 
-# 4. Open the dashboard
-#    http://localhost:8000/dashboard/setup
+# 4. Open http://localhost:8000/dashboard/setup
 #    Create your admin account (min 12 characters password)
 
 # 5. Create an API key
@@ -363,13 +387,23 @@ $ cp .env.example .env
 $ docker compose up -d
 ```
 
+### Published Image
+
+The published image is available on GHCR:
+
+```bash
+docker pull ghcr.io/acartag7/edictum-console:latest
+```
+
+A production-ready `deploy/docker-compose.yml` uses the published image — no build step required. See the [Self-Hosting Guide](https://console-docs.edictum.dev/guides/self-hosting/) for details.
+
 ### Railway
 
 `railway.toml` included. Health check at `/api/v1/health` with 60s timeout. Restart on failure (max 3 retries).
 
-### Render
+### Kubernetes
 
-`render.yaml` included. Docker web service. Health check at `/api/v1/health`. All required env vars listed.
+Kustomize manifests in `deploy/k8s/`. Helm chart coming soon.
 
 ## API Reference
 

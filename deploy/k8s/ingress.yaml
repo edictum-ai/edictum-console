@@ -1,0 +1,35 @@
+# Optional Ingress — requires an nginx ingress controller in the cluster.
+# Replace "console.example.com" with your actual domain.
+# For local dev, use port-forward instead: kubectl port-forward svc/edictum-console 8000:80 -n edictum
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: edictum-console
+  namespace: edictum
+  labels:
+    app.kubernetes.io/name: edictum-console
+    app.kubernetes.io/part-of: edictum-console
+  annotations:
+    # Increase timeout for SSE long-lived connections
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # Disable buffering so SSE events stream immediately
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: console.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: edictum-console
+                port:
+                  number: 80
+  # Uncomment and configure for TLS (e.g., with cert-manager)
+  # tls:
+  #   - hosts:
+  #       - console.example.com
+  #     secretName: edictum-console-tls

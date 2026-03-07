@@ -1,0 +1,112 @@
+apiVersion: edictum/v1
+kind: ContractBundle
+
+metadata:
+  name: demo-agent
+  description: "Demo contracts showcasing all edictum contract types and modes."
+
+defaults:
+  mode: enforce
+
+tools:
+  get_weather:
+    side_effect: pure
+    idempotent: true
+  search_web:
+    side_effect: read
+  read_file:
+    side_effect: read
+  send_email:
+    side_effect: irreversible
+
+contracts:
+  # ── PRE: Deny emails to non-company recipients ──────────────
+  - id: no-email-to-external
+    type: pre
+    tool: send_email
+    when:
+      not:
+        args.to:
+          ends_with: "@company.com"
+    then:
+      effect: deny
+      message: "Denied: emails can only be sent to @company.com addresses, not '{args.to}'"
+      tags: [dlp, email]
+
+  # ── PRE: Block sensitive file paths ─────────────────────────
+  - id: no-sensitive-files
+    type: pre
+    tool: read_file
+    when:
+      args.path:
+        contains_any: ["/etc/passwd", "/etc/shadow", ".env", "secrets", "credentials"]
+    then:
+      effect: deny
+      message: "Denied: access to sensitive file '{args.path}'"
+      tags: [dlp, filesystem]
+
+  # ── POST: Warn on PII patterns in search results (observe) ─
+  - id: pii-in-search-results
+    type: post
+    mode: observe
+    tool: search_web
+    when:
+      output.text:
+        matches_any: ['\b\d{3}-\d{2}-\d{4}\b', '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b']
+    then:
+      effect: warn
+      message: "PII detected in search results (SSN or email pattern)"
+      tags: [pii, compliance]
+
+  # ── POST: Warn on error responses from read_file ────────────
+  - id: detect-file-errors
+    type: post
+    tool: read_file
+    when:
+      output.text:
+        contains_any: ["Permission denied", "No such file", "Error:"]
+    then:
+      effect: warn
+      message: "File operation returned an error"
+      tags: [reliability]
+
+  # ── SANDBOX: Restrict read_file to safe directories ─────────
+  - id: safe-file-paths
+    type: sandbox
+    tool: read_file
+    within: ["/home/", "/tmp/", "/var/log/"]
+    message: "read_file is restricted to /home/, /tmp/, and /var/log/"
+
+  # ── SESSION: Rate limit weather lookups ─────────────────────
+  - id: weather-rate-limit
+    type: session
+    limits:
+      max_calls_per_tool:
+        get_weather: 5
+    then:
+      effect: deny
+      message: "Rate limit exceeded: max 5 weather lookups per session"
+      tags: [rate-limit]
+
+  # ── SESSION: Global tool call limit ─────────────────────────
+  - id: session-call-limit
+    type: session
+    limits:
+      max_tool_calls: 20
+    then:
+      effect: deny
+      message: "Session limit reached: max 20 tool calls per session"
+      tags: [rate-limit]
+
+  # ── PRE: Log all email sends (observe mode — never blocks) ──
+  - id: audit-email-sends
+    type: pre
+    mode: observe
+    tool: send_email
+    when:
+      args.to:
+        exists: true
+    then:
+      effect: deny
+      message: "Audit: email send to '{args.to}' with subject '{args.subject}'"
+      tags: [audit, email]

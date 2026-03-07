@@ -2,7 +2,32 @@
 
 Deploy Edictum Console on your own infrastructure. One Docker image, five minutes to production.
 
-## Docker Compose (Recommended)
+## Quick Start (Published Image)
+
+No need to clone or build -- pull the published image and run:
+
+```bash
+# 1. Download the compose file
+curl -fsSL https://raw.githubusercontent.com/acartag7/edictum-console/master/deploy/docker-compose.yml -o docker-compose.yml
+
+# 2. Create .env with your secrets
+cat <<EOF > .env
+POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
+EDICTUM_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+EDICTUM_SIGNING_KEY_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
+EOF
+
+# 3. Start everything
+docker compose up -d
+
+# 4. Open http://localhost:8000/dashboard/setup
+```
+
+## Build from Source
+
+If you prefer to build the image yourself from source.
+
+### Docker Compose
 
 Three services: Postgres 16, Redis 7, and the Edictum server.
 
@@ -89,23 +114,9 @@ curl http://localhost:8000/api/v1/health
 
 ## Railway
 
-A `railway.toml` is included in the repo:
+Railway deploys directly from your GitHub repo using the included `railway.toml` and `Dockerfile`. Add Postgres and Redis plugins, set your secrets, and Railway handles the rest -- the `docker-entrypoint.sh` automatically maps Railway's auto-injected `DATABASE_URL` and `REDIS_URL` to the format the server expects.
 
-1. Push the repo to Railway
-2. Add Postgres and Redis plugins
-3. Set environment variables (same as `.env`)
-4. Railway reads `railway.toml` -- health check at `/api/v1/health` with 60s timeout, max 3 restart retries
-
-Set `EDICTUM_BASE_URL` to your Railway public URL (e.g. `https://edictum-console-production.up.railway.app`).
-
-## Render
-
-A `render.yaml` is included:
-
-1. Create a new Blueprint from the repo
-2. Render reads `render.yaml` -- Docker web service with health check at `/api/v1/health`
-3. Set environment variables in the Render dashboard
-4. Set `EDICTUM_BASE_URL` to your Render service URL
+See the full walkthrough: **[Deploy to Railway](deploy-railway.md)**
 
 ## Production Checklist
 
