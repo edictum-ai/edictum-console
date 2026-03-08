@@ -19,7 +19,7 @@ echo "Running database migrations..."
 CURRENT_REV=$(alembic current 2>/dev/null | grep -oE '[0-9]+' | head -1 || true)
 if [ -n "$CURRENT_REV" ] && [ "$CURRENT_REV" != "001" ]; then
   echo "Stamping DB from old revision $CURRENT_REV to consolidated 001..."
-  alembic stamp 001
+  alembic stamp --purge 001
 fi
 alembic upgrade head
 
