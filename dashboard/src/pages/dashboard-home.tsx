@@ -3,7 +3,7 @@ import {
   listEvents,
   listApprovals,
   listKeys,
-  listBundles,
+  listContracts,
   type EventResponse,
   type ApprovalResponse,
 } from "@/lib/api"
@@ -33,9 +33,16 @@ export function DashboardHome() {
   const [events, setEvents] = useState<EventResponse[]>([])
   const [approvals, setApprovals] = useState<ApprovalResponse[]>([])
   const [hasKeys, setHasKeys] = useState(false)
-  const [hasBundles, setHasBundles] = useState(false)
+  const [hasContracts, setHasContracts] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [wizardDismissed, setWizardDismissed] = useState(() => {
+    try {
+      return localStorage.getItem("edictum_wizard_completed") === "true"
+    } catch {
+      return false
+    }
+  })
 
   const fetchData = useCallback(async () => {
     try {
@@ -49,12 +56,12 @@ export function DashboardHome() {
 
       // Only fetch getting-started data when dashboard is empty
       if (eventsData.length === 0) {
-        const [keysData, bundlesData] = await Promise.all([
+        const [keysData, contractsData] = await Promise.all([
           listKeys().catch(() => []),
-          listBundles().catch(() => []),
+          listContracts().catch(() => []),
         ])
         setHasKeys(keysData.length > 0)
-        setHasBundles(bundlesData.length > 0)
+        setHasContracts(contractsData.length > 0)
       }
     } catch {
       setError("Failed to load dashboard data")
@@ -130,14 +137,19 @@ export function DashboardHome() {
   }
 
   const isEmpty = events.length === 0
-  let wizardCompleted = false
-  try {
-    wizardCompleted = localStorage.getItem("edictum_wizard_completed") === "true"
-  } catch {
-    // localStorage unavailable — treat as not completed
+
+  function handleDismissWizard() {
+    try {
+      localStorage.setItem("edictum_wizard_completed", "true")
+    } catch {
+      // localStorage unavailable
+    }
+    setWizardDismissed(true)
   }
 
-  if (isEmpty && !wizardCompleted) {
+  const consoleUrl = window.location.origin
+
+  if (isEmpty && !wizardDismissed) {
     return (
       <div className="flex flex-col p-4 h-full overflow-auto">
         {/* Stats bar still shows */}
@@ -161,7 +173,12 @@ export function DashboardHome() {
         )}
 
         {/* Getting started card */}
-        <GettingStarted hasKeys={hasKeys} hasBundles={hasBundles} />
+        <GettingStarted
+          hasKeys={hasKeys}
+          hasContracts={hasContracts}
+          consoleUrl={consoleUrl}
+          onDismiss={handleDismissWizard}
+        />
 
         {/* Agent fleet empty state */}
         <div className="mt-8">
