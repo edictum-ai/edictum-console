@@ -22,8 +22,9 @@ from edictum_server.schemas.coverage import (
     TimeWindow,
     ToolCoverage,
 )
-from edictum_server.services.coverage_matching import classify_tools
+from edictum_server.services.coverage_matching import classify_tools, manifest_to_matchers
 from edictum_server.services.coverage_queries import get_matchers_for_env, get_tool_rows
+from edictum_server.services.manifest_service import get_agent_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +132,15 @@ async def compute_coverage(
 
     all_matchers, deployed_bundle_info = await get_matchers_for_env(db, tenant_id, agent_env)
 
-    classified = classify_tools(tool_rows, all_matchers)
+    # Fall back to agent manifest when no console-deployed bundle exists
+    manifest_source = False
+    if not all_matchers:
+        manifest = await get_agent_manifest(db, tenant_id, agent_id)
+        if manifest:
+            all_matchers = manifest_to_matchers(manifest)
+            manifest_source = True
+
+    classified = classify_tools(tool_rows, all_matchers, source="local" if manifest_source else "console")
     tools = [ToolCoverage(**t) for t in classified]
 
     enforced = sum(1 for t in tools if t.status == "enforced")

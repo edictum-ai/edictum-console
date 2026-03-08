@@ -115,15 +115,62 @@ def parse_contract_matchers(
     return matchers
 
 
+def manifest_to_matchers(manifest: dict) -> list[ContractMatcher]:
+    """Convert an agent manifest (from Gate) into ContractMatcher list.
+
+    Manifest format::
+
+        {
+            "policy_version": "abc123...",
+            "contracts": [
+                {"id": "deny-reads", "type": "pre", "tool": "Read", "mode": "observe"},
+                {"id": "block-bash", "type": "pre", "tool": ["Bash", "shell_*"], "mode": "enforce"},
+            ]
+        }
+    """
+    contracts = manifest.get("contracts", [])
+    matchers: list[ContractMatcher] = []
+    for c in contracts:
+        if not isinstance(c, dict):
+            continue
+        name = c.get("id", "")
+        if not name:
+            continue
+
+        tool = c.get("tool", [])
+        if isinstance(tool, str):
+            tool_patterns = [tool]
+        elif isinstance(tool, list):
+            tool_patterns = [str(t) for t in tool]
+        else:
+            tool_patterns = []
+
+        matchers.append(
+            ContractMatcher(
+                contract_name=str(name),
+                contract_type=str(c.get("type", "pre")),
+                mode=str(c.get("mode", "enforce")),
+                tool_patterns=tool_patterns,
+                bundle_name="local",
+                bundle_version=0,
+            )
+        )
+    return matchers
+
+
 def classify_tools(
     tool_rows: list[Any],
     matchers: list[ContractMatcher],
+    source: str = "console",
 ) -> list[dict[str, Any]]:
     """Match each tool against matchers and classify as enforced/observed/ungoverned.
 
     Priority: enforce > observe > ungoverned.
     If multiple contracts match, the enforce-mode contract is the "governing" one.
     If only observe-mode contracts match, the first one is governing.
+
+    ``source`` indicates where the matchers came from: "console" for deployed
+    bundles, "local" for agent manifest (Gate).
 
     Returns list of dicts matching ToolCoverage schema fields, sorted by status:
     enforced first, then observed, then ungoverned.
@@ -158,6 +205,7 @@ def classify_tools(
                 "contract_type": None,
                 "mode": None,
                 "bundle_name": None,
+                "source": None,
                 "event_count": event_count,
                 "last_used": last_used,
                 "deny_count": deny_count,
@@ -182,6 +230,7 @@ def classify_tools(
             "contract_type": governing.contract_type,
             "mode": governing.mode,
             "bundle_name": governing.bundle_name,
+            "source": source,
             "event_count": event_count,
             "last_used": last_used,
             "deny_count": deny_count,

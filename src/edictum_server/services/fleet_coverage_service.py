@@ -21,8 +21,9 @@ from edictum_server.schemas.coverage import (
     TimeWindow,
     UngovernedToolSummary,
 )
-from edictum_server.services.coverage_matching import classify_tools
+from edictum_server.services.coverage_matching import classify_tools, manifest_to_matchers
 from edictum_server.services.coverage_queries import get_matchers_for_env
+from edictum_server.services.manifest_service import get_agent_manifest
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,14 @@ async def compute_fleet_coverage(
                 all_ungoverned.setdefault(row["tool_name"], set()).add(agent_id)
             continue
 
-        classified = classify_tools(tool_rows, env_matchers.get(agent_env, []))
+        matchers = env_matchers.get(agent_env, [])
+        source = "console"
+        if not matchers:
+            manifest = await get_agent_manifest(db, tenant_id, agent_id)
+            if manifest:
+                matchers = manifest_to_matchers(manifest)
+                source = "local"
+        classified = classify_tools(tool_rows, matchers, source=source)
         enforced = sum(1 for t in classified if t["status"] == "enforced")
         observed = sum(1 for t in classified if t["status"] == "observed")
         ungoverned = sum(1 for t in classified if t["status"] == "ungoverned")

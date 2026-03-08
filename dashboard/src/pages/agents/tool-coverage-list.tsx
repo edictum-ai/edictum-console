@@ -76,10 +76,21 @@ function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
       <div className="flex items-center gap-3 text-sm">
         <code className="font-mono text-sm font-medium min-w-[120px]">{tool.tool_name}</code>
 
-        {contractLink ? (
-          <Link to={contractLink} className="text-primary hover:underline text-xs truncate max-w-[180px]">
-            {tool.contract_name}
-          </Link>
+        {tool.contract_name ? (
+          <span className="flex items-center gap-1.5">
+            {contractLink ? (
+              <Link to={contractLink} className="text-primary hover:underline text-xs truncate max-w-[180px]">
+                {tool.contract_name}
+              </Link>
+            ) : (
+              <span className="text-xs text-foreground truncate max-w-[180px]">{tool.contract_name}</span>
+            )}
+            {tool.source === "local" && (
+              <Badge variant="outline" className="text-[10px] bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30">
+                local
+              </Badge>
+            )}
+          </span>
         ) : (
           <span className="text-xs text-muted-foreground">&mdash;</span>
         )}

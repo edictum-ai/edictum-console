@@ -28,6 +28,7 @@ export interface ToolCoverageEntry {
   contract_type: string | null
   mode: string | null
   bundle_name: string | null
+  source: "console" | "local" | null
   event_count: number
   last_used: string
   deny_count?: number

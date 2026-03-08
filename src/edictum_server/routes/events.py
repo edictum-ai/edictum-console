@@ -20,6 +20,7 @@ from edictum_server.schemas.events import (
     EventResponse,
 )
 from edictum_server.services.event_service import ingest_events, query_events
+from edictum_server.services.manifest_service import store_agent_manifest
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
@@ -41,6 +42,11 @@ async def post_events(
     Duplicate events (same ``tenant_id`` + ``call_id``) are silently ignored.
     """
     accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events, env=auth.env)
+
+    # Store agent manifest if provided (Gate agents push this)
+    if body.agent_manifest is not None:
+        await store_agent_manifest(db, auth.tenant_id, body.agent_manifest)
+
     await db.commit()
 
     # Notify dashboard subscribers about new events.  Push one summary

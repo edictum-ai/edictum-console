@@ -287,6 +287,7 @@ class AgentRegistration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     display_name: Mapped[str | None] = mapped_column(String, nullable=True)
     tags: Mapped[dict] = mapped_column(JSON, default=dict)
     bundle_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    manifest: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 

@@ -32,6 +32,7 @@ class ToolCoverage(BaseModel):
     contract_type: str | None = None  # "pre", "post", "session"
     mode: str | None = None  # "enforce", "observe"
     bundle_name: str | None = None
+    source: str | None = None  # "console", "local" (Gate manifest), or None (ungoverned)
     event_count: int
     last_used: datetime
     # Optional verdict breakdown (only when include_verdicts=True)

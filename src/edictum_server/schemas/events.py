@@ -21,10 +21,30 @@ class EventPayload(BaseModel):
     )
 
 
+class ManifestContract(BaseModel):
+    """A contract entry from an agent's local manifest."""
+
+    id: str = Field(..., description="Contract identifier")
+    type: str = Field(..., description="Contract type (pre, post, session)")
+    tool: str | list[str] = Field(..., description="Tool name or list of tool patterns")
+    mode: str = Field(..., description="Evaluation mode (enforce, observe)")
+
+
+class AgentManifest(BaseModel):
+    """Contract manifest pushed by Gate agents alongside events."""
+
+    agent_id: str = Field(..., description="Agent identifier")
+    policy_version: str = Field(..., description="Hash of the contract bundle")
+    contracts: list[ManifestContract] = Field(default_factory=list)
+
+
 class EventBatchRequest(BaseModel):
     """Batch of events sent by an agent in a single HTTP call."""
 
     events: list[EventPayload] = Field(..., min_length=1, description="One or more audit events")
+    agent_manifest: AgentManifest | None = Field(
+        default=None, description="Optional contract manifest from Gate agents"
+    )
 
 
 class EventResponse(BaseModel):
