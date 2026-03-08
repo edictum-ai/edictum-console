@@ -41,7 +41,8 @@ RUN addgroup --system app && adduser --system --ingroup app app
 
 # Install Python dependencies as root, then lock down
 COPY --from=builder /app/dist/*.whl /tmp/
-RUN pip install --no-cache-dir /tmp/edictum_console-*.whl"[ai]" \
+RUN WHL=$(ls /tmp/edictum_console-*.whl) \
+    && pip install --no-cache-dir "${WHL}[ai]" \
     && rm -rf /tmp/*.whl
 
 # Copy application files
