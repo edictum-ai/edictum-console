@@ -56,6 +56,8 @@ class BundleSummaryResponse(BaseModel):
     version_count: int
     last_updated: datetime
     deployed_envs: list[str] = []
+    contract_count: int | None = None
+    last_deployed_at: datetime | None = None
 
 
 class DeployRequest(BaseModel):

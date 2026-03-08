@@ -27,6 +27,7 @@ from edictum_server.schemas.bundles import (
 )
 from edictum_server.services.bundle_service import (
     get_bundle_by_version,
+    get_bundle_enrichment,
     get_current_bundle,
     get_deployed_envs_by_bundle_name,
     get_deployed_envs_map,
@@ -89,12 +90,16 @@ async def upload(
 
 @router.get("", response_model=list[BundleSummaryResponse])
 async def list_bundles(
-    auth: AuthContext = Depends(require_dashboard_auth),
+    auth: AuthContext = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> list[BundleSummaryResponse]:
-    """List distinct bundle names with summaries."""
+    """List distinct bundle names with summaries.
+
+    Accessible by both dashboard users and API key agents (for gate init).
+    """
     names = await list_bundle_names(db, auth.tenant_id)
     envs_by_name = await get_deployed_envs_by_bundle_name(db, auth.tenant_id)
+    enrichment = await get_bundle_enrichment(db, auth.tenant_id)
     return [
         BundleSummaryResponse(
             name=entry["name"],
@@ -102,6 +107,8 @@ async def list_bundles(
             version_count=entry["version_count"],
             last_updated=entry["last_updated"],
             deployed_envs=envs_by_name.get(entry["name"], []),
+            contract_count=enrichment.get(entry["name"], {}).get("contract_count"),
+            last_deployed_at=enrichment.get(entry["name"], {}).get("last_deployed_at"),
         )
         for entry in names
     ]

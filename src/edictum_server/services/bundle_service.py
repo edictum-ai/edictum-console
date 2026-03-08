@@ -247,6 +247,62 @@ async def get_deployed_envs_by_bundle_name(
     return dict(mapping)
 
 
+async def get_bundle_enrichment(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+) -> dict[str, dict[str, object]]:
+    """Return contract_count and last_deployed_at per bundle name.
+
+    contract_count is parsed from the latest version's YAML.
+    last_deployed_at comes from the deployments table.
+    """
+    # Get latest version per bundle name
+    latest_subq = (
+        select(
+            Bundle.name,
+            func.max(Bundle.version).label("max_version"),
+        )
+        .where(Bundle.tenant_id == tenant_id)
+        .group_by(Bundle.name)
+        .subquery()
+    )
+    latest_bundles = await db.execute(
+        select(Bundle).join(
+            latest_subq,
+            (Bundle.name == latest_subq.c.name)
+            & (Bundle.version == latest_subq.c.max_version),
+        ).where(Bundle.tenant_id == tenant_id)
+    )
+
+    enrichment: dict[str, dict[str, object]] = {}
+    for bundle in latest_bundles.scalars().all():
+        contract_count = 0
+        try:
+            parsed = yaml.safe_load(bundle.yaml_bytes)
+            if isinstance(parsed, dict):
+                contracts = parsed.get("contracts", [])
+                if isinstance(contracts, list):
+                    contract_count = len(contracts)
+        except yaml.YAMLError:
+            pass
+        enrichment[bundle.name] = {"contract_count": contract_count, "last_deployed_at": None}
+
+    # Get last deployment date per bundle name
+    dep_result = await db.execute(
+        select(
+            Deployment.bundle_name,
+            func.max(Deployment.created_at).label("last_deployed_at"),
+        )
+        .where(Deployment.tenant_id == tenant_id)
+        .group_by(Deployment.bundle_name)
+    )
+    for row in dep_result.all():
+        if row.bundle_name in enrichment:
+            enrichment[row.bundle_name]["last_deployed_at"] = row.last_deployed_at
+
+    return enrichment
+
+
 async def get_bundle_by_version(
     db: AsyncSession,
     tenant_id: uuid.UUID,
