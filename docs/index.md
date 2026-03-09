@@ -2,7 +2,7 @@
 
 Self-hostable operations console for governed AI agents.
 
-[Edictum](https://github.com/acartag7/edictum) enforces contracts. Edictum Console shows you what happened, and lets you change what happens next — without restarting agents.
+[Edictum](https://github.com/edictum-ai/edictum) enforces contracts. Edictum Console shows you what happened, and lets you change what happens next — without restarting agents.
 
 ## Why This Exists
 
@@ -168,4 +168,4 @@ Edictum Console is a security product. Every layer is designed with adversarial 
 
 ## License
 
-[AGPL-3.0-only](https://github.com/acartag7/edictum-console/blob/master/LICENSE)
+[FSL-1.1-ALv2](https://github.com/edictum-ai/edictum-console/blob/master/LICENSE.md) — source available, converts to Apache 2.0 after two years.

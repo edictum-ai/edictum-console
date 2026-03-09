@@ -1,8 +1,8 @@
 site_name: Edictum Console
 site_description: Self-hostable operations console for governed AI agents
 site_url: https://console-docs.edictum.dev/
-repo_url: https://github.com/acartag7/edictum-console
-repo_name: acartag7/edictum-console
+repo_url: https://github.com/edictum-ai/edictum-console
+repo_name: edictum-ai/edictum-console
 
 theme:
   name: material

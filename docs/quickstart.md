@@ -13,7 +13,7 @@ You need:
 ## 2. Clone and Configure
 
 ```bash
-$ git clone https://github.com/acartag7/edictum-console.git
+$ git clone https://github.com/edictum-ai/edictum-console.git
 $ cd edictum-console
 $ cp .env.example .env
 ```

@@ -8,7 +8,7 @@ No need to clone or build -- pull the published image and run:
 
 ```bash
 # 1. Download the compose file
-curl -fsSL https://raw.githubusercontent.com/acartag7/edictum-console/master/deploy/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://raw.githubusercontent.com/edictum-ai/edictum-console/master/deploy/docker-compose.yml -o docker-compose.yml
 
 # 2. Create .env with your secrets
 cat <<EOF > .env
@@ -34,7 +34,7 @@ Three services: Postgres 16, Redis 7, and the Edictum server.
 ### 1. Clone and Configure
 
 ```bash
-git clone https://github.com/acartag7/edictum-console.git
+git clone https://github.com/edictum-ai/edictum-console.git
 cd edictum-console
 cp .env.example .env
 ```
