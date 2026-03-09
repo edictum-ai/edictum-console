@@ -127,12 +127,12 @@ function RecentCallsSection({ agent }: { agent: AgentSummary }) {
 
   const hasDenials = agent.totalDenials > 0
   const allSameVerdict = agent.recentTools.every(
-    (c) => normalizeVerdict(c.verdict) === normalizeVerdict(agent.recentTools[0].verdict),
+    (c) => normalizeVerdict(c.verdict) === normalizeVerdict(agent.recentTools[0]!.verdict),
   )
 
   // If all calls have the same verdict and no denials, show condensed summary
   if (allSameVerdict && !hasDenials && agent.totalEvents > 3) {
-    const normalized = normalizeVerdict(agent.recentTools[0].verdict)
+    const normalized = normalizeVerdict(agent.recentTools[0]!.verdict)
     return (
       <div className="border-t border-border/50 px-4 py-2.5">
         <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
