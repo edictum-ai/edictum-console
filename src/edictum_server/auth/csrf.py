@@ -55,7 +55,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
         # API-key requests are exempt — they don't use cookies
         auth_header = request.headers.get("authorization", "")
-        if auth_header.startswith("Bearer ") and "edk_" in auth_header:
+        if auth_header.startswith("Bearer edk_"):
             return await call_next(request)
 
         # Cookie-auth mutating request — require custom header

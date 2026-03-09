@@ -14,6 +14,9 @@ from fastapi import Request
 
 logger = logging.getLogger(__name__)
 
+# Maximum number of queued SSE events per connection before dropping.
+_MAX_QUEUE_SIZE = 1000
+
 # Event types forwarded to dashboard SSE subscribers.
 _DASHBOARD_EVENT_TYPES = frozenset({
     "api_key_created",
@@ -94,7 +97,7 @@ class PushManager:
         Returns an AgentConnection the caller should read from via `.queue`.
         """
         conn = AgentConnection(
-            queue=asyncio.Queue(),
+            queue=asyncio.Queue(maxsize=_MAX_QUEUE_SIZE),
             env=env,
             tenant_id=tenant_id,
             bundle_name=bundle_name,
@@ -116,7 +119,7 @@ class PushManager:
         Returns a DashboardConnection whose .queue the caller should read from.
         """
         conn = DashboardConnection(
-            queue=asyncio.Queue(),
+            queue=asyncio.Queue(maxsize=_MAX_QUEUE_SIZE),
             tenant_id=tenant_id,
         )
         self._dashboard_connections[tenant_id].add(conn)
@@ -153,7 +156,15 @@ class PushManager:
                 and conn.bundle_name != event_bundle
             ):
                 continue
-            conn.queue.put_nowait(data)
+            try:
+                conn.queue.put_nowait(data)
+            except asyncio.QueueFull:
+                conn.is_closed = True
+                logger.warning(
+                    "SSE queue full for agent %s (env=%s) — marking connection closed",
+                    conn.agent_id,
+                    env,
+                )
 
     def push_to_dashboard(self, tenant_id: uuid.UUID, data: dict[str, Any]) -> None:
         """Fan out an event to all dashboard connections for a tenant."""
@@ -161,7 +172,13 @@ class PushManager:
         if event_type not in _DASHBOARD_EVENT_TYPES:
             return
         for conn in self._dashboard_connections.get(tenant_id, set()):
-            conn.queue.put_nowait(data)
+            try:
+                conn.queue.put_nowait(data)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "SSE queue full for dashboard connection (tenant=%s) — dropping event",
+                    tenant_id,
+                )
 
     def push_to_agent(
         self, agent_id: str, data: dict[str, Any], *, tenant_id: uuid.UUID
@@ -170,7 +187,14 @@ class PushManager:
         for conns in self._connections.values():
             for conn in conns:
                 if conn.tenant_id == tenant_id and conn.agent_id == agent_id:
-                    conn.queue.put_nowait(data)
+                    try:
+                        conn.queue.put_nowait(data)
+                    except asyncio.QueueFull:
+                        conn.is_closed = True
+                        logger.warning(
+                            "SSE queue full for agent %s — marking connection closed",
+                            agent_id,
+                        )
 
     def get_agent_connections(
         self,

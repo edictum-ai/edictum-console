@@ -112,6 +112,24 @@ async def _approval_timeout_worker(app: FastAPI) -> None:
         await asyncio.sleep(10)
 
 
+async def _worker_monitor(app: FastAPI) -> None:
+    """Restart crashed background workers every 60 seconds."""
+    while True:
+        await asyncio.sleep(60)
+        try:
+            workers = app.state.background_workers
+            if workers["approval_timeout"].done():
+                logger.warning("Restarting crashed approval_timeout worker")
+                workers["approval_timeout"] = asyncio.create_task(
+                    _approval_timeout_worker(app)
+                )
+            if workers["partition"].done():
+                logger.warning("Restarting crashed partition worker")
+                workers["partition"] = asyncio.create_task(_partition_worker())
+        except Exception:
+            logger.exception("Worker monitor error")
+
+
 async def _bootstrap_admin(_app: FastAPI) -> None:
     """Create default tenant + admin user on first run if no users exist."""
     settings = get_settings()
@@ -121,6 +139,11 @@ async def _bootstrap_admin(_app: FastAPI) -> None:
     from edictum_server.services.signing_service import generate_signing_keypair
 
     async with async_session_factory()() as db:
+        # Advisory lock prevents concurrent bootstrap across instances (S7).
+        # Lock 42 is shared with the /api/v1/setup endpoint so the two
+        # bootstrap paths are mutually exclusive.
+        await db.execute(sa.text("SELECT pg_advisory_xact_lock(42)"))
+
         result = await db.execute(select(func.count()).select_from(User))
         user_count = result.scalar() or 0
 
@@ -321,16 +344,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     partition_task = asyncio.create_task(_partition_worker())
     app.state.push_manager.start_cleanup_task()
 
+    # Expose workers for health monitoring
+    app.state.background_workers = {
+        "approval_timeout": timeout_task,
+        "partition": partition_task,
+    }
+
+    # Auto-restart monitor for crashed workers
+    monitor_task = asyncio.create_task(_worker_monitor(app))
+
     yield
 
     # Shutdown
+    monitor_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await monitor_task
     app.state.push_manager.stop_cleanup_task()
-    partition_task.cancel()
-    timeout_task.cancel()
+    workers = app.state.background_workers
+    workers["approval_timeout"].cancel()
+    workers["partition"].cancel()
     with contextlib.suppress(asyncio.CancelledError):
-        await timeout_task
+        await workers["approval_timeout"]
     with contextlib.suppress(asyncio.CancelledError):
-        await partition_task
+        await workers["partition"]
     for ch in notification_mgr.channels:
         try:
             await ch.close()

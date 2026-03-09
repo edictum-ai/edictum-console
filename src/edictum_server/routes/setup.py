@@ -6,7 +6,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, field_validator
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.local import LocalAuthProvider
@@ -65,6 +65,11 @@ async def setup(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Missing X-Requested-With header.",
         )
+
+    # Advisory lock prevents concurrent bootstrap (S7 atomicity).
+    # Lock 42 is shared with _bootstrap_admin() so the two paths are
+    # mutually exclusive.  Released automatically on transaction commit.
+    await db.execute(text("SELECT pg_advisory_xact_lock(42)"))
 
     result = await db.execute(select(func.count()).select_from(User))
     user_count = result.scalar() or 0

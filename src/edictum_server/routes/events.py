@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import (
@@ -14,6 +15,7 @@ from edictum_server.auth.dependencies import (
 )
 from edictum_server.db.engine import get_db
 from edictum_server.push.manager import PushManager, get_push_manager
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
 from edictum_server.schemas.events import (
     EventBatchRequest,
     EventIngestResponse,
@@ -33,14 +35,27 @@ router = APIRouter(prefix="/api/v1/events", tags=["events"])
 )
 async def post_events(
     body: EventBatchRequest,
+    request: Request,
     auth: AuthContext = Depends(require_api_key),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
-) -> EventIngestResponse:
+) -> EventIngestResponse | JSONResponse:
     """Accept a batch of audit events from an agent.
 
     Duplicate events (same ``tenant_id`` + ``call_id``) are silently ignored.
     """
+    # Per-tenant rate limit: 10K events/min
+    redis = request.app.state.redis
+    rate_key = f"rate_limit:events:{auth.tenant_id}"
+    try:
+        await check_rate_limit(redis, rate_key, max_attempts=10000, window_seconds=60)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Event ingestion rate limit exceeded. Please try again later."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+
     accepted, duplicates = await ingest_events(db, auth.tenant_id, body.events, env=auth.env)
 
     # Store agent manifest if provided (Gate agents push this)
