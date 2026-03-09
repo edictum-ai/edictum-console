@@ -7,7 +7,7 @@
 #
 # Quick start:
 #   1. Download this file:
-#      curl -O https://raw.githubusercontent.com/acartag7/edictum-console/master/deploy/docker-compose.yml
+#      curl -O https://raw.githubusercontent.com/edictum-ai/edictum-console/master/deploy/docker-compose.yml
 #
 #   2. Create a .env file next to it (see required variables below):
 #      POSTGRES_PASSWORD=<random-password>
@@ -59,7 +59,7 @@ services:
       retries: 5
 
   server:
-    image: ghcr.io/acartag7/edictum-console:latest
+    image: ghcr.io/edictum-ai/edictum-console:latest
     restart: unless-stopped
     ports:
       - "8000:8000"

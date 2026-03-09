@@ -297,7 +297,7 @@ All prefixed with `EDICTUM_` where possible.
 
 ## License
 
-AGPL-3.0-only.
+FSL-1.1-ALv2 (Functional Source License). Source available, converts to Apache 2.0 after two years.
 
 ## Ecosystem Context
 
@@ -315,7 +315,7 @@ Edictum is three repos that work together. This is the **server companion** to t
 
 | Decision | Rationale |
 |----------|-----------|
-| AGPL-3.0-only | Copyleft for self-hosted infra. Ensures improvements flow back. |
+| FSL-1.1-ALv2 | Source available with non-compete. Converts to Apache 2.0 after 2 years. Protects commercial position while allowing self-hosting. |
 | Fresh initial commit | Clean start, no secrets audit needed |
 | Local auth only for first push | Lowest barrier. Clerk abstraction adds complexity without users. |
 | No auth provider protocol yet | Removed — AuthProvider protocol is in first push. OIDC is on the roadmap, justifying the abstraction. |

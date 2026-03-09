@@ -113,11 +113,11 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/acartag7/edictum-console:${{ steps.version.outputs.version }}
-            ghcr.io/acartag7/edictum-console:latest
+            ghcr.io/edictum-ai/edictum-console:${{ steps.version.outputs.version }}
+            ghcr.io/edictum-ai/edictum-console:latest
           labels: |
-            org.opencontainers.image.source=https://github.com/acartag7/edictum-console
+            org.opencontainers.image.source=https://github.com/edictum-ai/edictum-console
             org.opencontainers.image.description=Self-hostable agent operations console for edictum
-            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.licenses=FSL-1.1-ALv2
           cache-from: type=gha
           cache-to: type=gha,mode=max
