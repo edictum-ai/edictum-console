@@ -3,10 +3,11 @@ import { useSearchParams } from "react-router"
 import { listEvents, type EventResponse } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useViewOptions } from "@/lib/hooks/use-view-options"
 import { EventFilterPanel } from "./events/event-filter-panel"
 import { EventList } from "./events/event-list"
+import { EventsToolbar } from "./events/events-toolbar"
 import { type TimeWindow, DEFAULT_TIME_WINDOW, resolveWindow } from "@/lib/histogram"
-import { EventDetail } from "./events/event-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -61,29 +62,25 @@ function applyClientFilters(
 export function EventsFeed() {
   const [searchParams, setSearchParams] = useSearchParams()
   const isMobile = useIsMobile()
+  const { options, setColumn, setPanel, setDensity, toggleWrapData, resetDefaults } = useViewOptions()
 
   // Data state
   const [events, setEvents] = useState<EventResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Count of new events received via SSE since last fetch (for "Show N New" banner)
   const [newEventCount, setNewEventCount] = useState(0)
 
   // UI state
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
   const [filterSheetOpen, setFilterSheetOpen] = useState(false)
   const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(DEFAULT_TIME_WINDOW)
-  const [collapsedFacets, setCollapsedFacets] = useState<Set<string>>(
-    new Set(),
-  )
+  const [isLive, setIsLive] = useState(true)
+  const [collapsedFacets, setCollapsedFacets] = useState<Set<string>>(new Set())
 
   // Initialize active filters from URL search params
-  const [activeFilters, setActiveFilters] = useState<
-    Record<string, Set<string>>
-  >(() => {
+  const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>(() => {
     const filters: Record<string, Set<string>> = {}
     const filterKeys = ["agent_id", "tool_name", "verdict", "mode"]
     for (const key of filterKeys) {
@@ -140,18 +137,33 @@ export function EventsFeed() {
     void fetchEvents()
   }, [fetchEvents])
 
-  // SSE for real-time events — accumulate count, don't buffer fake objects
-  useDashboardSSE({
-    event_created: (data) => {
-      const payload = data as { accepted?: number }
-      setNewEventCount((prev) => prev + (payload.accepted ?? 1))
-    },
-  })
+  // SSE for real-time events — accumulate count when live
+  useDashboardSSE(
+    isLive
+      ? {
+          event_created: (data) => {
+            const payload = data as { accepted?: number }
+            setNewEventCount((prev) => prev + (payload.accepted ?? 1))
+          },
+        }
+      : {},
+  )
 
   // Show new events — re-fetch from server then reset counter
   const handleShowNewEvents = useCallback(() => {
     setNewEventCount(0)
     void fetchEvents()
+  }, [fetchEvents])
+
+  // Toggle live/paused
+  const handleToggleLive = useCallback(() => {
+    setIsLive((prev) => {
+      if (!prev) {
+        // Resuming live — fetch fresh data
+        void fetchEvents()
+      }
+      return !prev
+    })
   }, [fetchEvents])
 
   // Apply client-side filters + search
@@ -160,25 +172,24 @@ export function EventsFeed() {
     [events, activeFilters, searchQuery],
   )
 
-  const selectedEvent = useMemo(
-    () => events.find((e) => e.id === selectedEventId) ?? null,
-    [events, selectedEventId],
-  )
+  // Toggle expand (accordion — one at a time)
+  const handleToggleExpand = useCallback((id: string) => {
+    setExpandedEventId((prev) => (prev === id ? null : id))
+  }, [])
 
   // Auto-select event from URL query param (e.g., ?event=abc-123)
   useEffect(() => {
     const eventId = searchParams.get("event")
     if (eventId && events.length > 0) {
-      setSelectedEventId(eventId)
+      setExpandedEventId(eventId)
       setHighlightedEventId(eventId)
-      // Clean up the event param from the URL, keeping other filters
       const nextParams = new URLSearchParams(searchParams)
       nextParams.delete("event")
       setSearchParams(nextParams, { replace: true })
     }
   }, [events, searchParams, setSearchParams])
 
-  // Auto-select closest event from timestamp param (from approval history deep link)
+  // Auto-select closest event from timestamp param
   useEffect(() => {
     const ts = searchParams.get("ts")
     if (!ts || events.length === 0) return
@@ -186,7 +197,6 @@ export function EventsFeed() {
     const targetTime = new Date(ts).getTime()
     if (Number.isNaN(targetTime)) return
 
-    // Find the event closest to the timestamp among filtered events (or all events)
     const pool = filteredEvents.length > 0 ? filteredEvents : events
     let closestId: string | null = null
     let closestDiff = Infinity
@@ -199,11 +209,10 @@ export function EventsFeed() {
     }
 
     if (closestId) {
-      setSelectedEventId(closestId)
+      setExpandedEventId(closestId)
       setHighlightedEventId(closestId)
     }
 
-    // Clean up the ts param from the URL, keeping other filters
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete("ts")
     setSearchParams(nextParams, { replace: true })
@@ -246,11 +255,8 @@ export function EventsFeed() {
   const toggleFacetCollapse = useCallback((name: string) => {
     setCollapsedFacets((prev) => {
       const next = new Set(prev)
-      if (next.has(name)) {
-        next.delete(name)
-      } else {
-        next.add(name)
-      }
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
       return next
     })
   }, [])
@@ -262,38 +268,35 @@ export function EventsFeed() {
 
   const clearHighlight = useCallback(() => setHighlightedEventId(null), [])
 
-  // Count active filters for mobile badge
   const activeFilterCount = useMemo(
-    () =>
-      Object.values(activeFilters).reduce(
-        (sum, set) => sum + set.size,
-        0,
-      ),
+    () => Object.values(activeFilters).reduce((sum, set) => sum + set.size, 0),
     [activeFilters],
   )
 
   if (loading && events.length === 0) {
     return (
-      <div className="flex h-full">
-        {/* Filter panel skeleton — hidden on mobile */}
-        <div className="hidden w-[220px] shrink-0 border-r border-border p-4 space-y-4 md:block">
-          <Skeleton className="h-8 w-full" />
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-2">
-              <Skeleton className="h-4 w-20" />
-              {Array.from({ length: 3 }).map((_, j) => (
-                <Skeleton key={j} className="h-4 w-full" />
-              ))}
-            </div>
-          ))}
+      <div className="flex h-full flex-col">
+        <div className="border-b px-4 py-2">
+          <Skeleton className="h-9 w-full" />
         </div>
-        {/* Event list skeleton */}
-        <div className="flex-1 p-4 space-y-3">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-[80px] w-full rounded-lg" />
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
+        <div className="flex flex-1">
+          <div className="hidden w-[220px] shrink-0 border-r border-border p-4 space-y-4 md:block">
+            <Skeleton className="h-8 w-full" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <Skeleton key={j} className="h-4 w-full" />
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 p-4 space-y-3">
+            <Skeleton className="h-[80px] w-full rounded-lg" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -321,23 +324,41 @@ export function EventsFeed() {
 
   const eventListProps = {
     events: filteredEvents,
-    searchQuery,
-    onSearchChange: setSearchQuery,
-    selectedEventId,
-    onSelectEvent: setSelectedEventId,
-    newEventCount,
-    onShowNewEvents: handleShowNewEvents,
+    columns: options.columns,
+    density: options.density,
+    wrapData: options.wrapData,
+    showHistogram: options.panels.histogram,
     timeWindow,
-    onTimeWindowChange: setTimeWindow,
+    expandedEventId,
+    onToggleExpand: handleToggleExpand,
     highlightedEventId,
     onHighlightComplete: clearHighlight,
+    onTimeWindowChange: setTimeWindow,
   }
 
+  // Mobile layout
   if (isMobile) {
     return (
       <div className="flex h-full flex-col">
-        {/* Mobile toolbar — filter button */}
-        <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        <EventsToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          timeWindow={timeWindow}
+          onTimeWindowChange={setTimeWindow}
+          eventCount={filteredEvents.length}
+          newEventCount={newEventCount}
+          onShowNewEvents={handleShowNewEvents}
+          isLive={isLive}
+          onToggleLive={handleToggleLive}
+          viewOptions={options}
+          onSetColumn={setColumn}
+          onSetPanel={setPanel}
+          onSetDensity={setDensity}
+          onToggleWrapData={toggleWrapData}
+          onResetDefaults={resetDefaults}
+          events={filteredEvents}
+        />
+        <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
           <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
             <Button
               variant="outline"
@@ -359,58 +380,44 @@ export function EventsFeed() {
             </SheetContent>
           </Sheet>
         </div>
-
-        {/* Full-width event list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           <EventList {...eventListProps} />
         </div>
-
-        {/* Detail Sheet — opens from right on event tap */}
-        <Sheet
-          open={!!selectedEvent}
-          onOpenChange={(open) => {
-            if (!open) setSelectedEventId(null)
-          }}
-        >
-          <SheetContent
-            side="right"
-            className="w-full p-0 sm:w-[400px] sm:max-w-[400px]"
-            showCloseButton={false}
-          >
-            <SheetTitle className="sr-only">Event Detail</SheetTitle>
-            {selectedEvent && (
-              <EventDetail
-                event={selectedEvent}
-                onClose={() => setSelectedEventId(null)}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
       </div>
     )
   }
 
+  // Desktop layout — two-panel (filter sidebar + table with inline expand)
   return (
-    <div className="flex h-full">
-      {/* Filter sidebar */}
-      <div className="w-[220px] shrink-0 border-r border-border overflow-y-auto">
-        <EventFilterPanel {...filterPanelProps} />
-      </div>
-
-      {/* Event list */}
-      <div className={`flex-1 overflow-y-auto ${selectedEvent ? "border-r border-border" : ""}`}>
-        <EventList {...eventListProps} />
-      </div>
-
-      {/* Detail panel (right side) */}
-      {selectedEvent && (
-        <div className="w-[380px] shrink-0 overflow-y-auto">
-          <EventDetail
-            event={selectedEvent}
-            onClose={() => setSelectedEventId(null)}
-          />
+    <div className="flex h-full flex-col">
+      <EventsToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        timeWindow={timeWindow}
+        onTimeWindowChange={setTimeWindow}
+        eventCount={filteredEvents.length}
+        newEventCount={newEventCount}
+        onShowNewEvents={handleShowNewEvents}
+        isLive={isLive}
+        onToggleLive={handleToggleLive}
+        viewOptions={options}
+        onSetColumn={setColumn}
+        onSetPanel={setPanel}
+        onSetDensity={setDensity}
+        onToggleWrapData={toggleWrapData}
+        onResetDefaults={resetDefaults}
+        events={filteredEvents}
+      />
+      <div className="flex flex-1 min-h-0">
+        {options.panels.filters && (
+          <div className="w-[220px] shrink-0 border-r border-border overflow-y-auto">
+            <EventFilterPanel {...filterPanelProps} />
+          </div>
+        )}
+        <div className="flex-1 overflow-hidden">
+          <EventList {...eventListProps} />
         </div>
-      )}
+      </div>
     </div>
   )
 }

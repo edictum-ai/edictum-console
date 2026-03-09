@@ -1,15 +1,19 @@
 import { useMemo, useRef, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group"
 import { Link } from "react-router"
-import { Activity, Search } from "lucide-react"
+import { Activity } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+// Using native overflow-y-auto instead of ScrollArea for reliable scrolling with expandable rows
 import { EmptyState } from "@/components/empty-state"
 import type { EventResponse } from "@/lib/api"
+import type { ColumnVisibility, Density } from "@/lib/hooks/use-view-options"
 import {
   extractProvenance,
   contractLabel,
@@ -19,175 +23,271 @@ import {
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
 import { formatTime, truncate } from "@/lib/format"
 import { buildHistogram, type TimeWindow } from "@/lib/histogram"
+import { EnvBadge } from "@/lib/env-colors"
 import { EventHistogram } from "./event-histogram"
+import { EventRowDetail } from "./event-row-detail"
 
-// -- Component ----------------------------------------------------------------
+// ---------------------------------------------------------------------------
+
+const DENSITY_STYLES: Record<Density, { cell: string; font: string }> = {
+  compact: { cell: "py-0.5 px-2", font: "text-[11px]" },
+  dense: { cell: "py-1 px-2", font: "text-xs" },
+  comfortable: { cell: "py-2 px-3", font: "text-xs" },
+}
+
+interface ColumnDef {
+  key: keyof ColumnVisibility
+  label: string
+  className: string
+}
+
+const COLUMNS: ColumnDef[] = [
+  { key: "time", label: "Time", className: "w-[70px] font-mono" },
+  { key: "agent", label: "Agent", className: "w-[120px]" },
+  { key: "tool", label: "Tool", className: "w-[80px]" },
+  { key: "mode", label: "Mode", className: "w-[70px]" },
+  { key: "verdict", label: "Verdict", className: "w-[100px]" },
+  { key: "contract", label: "Contract", className: "w-[120px]" },
+  { key: "duration", label: "Dur", className: "w-[60px] text-right" },
+  { key: "environment", label: "Env", className: "w-[80px]" },
+  { key: "traceId", label: "Trace", className: "w-[100px] font-mono" },
+  { key: "data", label: "Data", className: "min-w-[120px]" },
+]
+
+// ---------------------------------------------------------------------------
 
 interface EventListProps {
   events: EventResponse[]
-  searchQuery: string
-  onSearchChange: (query: string) => void
-  selectedEventId: string | null
-  onSelectEvent: (id: string) => void
-  newEventCount: number
-  onShowNewEvents: () => void
+  columns: ColumnVisibility
+  density: Density
+  wrapData: boolean
+  showHistogram: boolean
   timeWindow: TimeWindow
-  onTimeWindowChange: (tw: TimeWindow) => void
+  expandedEventId: string | null
+  onToggleExpand: (id: string) => void
   highlightedEventId: string | null
   onHighlightComplete: () => void
+  onTimeWindowChange: (tw: TimeWindow) => void
 }
 
 export function EventList({
   events,
-  searchQuery,
-  onSearchChange,
-  selectedEventId,
-  onSelectEvent,
-  newEventCount,
-  onShowNewEvents,
+  columns,
+  density,
+  wrapData,
+  showHistogram,
   timeWindow,
-  onTimeWindowChange,
+  expandedEventId,
+  onToggleExpand,
   highlightedEventId,
   onHighlightComplete,
+  onTimeWindowChange,
 }: EventListProps) {
   const histogramData = useMemo(() => buildHistogram(events, timeWindow), [events, timeWindow])
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map())
+  const ds = DENSITY_STYLES[density]
+  const visibleCols = useMemo(() => COLUMNS.filter((c) => columns[c.key]), [columns])
+  const colSpan = visibleCols.length
 
-  // Scroll to and highlight deep-linked event
+  // Scroll to deep-linked event
   useEffect(() => {
     if (!highlightedEventId) return
     const el = rowRefs.current.get(highlightedEventId)
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" })
-    }
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" })
     const timer = setTimeout(() => onHighlightComplete(), 2000)
     return () => clearTimeout(timer)
   }, [highlightedEventId, onHighlightComplete])
 
   return (
     <div className="flex h-full min-w-0 flex-col">
-      {/* Search bar */}
-      <div className="border-b border-border px-3 py-2">
-        <InputGroup className="border-0 shadow-none">
-          <InputGroupAddon>
-            <Search className="h-4 w-4" />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search events... (agent, tool, args)"
-          />
-          <InputGroupAddon align="inline-end">
-            <span className="text-xs">{events.length} events</span>
-          </InputGroupAddon>
-        </InputGroup>
-      </div>
-
-      {/* New events banner */}
-      {newEventCount > 0 && (
-        <Button
-          variant="ghost"
-          onClick={onShowNewEvents}
-          className="mx-3 mt-2 rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/15"
-        >
-          Show {newEventCount} New Event{newEventCount > 1 ? "s" : ""}
-        </Button>
-      )}
-
       {/* Histogram */}
-      {histogramData.length > 0 && (
+      {showHistogram && histogramData.length > 0 && (
         <EventHistogram
           histogramData={histogramData}
-          timeWindow={timeWindow}
-          onTimeWindowChange={onTimeWindowChange}
+          onBarClick={(bucket) => {
+            onTimeWindowChange({ kind: "custom", start: bucket._start, end: bucket._end })
+          }}
         />
       )}
 
-      {/* Event List */}
-      <div className="flex-1 overflow-y-auto px-3 pt-2">
-        <div className="space-y-px pb-3">
-          {events.length === 0 && (
-            <EmptyState
-              icon={<Activity className="h-10 w-10" />}
-              title="No events yet"
-              description="Events appear here when agents start making tool calls. Each event shows whether the call was allowed, denied, or observed by your contracts. Connect an agent to start seeing events."
-            />
-          )}
-          {events.map((event) => {
-            const isSelected = event.id === selectedEventId
-            const isHighlighted = event.id === highlightedEventId
-            const argsPreview = extractArgsPreview(event)
-            const observe = isObserveFinding(event)
-            const prov = extractProvenance(event)
-            const label = contractLabel(prov)
-            return (
-              <Button
-                variant="ghost"
-                key={event.id}
-                ref={(el) => {
-                  if (el) rowRefs.current.set(event.id, el)
-                  else rowRefs.current.delete(event.id)
-                }}
-                onClick={() => onSelectEvent(event.id)}
-                className={`flex w-full items-center gap-2 rounded-md px-2.5 py-2 h-auto text-left justify-start transition-colors ${
-                  observe ? "opacity-75" : ""
-                } ${
-                  isHighlighted
-                    ? "animate-highlight-fade bg-primary/20 ring-2 ring-primary/40"
-                    : isSelected
-                      ? "bg-primary/10 ring-1 ring-primary/20"
-                      : "hover:bg-accent/50"
-                }`}
-              >
-                <VerdictIcon verdict={event.verdict} />
-
-                {/* Timestamp — hidden on mobile */}
-                <span className="hidden w-[72px] shrink-0 font-mono text-[11px] text-muted-foreground sm:inline">
-                  {formatTime(event.timestamp)}
-                </span>
-
-                {/* Agent ID link — hidden on mobile */}
-                <Link
-                  to={`/dashboard/agents/${encodeURIComponent(event.agent_id)}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="hidden w-[110px] shrink-0 truncate text-xs font-medium text-foreground hover:text-primary hover:underline sm:inline"
-                >
-                  {event.agent_id}
-                </Link>
-
-                <Badge
-                  variant="outline"
-                  className="h-5 shrink-0 rounded px-1.5 font-mono text-[10px] font-normal"
-                >
-                  {event.tool_name}
-                </Badge>
-
-                {label && (
-                  <Badge
-                    variant="outline"
-                    className="h-5 shrink-0 rounded px-1.5 font-mono text-[10px] font-normal border-violet-500/30 text-violet-600 dark:text-violet-400"
-                  >
-                    {label}
-                  </Badge>
-                )}
-
-                {argsPreview && (
-                  <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted-foreground">
-                    {truncate(argsPreview, 60)}
-                  </span>
-                )}
-
-                <Badge
-                  variant="outline"
-                  className={`h-5 shrink-0 rounded border px-1.5 text-[10px] font-medium ${observe ? "border-dashed" : ""} ${verdictColor(event.verdict)}`}
-                >
-                  {event.verdict}
-                </Badge>
-              </Button>
-            )
-          })}
+      {/* Table */}
+      {events.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center p-8">
+          <EmptyState
+            icon={<Activity className="h-10 w-10" />}
+            title="No events yet"
+            description="Events appear here when agents start making tool calls. Connect an agent to start seeing events."
+          />
         </div>
-      </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                {visibleCols.map((col) => (
+                  <TableHead
+                    key={col.key}
+                    className={`${col.className} ${ds.font} h-8 text-muted-foreground font-medium`}
+                  >
+                    {col.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((event) => (
+                <EventTableRow
+                  key={event.id}
+                  event={event}
+                  visibleCols={visibleCols}
+                  ds={ds}
+                  wrapData={wrapData}
+                  isExpanded={event.id === expandedEventId}
+                  isHighlighted={event.id === highlightedEventId}
+                  observe={isObserveFinding(event)}
+                  colSpan={colSpan}
+                  onToggleExpand={onToggleExpand}
+                  rowRefs={rowRefs}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+
+interface EventTableRowProps {
+  event: EventResponse
+  visibleCols: ColumnDef[]
+  ds: { cell: string; font: string }
+  wrapData: boolean
+  isExpanded: boolean
+  isHighlighted: boolean
+  observe: boolean
+  colSpan: number
+  onToggleExpand: (id: string) => void
+  rowRefs: React.RefObject<Map<string, HTMLElement>>
+}
+
+function EventTableRow({
+  event,
+  visibleCols,
+  ds,
+  wrapData,
+  isExpanded,
+  isHighlighted,
+  observe,
+  colSpan,
+  onToggleExpand,
+  rowRefs,
+}: EventTableRowProps) {
+  const prov = extractProvenance(event)
+  const label = contractLabel(prov)
+  const payload = event.payload ?? {}
+  const durationMs = typeof payload.duration_ms === "number" ? payload.duration_ms : undefined
+  const environment =
+    typeof payload.environment === "string"
+      ? payload.environment
+      : typeof payload.env === "string"
+        ? payload.env
+        : undefined
+  const traceId = typeof payload.trace_id === "string" ? payload.trace_id : undefined
+
+  const renderCell = (col: ColumnDef): React.ReactNode => {
+    switch (col.key) {
+      case "time":
+        return <span className="font-mono text-muted-foreground">{formatTime(event.timestamp)}</span>
+      case "agent":
+        return (
+          <Link
+            to={`/dashboard/agents/${encodeURIComponent(event.agent_id)}`}
+            onClick={(e) => e.stopPropagation()}
+            className="truncate font-medium text-foreground hover:text-primary hover:underline"
+          >
+            {event.agent_id}
+          </Link>
+        )
+      case "tool":
+        return (
+          <Badge variant="outline" className="h-5 rounded px-1.5 font-mono text-[10px] font-normal">
+            {event.tool_name}
+          </Badge>
+        )
+      case "mode":
+        return <span className="text-muted-foreground">{event.mode}</span>
+      case "verdict":
+        return (
+          <span className={`inline-flex items-center gap-1 ${verdictColor(event.verdict)}`}>
+            <VerdictIcon verdict={event.verdict} className="h-3 w-3" />
+            <span className={observe ? "border-b border-dashed" : ""}>{event.verdict}</span>
+          </span>
+        )
+      case "contract":
+        return label ? (
+          <span className="truncate font-mono text-violet-600 dark:text-violet-400">{label}</span>
+        ) : (
+          <span className="text-muted-foreground/50">&mdash;</span>
+        )
+      case "duration":
+        return durationMs !== undefined ? (
+          <span className="font-mono text-muted-foreground">{durationMs}ms</span>
+        ) : (
+          <span className="text-muted-foreground/50">&mdash;</span>
+        )
+      case "environment":
+        return environment ? <EnvBadge env={environment} /> : <span className="text-muted-foreground/50">&mdash;</span>
+      case "traceId":
+        return traceId ? (
+          <span className="truncate font-mono text-muted-foreground">{truncate(traceId, 12)}</span>
+        ) : (
+          <span className="text-muted-foreground/50">&mdash;</span>
+        )
+      case "data": {
+        const preview = extractArgsPreview(event)
+        return preview ? (
+          <span className={`font-mono text-muted-foreground ${wrapData ? "whitespace-pre-wrap break-all" : "truncate block"}`}>
+            {preview}
+          </span>
+        ) : null
+      }
+      default:
+        return null
+    }
+  }
+
+  return (
+    <>
+      <TableRow
+        ref={(el) => {
+          if (el) rowRefs.current?.set(event.id, el)
+          else rowRefs.current?.delete(event.id)
+        }}
+        onClick={() => onToggleExpand(event.id)}
+        className={`cursor-pointer transition-colors ${ds.font} ${
+          observe ? "opacity-75" : ""
+        } ${
+          isHighlighted
+            ? "animate-highlight-fade bg-primary/20 ring-2 ring-primary/40"
+            : isExpanded
+              ? "bg-primary/10"
+              : "hover:bg-accent/50"
+        }`}
+      >
+        {visibleCols.map((col) => (
+          <TableCell key={col.key} className={`${ds.cell} ${col.className} ${ds.font}`}>
+            {renderCell(col)}
+          </TableCell>
+        ))}
+      </TableRow>
+      {isExpanded && (
+        <TableRow className="hover:bg-transparent">
+          <EventRowDetail event={event} colSpan={colSpan} />
+        </TableRow>
+      )}
+    </>
   )
 }

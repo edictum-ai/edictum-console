@@ -22,7 +22,7 @@ export interface HistogramBucket {
 
 // -- Timeframe config -------------------------------------------------------
 
-export type PresetKey = "1h" | "6h" | "12h" | "24h" | "7d"
+export type PresetKey = "15m" | "30m" | "1h" | "3h" | "6h" | "12h" | "24h" | "7d"
 
 interface TimeframeConfig {
   label: string
@@ -32,14 +32,19 @@ interface TimeframeConfig {
 }
 
 export const PRESETS: Record<PresetKey, TimeframeConfig> = {
+  "15m": { label: "Last 15m", windowMs: 15 * 60_000, bucketCount: 15, bucketMs: 60_000 },
+  "30m": { label: "Last 30m", windowMs: 30 * 60_000, bucketCount: 15, bucketMs: 2 * 60_000 },
   "1h":  { label: "Last 1h",  windowMs: 1 * 60 * 60 * 1000,  bucketCount: 12, bucketMs: 5 * 60 * 1000 },
+  "3h":  { label: "Last 3h",  windowMs: 3 * 60 * 60_000, bucketCount: 12, bucketMs: 15 * 60_000 },
   "6h":  { label: "Last 6h",  windowMs: 6 * 60 * 60 * 1000,  bucketCount: 12, bucketMs: 30 * 60 * 1000 },
   "12h": { label: "Last 12h", windowMs: 12 * 60 * 60 * 1000, bucketCount: 12, bucketMs: 60 * 60 * 1000 },
   "24h": { label: "Last 24h", windowMs: 24 * 60 * 60 * 1000, bucketCount: 12, bucketMs: 2 * 60 * 60 * 1000 },
   "7d":  { label: "Last 7d",  windowMs: 7 * 24 * 60 * 60 * 1000, bucketCount: 14, bucketMs: 12 * 60 * 60 * 1000 },
 }
 
-export const PRESET_KEYS = Object.keys(PRESETS) as PresetKey[]
+export const PRESET_KEYS: PresetKey[] = ["15m", "30m", "1h", "3h", "6h", "12h", "24h", "7d"]
+
+export const TOOLBAR_PRESET_KEYS: PresetKey[] = ["15m", "1h", "6h", "24h", "7d"]
 
 /** Unified time window — either a preset or a custom absolute range. */
 export type TimeWindow =
