@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useSearchParams, useNavigate } from "react-router"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { sinceToIso } from "@/lib/format"
+import { sinceToIso, formatRelativeTime } from "@/lib/format"
 import { AgentHeader, MetricCard, AgentDetailSkeleton } from "./agent-detail-header"
 import { CoverageTab } from "./coverage-tab"
 import { AnalyticsTab } from "./analytics-tab"
@@ -75,8 +75,23 @@ function AgentDetail() {
   }
 
   const totalEvents = events.length
-  const denialCount = events.filter((e) => normalizeVerdict(e.verdict) === "denied").length
+  const denialEvents = useMemo(
+    () => events.filter((e) => normalizeVerdict(e.verdict) === "denied"),
+    [events],
+  )
+  const denialCount = denialEvents.length
   const goBack = () => navigate("/dashboard/agents")
+
+  // Subtitle for ungoverned tools card
+  const ungovernedSubtitle = useMemo(() => {
+    if (!data) return undefined
+    const names = data.tools
+      .filter((t) => t.status === "ungoverned")
+      .map((t) => t.tool_name)
+    if (names.length === 0) return undefined
+    if (names.length <= 2) return names.join(", ")
+    return `${names[0]}, ${names[1]}, +${names.length - 2} more`
+  }, [data])
 
   // Loading skeleton (first load only)
   if (!data && loading) return <AgentDetailSkeleton onBack={goBack} />
@@ -110,16 +125,26 @@ function AgentDetail() {
           label={`Denials (${since})`}
           value={denialCount}
           accent={denialCount > 0 ? "text-red-600 dark:text-red-400" : undefined}
+          subtitle={denialCount > 0 && denialEvents[0]
+            ? `Last: ${denialEvents[0].tool_name} ${formatRelativeTime(denialEvents[0].timestamp)}`
+            : undefined}
+          onClick={() => navigate(`/dashboard/events?agent_id=${encodeURIComponent(data.agent_id)}&verdict=call_denied`)}
         />
         <MetricCard
           label="Ungoverned Tools"
           value={data.summary.ungoverned}
           accent={data.summary.ungoverned > 0 ? "text-red-600 dark:text-red-400" : undefined}
+          subtitle={ungovernedSubtitle}
+          onClick={() => setTab("coverage")}
         />
         <MetricCard
           label="Observed Only"
           value={data.summary.observed}
           accent={data.summary.observed > 0 ? "text-amber-600 dark:text-amber-400" : undefined}
+          subtitle={data.summary.observed > 0
+            ? `${data.summary.observed} contract${data.summary.observed !== 1 ? "s" : ""} in observe mode`
+            : undefined}
+          onClick={() => navigate(`/dashboard/events?agent_id=${encodeURIComponent(data.agent_id)}&mode=observe`)}
         />
       </div>
 

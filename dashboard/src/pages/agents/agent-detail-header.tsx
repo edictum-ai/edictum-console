@@ -65,14 +65,18 @@ interface MetricCardProps {
   label: string
   value: number
   accent?: string
+  subtitle?: string
   onClick?: () => void
 }
 
-export function MetricCard({ label, value, accent, onClick }: MetricCardProps) {
+export function MetricCard({ label, value, accent, subtitle, onClick }: MetricCardProps) {
   return (
     <Card className={onClick ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""} onClick={onClick}>
       <CardContent className="pt-4 pb-3 px-4">
         <p className={`text-2xl font-semibold tabular-nums ${accent ?? ""}`}>{value}</p>
+        {subtitle && (
+          <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>
+        )}
         <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
       </CardContent>
     </Card>

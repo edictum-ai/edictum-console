@@ -19,14 +19,21 @@ const SPARKLINE_BUCKET_COUNT = 12
 
 export type AgentStatus = "healthy" | "degraded" | "offline"
 
+export interface RecentToolCall {
+  tool: string
+  verdict: string
+  timestamp: string
+}
+
 export interface AgentSummary {
   name: string
   status: AgentStatus
   env: string
   lastActivity: string
   eventCounts: number[]
-  recentTools: { tool: string; verdict: string }[]
+  recentTools: RecentToolCall[]
   totalEvents: number
+  totalDenials: number
   bundleVersion: string | null
   mode: string | null
 }
@@ -71,17 +78,30 @@ export function deriveAgents(events: EventResponse[]): AgentSummary[] {
     const bundleVersion = (sorted[0]?.payload?.["policy_version"] as string | undefined) ?? null
     const mode = sorted[0]?.mode ?? null
 
+    // Build recent tools: denials first, then deduplicated by tool+verdict
+    const deniedEvents = sorted.filter((e) => normalizeVerdict(e.verdict) === "denied")
+    const nonDeniedEvents = sorted.filter((e) => normalizeVerdict(e.verdict) !== "denied")
+    const prioritized = [...deniedEvents, ...nonDeniedEvents]
+
+    const seen = new Set<string>()
+    const recentTools: RecentToolCall[] = []
+    for (const e of prioritized) {
+      const key = `${e.tool_name}:${normalizeVerdict(e.verdict)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      recentTools.push({ tool: e.tool_name, verdict: e.verdict, timestamp: e.timestamp })
+      if (recentTools.length >= 3) break
+    }
+
     agents.push({
       name,
       status,
       env: env ?? "unknown",
       lastActivity: formatRelativeTime(lastTs),
       eventCounts: counts,
-      recentTools: sorted.slice(0, 3).map((e) => ({
-        tool: e.tool_name,
-        verdict: e.verdict,
-      })),
+      recentTools,
       totalEvents: sorted.length,
+      totalDenials: deniedCount,
       bundleVersion,
       mode,
     })
