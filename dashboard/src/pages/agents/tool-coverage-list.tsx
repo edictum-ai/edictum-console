@@ -49,9 +49,11 @@ export function ToolCoverageList({ tools }: ToolCoverageListProps) {
             </CollapsibleTrigger>
 
             <CollapsibleContent>
-              <div className="space-y-1 pb-2">
+              <div className={status === "ungoverned" ? "pb-2" : "space-y-1 pb-2"}>
                 {items.map((tool) => (
-                  <ToolRow key={tool.tool_name} tool={tool} />
+                  status === "ungoverned"
+                    ? <UngovernedToolRow key={tool.tool_name} tool={tool} />
+                    : <GovernedToolRow key={tool.tool_name} tool={tool} />
                 ))}
               </div>
             </CollapsibleContent>
@@ -62,7 +64,7 @@ export function ToolCoverageList({ tools }: ToolCoverageListProps) {
   )
 }
 
-function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
+function GovernedToolRow({ tool }: { tool: ToolCoverageEntry }) {
   const contractLink = tool.contract_name && tool.bundle_name
     ? `/dashboard/contracts?bundle=${encodeURIComponent(tool.bundle_name)}&tab=bundles`
     : null
@@ -76,7 +78,7 @@ function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
       <div className="flex items-center gap-3 text-sm">
         <code className="font-mono text-sm font-medium min-w-[120px]">{tool.tool_name}</code>
 
-        {tool.contract_name ? (
+        {tool.contract_name && (
           <span className="flex items-center gap-1.5">
             {contractLink ? (
               <Link to={contractLink} className="text-primary hover:underline text-xs truncate max-w-[180px]">
@@ -91,8 +93,6 @@ function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
               </Badge>
             )}
           </span>
-        ) : (
-          <span className="text-xs text-muted-foreground">&mdash;</span>
         )}
 
         {typeStyle && tool.contract_type && (
@@ -110,12 +110,6 @@ function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
         </span>
       </div>
 
-      {tool.status === "ungoverned" && (
-        <p className="text-xs text-muted-foreground mt-0.5 ml-0.5">
-          No contract governs this tool. Consider adding a contract.
-        </p>
-      )}
-
       {tool.status === "observed" && (
         <p className="text-xs text-muted-foreground mt-0.5 ml-0.5">
           Observe mode only — not enforced.{" "}
@@ -126,6 +120,20 @@ function ToolRow({ tool }: { tool: ToolCoverageEntry }) {
           )}
         </p>
       )}
+    </div>
+  )
+}
+
+function UngovernedToolRow({ tool }: { tool: ToolCoverageEntry }) {
+  return (
+    <div className="flex items-center gap-3 px-2 py-1 text-sm">
+      <code className="font-mono text-sm text-muted-foreground">{tool.tool_name}</code>
+      <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+        {tool.event_count} event{tool.event_count !== 1 ? "s" : ""}
+      </span>
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
+        {formatRelativeTime(tool.last_used)}
+      </span>
     </div>
   )
 }
