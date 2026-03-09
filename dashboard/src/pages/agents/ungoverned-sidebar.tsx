@@ -76,7 +76,7 @@ export function UngovernedSidebar({ summary, agents, loading, onFilterByTool }: 
         {sortedUngoverned.length === 0 ? (
           <p className="text-xs text-muted-foreground px-1">No ungoverned tools</p>
         ) : (
-          <ScrollArea className="max-h-[240px]">
+          <ScrollArea className="max-h-[240px] overflow-hidden">
             <div className="space-y-0.5">
               {sortedUngoverned.map((tool) => (
                 <Button
