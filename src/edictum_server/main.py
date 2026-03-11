@@ -392,8 +392,13 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _settings.cors_origins.split(",") if o.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Requested-With",
+        "X-Edictum-Agent-Id",
+    ],
 )
 
 # CSRF protection — must be added after CORS so it runs on the inner request.
@@ -434,6 +439,32 @@ app.include_router(notifications.router)
 app.include_router(settings.router)
 app.include_router(ai.router)
 app.include_router(ai_usage.router)
+
+
+# --- Validation error handler: strip Pydantic internals (L4) ------------------
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(
+    request: Request, exc: RequestValidationError  # noqa: ARG001
+) -> JSONResponse:
+    """Return sanitized validation errors without framework-identifying fields.
+
+    Default FastAPI/Pydantic responses include ``type``, ``ctx``, and ``loc``
+    which confirm the tech stack. Strip these to reduce information leakage.
+    """
+    errors = []
+    for err in exc.errors():
+        # Only expose field location and message, not type/ctx
+        loc = err.get("loc", ())
+        # Skip the first element if it's "body"/"query"/"path" (framework detail)
+        field = ".".join(str(part) for part in loc[1:]) if len(loc) > 1 else str(loc[0]) if loc else "unknown"
+        errors.append({"field": field, "message": err.get("msg", "Invalid value")})
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation error", "errors": errors},
+    )
 
 
 # --- 404 handler: redirect non-API paths to dashboard -------------------------

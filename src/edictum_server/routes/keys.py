@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,15 +70,21 @@ async def create_key(
 
 @router.get("", response_model=list[ApiKeyInfo])
 async def list_keys(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[ApiKeyInfo]:
     """List all non-revoked API keys for the authenticated tenant."""
     result = await db.execute(
-        select(ApiKey).where(
+        select(ApiKey)
+        .where(
             ApiKey.tenant_id == auth.tenant_id,
             ApiKey.revoked_at.is_(None),
         )
+        .order_by(ApiKey.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     rows = result.scalars().all()
 

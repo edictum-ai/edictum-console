@@ -113,12 +113,16 @@ async def _validate_urls(channel_type: str, config: dict[str, Any]) -> None:
 async def list_channels(
     db: AsyncSession,
     tenant_id: uuid.UUID,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[NotificationChannel]:
     """List all notification channels for a tenant."""
     result = await db.execute(
         select(NotificationChannel)
         .where(NotificationChannel.tenant_id == tenant_id)
         .order_by(NotificationChannel.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

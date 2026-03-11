@@ -8,13 +8,16 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
 from edictum_server.config import Settings, get_settings
 from edictum_server.db.engine import get_db
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
+from edictum_server.redis.client import get_redis
 from edictum_server.schemas.ai import (
     AiConfigResponse,
     AssistRequest,
@@ -154,14 +157,26 @@ async def test_connection(
             await provider.close()
 
 
-@router.post("/api/v1/contracts/assist")
+@router.post("/api/v1/contracts/assist", response_model=None)
 async def assist(
     body: AssistRequest,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
-) -> StreamingResponse:
+    redis: aioredis.Redis = Depends(get_redis),
+) -> StreamingResponse | JSONResponse:
     """Stream AI-generated contract suggestions via SSE."""
+    # Rate limit AI assist per tenant (L11 — 30 requests/minute to cap API costs)
+    rate_key = f"rate_limit:ai_assist:{auth.tenant_id}"
+    try:
+        await check_rate_limit(redis, rate_key, max_attempts=30, window_seconds=60)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "AI assist rate limit exceeded."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+
     config = await get_ai_config(db, auth.tenant_id)
     if not config:
         raise HTTPException(status_code=503, detail="AI assistant not configured")

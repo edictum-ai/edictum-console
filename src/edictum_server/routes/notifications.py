@@ -6,13 +6,17 @@ import logging
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_admin, require_dashboard_auth
 from edictum_server.config import get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import NotificationChannel
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
+from edictum_server.redis.client import get_redis
 from edictum_server.notifications.base import NotificationManager
 from edictum_server.notifications.loader import load_db_channels
 from edictum_server.schemas.notifications import (
@@ -103,12 +107,16 @@ async def _reload_manager(request: Request, db: AsyncSession) -> None:
 
 @router.get("", response_model=list[ChannelResponse])
 async def list_channels(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[ChannelResponse]:
     """List all notification channels for the authenticated tenant."""
     secret = _get_secret()
-    channels = await notification_service.list_channels(db, auth.tenant_id)
+    channels = await notification_service.list_channels(
+        db, auth.tenant_id, limit=limit, offset=offset,
+    )
     return [_to_response(ch, secret=secret) for ch in channels]
 
 
@@ -220,8 +228,19 @@ async def test_channel(
     channel_id: uuid.UUID,
     auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
-) -> TestResult:
+    redis: aioredis.Redis = Depends(get_redis),
+) -> TestResult | JSONResponse:
     """Send a test message through a notification channel."""
+    # Rate limit outbound HTTP calls per channel (M15 — 5 per channel per minute)
+    rate_key = f"rate_limit:notify_test:{auth.tenant_id}:{channel_id}"
+    try:
+        await check_rate_limit(redis, rate_key, max_attempts=5, window_seconds=60)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Too many test requests for this channel."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
     secret = _get_secret()
     if secret is None:
         raise HTTPException(

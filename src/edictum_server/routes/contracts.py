@@ -92,6 +92,8 @@ async def list_contracts_endpoint(
     type: str | None = Query(None, description="Filter by type"),
     tag: str | None = Query(None, description="Filter by tag"),
     search: str | None = Query(None, description="Search name/description"),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[ContractSummary]:
@@ -99,6 +101,7 @@ async def list_contracts_endpoint(
     contracts = await list_contracts(
         db, auth.tenant_id,
         type_filter=type, tag_filter=tag, search=search,
+        limit=limit, offset=offset,
     )
     return [_contract_to_summary(c) for c in contracts]
 

@@ -90,6 +90,8 @@ async def upload(
 
 @router.get("", response_model=list[BundleSummaryResponse])
 async def list_bundles(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(get_current_tenant),
     db: AsyncSession = Depends(get_db),
 ) -> list[BundleSummaryResponse]:
@@ -97,7 +99,7 @@ async def list_bundles(
 
     Accessible by both dashboard users and API key agents (for gate init).
     """
-    names = await list_bundle_names(db, auth.tenant_id)
+    names = await list_bundle_names(db, auth.tenant_id, limit=limit, offset=offset)
     envs_by_name = await get_deployed_envs_by_bundle_name(db, auth.tenant_id)
     enrichment = await get_bundle_enrichment(db, auth.tenant_id)
     result: list[BundleSummaryResponse] = []
@@ -147,11 +149,15 @@ async def current(
 @router.get("/{name}", response_model=list[BundleWithDeploymentsResponse])
 async def list_versions(
     name: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[BundleWithDeploymentsResponse]:
     """List all versions for a named bundle, newest first."""
-    bundles = await list_bundle_versions(db, auth.tenant_id, name)
+    bundles = await list_bundle_versions(
+        db, auth.tenant_id, name, limit=limit, offset=offset,
+    )
     if not bundles:
         raise HTTPException(status_code=404, detail=f"Bundle '{name}' not found")
     envs_map = await get_deployed_envs_map(db, auth.tenant_id, name)

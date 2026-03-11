@@ -47,12 +47,16 @@ async def upsert_agent(
 async def list_agents(
     db: AsyncSession,
     tenant_id: uuid.UUID,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[AgentRegistration]:
     """List all registered agents for a tenant."""
     result = await db.execute(
         select(AgentRegistration)
         .where(AgentRegistration.tenant_id == tenant_id)
         .order_by(AgentRegistration.agent_id)
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

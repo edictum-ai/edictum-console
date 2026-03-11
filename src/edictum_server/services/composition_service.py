@@ -119,7 +119,10 @@ async def get_composition(
 
 
 async def list_compositions(
-    db: AsyncSession, tenant_id: uuid.UUID,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
     """List compositions with contract counts."""
     item_count = (
@@ -132,6 +135,8 @@ async def list_compositions(
         select(BundleComposition, item_count.label("contract_count"))
         .where(BundleComposition.tenant_id == tenant_id)
         .order_by(BundleComposition.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return [
         {"composition": comp, "contract_count": count}

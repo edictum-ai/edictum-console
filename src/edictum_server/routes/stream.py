@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
@@ -18,11 +18,33 @@ from edictum_server.auth.dependencies import (
     require_dashboard_auth,
 )
 from edictum_server.db.engine import get_db
-from edictum_server.push.manager import DashboardConnection, PushManager, get_push_manager
+from edictum_server.push.manager import (
+    DashboardConnection,
+    PushManager,
+    TenantConnectionLimitExceeded,
+    get_push_manager,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/stream", tags=["stream"])
+
+
+async def _require_api_key_or_401(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    db: AsyncSession = Depends(get_db),
+) -> AuthContext:
+    """Like require_api_key but returns 401 (not 422) when header is missing.
+
+    SSE clients (EventSource) cannot set custom headers, so a missing
+    Authorization header should be a clear 401, not a framework 422 (L2).
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header required.",
+        )
+    return await require_api_key(authorization=authorization, db=db)
 
 
 async def _event_generator(
@@ -46,7 +68,7 @@ async def stream(
     bundle_name: str | None = Query(default=None, description="Filter by bundle name"),
     policy_version: str | None = Query(default=None, description="Agent's current policy version"),
     tags: str | None = Query(default=None, description="JSON-encoded agent tags"),
-    auth: AuthContext = Depends(require_api_key),
+    auth: AuthContext = Depends(_require_api_key_or_401),
     push: PushManager = Depends(get_push_manager),
     db: AsyncSession = Depends(get_db),
 ) -> EventSourceResponse:
@@ -82,13 +104,19 @@ async def stream(
         )
         effective_bundle = resolved
 
-    conn = push.subscribe(
-        env,
-        tenant_id=auth.tenant_id,
-        agent_id=agent_id,
-        bundle_name=effective_bundle,
-        policy_version=policy_version,
-    )
+    try:
+        conn = push.subscribe(
+            env,
+            tenant_id=auth.tenant_id,
+            agent_id=agent_id,
+            bundle_name=effective_bundle,
+            policy_version=policy_version,
+        )
+    except TenantConnectionLimitExceeded:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many SSE connections for this tenant.",
+        )
 
     async def event_stream() -> AsyncGenerator[dict[str, str], None]:
         try:
@@ -111,7 +139,13 @@ async def stream_dashboard(
     Forwards approval_created, approval_decided, approval_timeout,
     and contract_update events.
     """
-    conn: DashboardConnection = push.subscribe_dashboard(auth.tenant_id)
+    try:
+        conn: DashboardConnection = push.subscribe_dashboard(auth.tenant_id)
+    except TenantConnectionLimitExceeded:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many SSE connections for this tenant.",
+        )
 
     async def event_stream() -> AsyncGenerator[dict[str, str], None]:
         try:

@@ -135,6 +135,9 @@ async def list_tenant_bundles(
 async def list_bundle_names(
     db: AsyncSession,
     tenant_id: uuid.UUID,
+    *,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[dict[str, object]]:
     """Return distinct bundle names with aggregates (version_count, latest_version)."""
     result = await db.execute(
@@ -147,6 +150,8 @@ async def list_bundle_names(
         .where(Bundle.tenant_id == tenant_id)
         .group_by(Bundle.name)
         .order_by(func.max(Bundle.created_at).desc())
+        .limit(limit)
+        .offset(offset)
     )
     return [
         {
@@ -163,12 +168,20 @@ async def list_bundle_versions(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     bundle_name: str,
+    *,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[Bundle]:
-    """Return all versions for a specific bundle name, ordered by version DESC."""
+    """Return all versions for a specific bundle name, ordered by version DESC.
+
+    Note: defers yaml_bytes to avoid loading large binary blobs for list views.
+    """
     result = await db.execute(
         select(Bundle)
         .where(Bundle.tenant_id == tenant_id, Bundle.name == bundle_name)
         .order_by(Bundle.version.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

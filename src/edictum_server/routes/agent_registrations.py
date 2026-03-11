@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
@@ -43,11 +43,13 @@ def _to_response(
 
 @router.get("", response_model=list[AgentRegistrationResponse])
 async def list_registrations(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[AgentRegistrationResponse]:
     """List all registered agents for the tenant."""
-    agents = await svc.list_agents(db, auth.tenant_id)
+    agents = await svc.list_agents(db, auth.tenant_id, limit=limit, offset=offset)
     results = []
     for agent in agents:
         bundle_name, _source, _, _ = await assignment_service.resolve_bundle(

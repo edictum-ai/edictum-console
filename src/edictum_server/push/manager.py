@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 # Maximum number of queued SSE events per connection before dropping.
 _MAX_QUEUE_SIZE = 1000
 
+# Per-tenant SSE connection cap (M6 — prevents memory exhaustion from
+# a compromised API key opening unlimited connections).
+MAX_CONNECTIONS_PER_TENANT = 100
+
+
+class TenantConnectionLimitExceeded(Exception):
+    """Raised when a tenant exceeds the per-tenant SSE connection cap."""
+
+
 # Event types forwarded to dashboard SSE subscribers.
 _DASHBOARD_EVENT_TYPES = frozenset({
     "api_key_created",
@@ -83,6 +92,14 @@ class PushManager:
         )
         self._cleanup_task: asyncio.Task[None] | None = None
 
+    def _tenant_connection_count(self, tenant_id: uuid.UUID) -> int:
+        """Count total SSE connections (agent + dashboard) for a tenant."""
+        count = 0
+        for conns in self._connections.values():
+            count += sum(1 for c in conns if c.tenant_id == tenant_id)
+        count += len(self._dashboard_connections.get(tenant_id, set()))
+        return count
+
     def subscribe(
         self,
         env: str,
@@ -95,7 +112,14 @@ class PushManager:
         """Register a new SSE connection for an environment.
 
         Returns an AgentConnection the caller should read from via `.queue`.
+        Raises TenantConnectionLimitExceeded if the tenant already has
+        MAX_CONNECTIONS_PER_TENANT active connections.
         """
+        if self._tenant_connection_count(tenant_id) >= MAX_CONNECTIONS_PER_TENANT:
+            raise TenantConnectionLimitExceeded(
+                f"Tenant {tenant_id} exceeds SSE connection limit "
+                f"({MAX_CONNECTIONS_PER_TENANT})"
+            )
         conn = AgentConnection(
             queue=asyncio.Queue(maxsize=_MAX_QUEUE_SIZE),
             env=env,
@@ -117,7 +141,14 @@ class PushManager:
         """Register a dashboard SSE connection for a tenant (all envs).
 
         Returns a DashboardConnection whose .queue the caller should read from.
+        Raises TenantConnectionLimitExceeded if the tenant already has
+        MAX_CONNECTIONS_PER_TENANT active connections.
         """
+        if self._tenant_connection_count(tenant_id) >= MAX_CONNECTIONS_PER_TENANT:
+            raise TenantConnectionLimitExceeded(
+                f"Tenant {tenant_id} exceeds SSE connection limit "
+                f"({MAX_CONNECTIONS_PER_TENANT})"
+            )
         conn = DashboardConnection(
             queue=asyncio.Queue(maxsize=_MAX_QUEUE_SIZE),
             tenant_id=tenant_id,

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 from typing import Any
+
+import yaml
 
 from edictum import Edictum, EvaluationResult, Principal
 
@@ -13,6 +16,75 @@ from edictum_server.schemas.evaluate import (
     EvaluateResponse,
     PrincipalInput,
 )
+
+# Complexity limits to prevent DoS via crafted YAML (#6)
+_MAX_CONTRACTS = 100
+_MAX_NESTING_DEPTH = 10
+_MAX_REGEX_LENGTH = 500
+
+
+def _check_yaml_complexity(yaml_content: str) -> None:
+    """Validate that YAML doesn't exceed complexity limits.
+
+    Raises ValueError if the YAML is too complex (too many contracts,
+    too deeply nested, or contains excessively long regex patterns).
+    """
+    try:
+        parsed = yaml.safe_load(yaml_content)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"Invalid YAML: {exc}") from exc
+
+    if not isinstance(parsed, dict):
+        raise ValueError("Invalid contract YAML: expected a mapping at top level")
+
+    # Check contract count
+    contracts = parsed.get("contracts", [])
+    if isinstance(contracts, list) and len(contracts) > _MAX_CONTRACTS:
+        raise ValueError(
+            f"Too many contracts ({len(contracts)}). "
+            f"Maximum is {_MAX_CONTRACTS}."
+        )
+
+    # Check nesting depth and regex patterns
+    _check_depth(parsed, max_depth=_MAX_NESTING_DEPTH)
+    _check_regex_patterns(parsed)
+
+
+def _check_depth(obj: object, max_depth: int, current: int = 0) -> None:
+    """Recursively check nesting depth of a parsed YAML structure."""
+    if current > max_depth:
+        raise ValueError(
+            f"YAML nesting exceeds maximum depth ({max_depth}). "
+            "Simplify the contract structure."
+        )
+    if isinstance(obj, dict):
+        for v in obj.values():
+            _check_depth(v, max_depth, current + 1)
+    elif isinstance(obj, list):
+        for item in obj:
+            _check_depth(item, max_depth, current + 1)
+
+
+def _check_regex_patterns(obj: object) -> None:
+    """Find and validate regex patterns in the parsed YAML."""
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key in ("pattern", "regex", "match") and isinstance(value, str):
+                if len(value) > _MAX_REGEX_LENGTH:
+                    raise ValueError(
+                        f"Regex pattern too long ({len(value)} chars). "
+                        f"Maximum is {_MAX_REGEX_LENGTH}."
+                    )
+                # Test that the regex compiles without catastrophic backtracking risk
+                try:
+                    re.compile(value)
+                except re.error as exc:
+                    raise ValueError(f"Invalid regex pattern: {exc}") from exc
+            else:
+                _check_regex_patterns(value)
+    elif isinstance(obj, list):
+        for item in obj:
+            _check_regex_patterns(item)
 
 
 def _build_principal(inp: PrincipalInput | None) -> Principal | None:
@@ -84,6 +156,9 @@ def evaluate_contracts(
     Raises:
         ValueError: If the YAML is invalid or cannot be parsed as contracts.
     """
+    # Validate YAML complexity before evaluation to prevent DoS (#6)
+    _check_yaml_complexity(yaml_content)
+
     principal = _build_principal(principal_input)
     yaml_hash = hashlib.sha256(yaml_content.encode("utf-8")).hexdigest()
 

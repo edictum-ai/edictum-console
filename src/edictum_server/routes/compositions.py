@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.auth.dependencies import AuthContext, require_dashboard_auth
@@ -49,11 +49,13 @@ def _to_summary(comp: object, count: int) -> CompositionSummary:
 
 @router.get("", response_model=list[CompositionSummary])
 async def list_compositions_endpoint(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[CompositionSummary]:
     """List all bundle compositions for this tenant."""
-    rows = await list_compositions(db, auth.tenant_id)
+    rows = await list_compositions(db, auth.tenant_id, limit=limit, offset=offset)
     return [_to_summary(r["composition"], r["contract_count"]) for r in rows]
 
 

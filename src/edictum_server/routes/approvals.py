@@ -146,7 +146,7 @@ async def get_approval(
 async def list_approvals(
     status: ApprovalStatusType | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0, ge=0, le=10000),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
 ) -> list[ApprovalResponse]:

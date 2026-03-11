@@ -11,8 +11,11 @@ from __future__ import annotations
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi.responses import JSONResponse
+from starlette import status
 
 from edictum_server.auth.dependencies import AuthContext, require_api_key
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
 from edictum_server.redis.client import get_redis
 from edictum_server.schemas.sessions import (
     IncrementRequest,
@@ -31,6 +34,30 @@ from edictum_server.services.session_service import (
 _KEY_PATTERN = r"^[a-zA-Z0-9_\-\.:/]+$"
 
 router = APIRouter(prefix="/api/v1/sessions", tags=["sessions"])
+
+# Session endpoints: 100 writes/minute per tenant (M15)
+_SESSION_RATE_LIMIT = 100
+_SESSION_RATE_WINDOW = 60
+
+
+async def _check_session_rate_limit(
+    r: aioredis.Redis, auth: AuthContext,
+) -> JSONResponse | None:
+    """Return a 429 JSONResponse if rate limit exceeded, else None."""
+    rate_key = f"rate_limit:session:{auth.tenant_id}"
+    try:
+        await check_rate_limit(
+            r, rate_key,
+            max_attempts=_SESSION_RATE_LIMIT,
+            window_seconds=_SESSION_RATE_WINDOW,
+        )
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Session store rate limit exceeded."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+    return None
 
 
 @router.get(
@@ -60,8 +87,10 @@ async def put_value(
     key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
-) -> SessionValueResponse:
+) -> SessionValueResponse | JSONResponse:
     """Write a string value to the session store."""
+    if rate_resp := await _check_session_rate_limit(r, auth):
+        return rate_resp
     await set_session_value(r, auth.tenant_id, key, body.value)
     return SessionValueResponse(value=body.value)
 
@@ -76,8 +105,10 @@ async def post_increment(
     key: str = Path(pattern=_KEY_PATTERN),
     auth: AuthContext = Depends(require_api_key),
     r: aioredis.Redis = Depends(get_redis),
-) -> IncrementResponse:
+) -> IncrementResponse | JSONResponse:
     """Atomically increment a numeric session key."""
+    if rate_resp := await _check_session_rate_limit(r, auth):
+        return rate_resp  # type: ignore[return-value]
     new_value = await increment_session_value(r, auth.tenant_id, key, body.amount)
     return IncrementResponse(value=new_value)
 

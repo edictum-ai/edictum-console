@@ -169,6 +169,9 @@ async def list_contracts(
     type_filter: str | None = None,
     tag_filter: str | None = None,
     search: str | None = None,
+    *,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[Contract]:
     """List latest versions of all contracts, with optional filters."""
     query = select(Contract).where(
@@ -187,14 +190,18 @@ async def list_contracts(
             | Contract.contract_id.ilike(pattern)
         )
     query = query.order_by(Contract.created_at.desc())
-    result = await db.execute(query)
-    contracts = list(result.scalars().all())
 
-    # Tag filter — applied in Python since JSON contains varies by DB
+    # Tag filter is applied in Python since JSON contains varies by DB.
+    # When tag filtering, we must fetch all matching rows before slicing.
     if tag_filter:
+        result = await db.execute(query)
+        contracts = list(result.scalars().all())
         contracts = [c for c in contracts if tag_filter in (c.tags or [])]
+        return contracts[offset : offset + limit]
 
-    return contracts
+    query = query.limit(limit).offset(offset)
+    result = await db.execute(query)
+    return list(result.scalars().all())
 
 
 async def delete_contract(

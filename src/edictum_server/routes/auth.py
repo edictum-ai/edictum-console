@@ -51,9 +51,14 @@ async def login(
 
     # Rate limit by IP -- keyed before any credential check to prevent brute force
     client_ip = request.client.host if request.client else "unknown"
-    rate_key = f"rate_limit:login:{client_ip}"
+    rate_key_ip = f"rate_limit:login:ip:{client_ip}"
+    # Also rate limit per email to block credential-stuffing from distributed IPs (M7)
+    rate_key_email = f"rate_limit:login:email:{body.email.lower().strip()}"
     try:
-        await check_rate_limit(redis, rate_key)
+        await check_rate_limit(redis, rate_key_ip)
+        await check_rate_limit(
+            redis, rate_key_email, max_attempts=20, window_seconds=300,
+        )
     except RateLimitExceeded as exc:
         return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

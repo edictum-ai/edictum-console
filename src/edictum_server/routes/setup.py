@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+import redis.asyncio as aioredis
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +15,8 @@ from edictum_server.auth.local import LocalAuthProvider
 from edictum_server.config import Settings, get_settings
 from edictum_server.db.engine import get_db
 from edictum_server.db.models import SigningKey, Tenant, User
+from edictum_server.rate_limit import RateLimitExceeded, check_rate_limit
+from edictum_server.redis.client import get_redis
 from edictum_server.services.signing_service import generate_signing_keypair
 
 logger = logging.getLogger(__name__)
@@ -49,15 +53,29 @@ class SetupResponse(BaseModel):
 )
 async def setup(
     body: SetupRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    redis: aioredis.Redis = Depends(get_redis),
     x_requested_with: str | None = Header(default=None, alias="X-Requested-With"),
-) -> SetupResponse:
+) -> SetupResponse | JSONResponse:
     """Create the first admin user and tenant.
 
     Only works when no users exist (bootstrap lock -- S7).
     Returns 409 if already bootstrapped.
     """
+    # Rate limit setup endpoint to prevent advisory-lock serialization DoS (M12)
+    client_ip = request.client.host if request.client else "unknown"
+    rate_key = f"rate_limit:setup:{client_ip}"
+    try:
+        await check_rate_limit(redis, rate_key, max_attempts=3, window_seconds=60)
+    except RateLimitExceeded as exc:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={"detail": "Too many setup attempts. Please try again later."},
+            headers={"Retry-After": str(exc.retry_after)},
+        )
+
     # CSRF protection: require X-Requested-With header (browsers block this on
     # cross-origin requests without a preflight, closing the CSRF vector)
     if not x_requested_with:
