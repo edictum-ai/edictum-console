@@ -52,7 +52,12 @@ async def test_create_channel(client: AsyncClient) -> None:
 
 async def test_list_channels(client: AsyncClient) -> None:
     await _create_channel(client, name="ch-1")
-    await _create_channel(client, name="ch-2", channel_type="slack", config=SLACK_CONFIG)
+    # Mock URL validation because DNS resolution may not be available in test
+    with patch(
+        "edictum_server.services.notification_service._validate_urls",
+        new_callable=AsyncMock,
+    ):
+        await _create_channel(client, name="ch-2", channel_type="slack", config=SLACK_CONFIG)
 
     resp = await client.get(CHANNELS_URL)
     assert resp.status_code == 200
