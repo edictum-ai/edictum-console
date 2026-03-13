@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Edictum Console — Try It
 #
-# One command. No dependencies. See governance events in your dashboard.
+# One command. See real contract enforcement in your dashboard.
 #
 #   ./examples/try-it.sh
 #
@@ -47,12 +47,6 @@ api_put() {
         -X PUT "$API$1" -d "$2"
 }
 
-api_get() {
-    curl -s -b "$COOKIE_JAR" -c "$COOKIE_JAR" \
-        -H "X-Requested-With: try-it" \
-        "$API$1"
-}
-
 # ── 1. Health check ──────────────────────────────────────────────────────
 
 echo "1. Checking console..."
@@ -68,15 +62,10 @@ echo "   OK"
 
 echo "2. Creating admin account..."
 RESULT=$(api_post "/setup" "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")
-CODE=$(echo "$RESULT" | grep -o '"message"' || true)
-CONFLICT=$(echo "$RESULT" | grep -o '"Server is already' || true)
-
-if [ -n "$CODE" ]; then
+if echo "$RESULT" | grep -q '"message"'; then
     echo "   Created: $EMAIL"
-elif [ -n "$CONFLICT" ]; then
-    echo "   Already exists — logging in as $EMAIL"
 else
-    echo "   Already set up — logging in as $EMAIL"
+    echo "   Already exists — logging in as $EMAIL"
 fi
 
 # ── 3. Login + create API key ───────────────────────────────────────────
@@ -152,7 +141,6 @@ contracts:
 YAML
 )
 
-# Escape YAML for JSON
 YAML_JSON=$(python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" <<< "$CONTRACT_YAML")
 UPLOAD_RESULT=$(api_post "/bundles" "{\"yaml_content\":$YAML_JSON}")
 VERSION=$(echo "$UPLOAD_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])" 2>/dev/null || echo "")
@@ -178,78 +166,100 @@ else
     echo "5. AI assistant — skipped (pass --openrouter-key to enable)"
 fi
 
-# ── 6. Send governance events ───────────────────────────────────────────
+# ── 6. Install edictum + run governed agent ─────────────────────────────
 
-echo "6. Sending governance events..."
-echo ""
+echo "6. Installing edictum..."
 
-# Simulate tool calls by posting events directly to the console API.
-# In production, the edictum library does this automatically inside your agent.
-
-post_event() {
-    local tool="$1" verdict="$2" reason="$3" args_json="$4" mode="${5:-enforce}"
-    local call_id
-    call_id="try-it-$(date +%s%N)-$RANDOM"
-
-    curl -s -X POST "$API/events" \
-        -H "Authorization: Bearer $API_KEY" \
-        -H "X-Edictum-Agent-Id: try-it-agent" \
-        -H "Content-Type: application/json" \
-        -d "{\"events\":[{
-            \"call_id\":\"$call_id\",
-            \"agent_id\":\"try-it-agent\",
-            \"tool_name\":\"$tool\",
-            \"verdict\":\"$verdict\",
-            \"mode\":\"$mode\",
-            \"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-            \"payload\":{\"args\":$args_json,\"reason\":\"$reason\",\"contract\":\"try-it\"}
-        }]}" > /dev/null
-}
-
-print_event() {
-    local num="$1" verdict="$2" tool="$3" args_desc="$4" reason="$5"
-    if [ "$verdict" = "allow" ]; then
-        printf "  [%2d] ALLOW  %s(%s)\n" "$num" "$tool" "$args_desc"
-    else
-        printf "  [%2d] DENY   %s(%s)\n" "$num" "$tool" "$args_desc"
-        printf "         -> %s\n" "$reason"
+# Find Python 3.12+ (edictum requires it)
+PYTHON=""
+for py in python3.14 python3.13 python3.12 python3; do
+    if command -v "$py" &>/dev/null; then
+        PY_VER=$("$py" -c "import sys; print(sys.version_info[:2] >= (3,12))" 2>/dev/null || echo "False")
+        if [ "$PY_VER" = "True" ]; then
+            PYTHON="$py"
+            break
+        fi
     fi
-}
+done
 
-# 10 tool calls — 7 allows, 3 denials
+if [ -z "$PYTHON" ]; then
+    echo "   ERROR: Python 3.12+ required (edictum needs it)"
+    echo "   Install via: brew install python@3.12"
+    exit 1
+fi
 
-print_event 1 allow get_weather "city='Tokyo'" ""
-post_event "get_weather" "allow" "" '{"city":"Tokyo"}'
+# Use existing venv, otherwise create a temporary one
+if [ -z "${VIRTUAL_ENV:-}" ]; then
+    VENV_DIR=$(mktemp -d)/edictum-tryit
+    "$PYTHON" -m venv "$VENV_DIR"
+    PYTHON="$VENV_DIR/bin/python3"
+    echo "   Created temporary venv ($("$PYTHON" --version))"
+else
+    echo "   Using active venv"
+fi
 
-print_event 2 allow read_file "path='/home/user/notes.txt'" ""
-post_event "read_file" "allow" "" '{"path":"/home/user/notes.txt"}'
+"$PYTHON" -m pip install --upgrade pip --quiet 2>/dev/null || true
+"$PYTHON" -m pip install "edictum[server,yaml]" 2>&1 | grep -E "^(Installing|Successfully|Requirement)" || true
+echo "   OK"
 
-print_event 3 allow send_email "to='alice@company.com', subject='Report'" ""
-post_event "send_email" "allow" "" '{"to":"alice@company.com","subject":"Report"}'
-
-print_event 4 deny read_file "path='/etc/passwd'" "Denied: sensitive file '/etc/passwd'"
-post_event "read_file" "deny" "Denied: sensitive file '/etc/passwd'" '{"path":"/etc/passwd"}'
-
-print_event 5 deny send_email "to='leak@competitor.com', subject='Data'" "Denied: can only email @company.com"
-post_event "send_email" "deny" "Denied: can only email @company.com" '{"to":"leak@competitor.com","subject":"Data"}'
-
-print_event 6 allow get_weather "city='London'" ""
-post_event "get_weather" "allow" "" '{"city":"London"}'
-
-print_event 7 allow get_weather "city='Berlin'" ""
-post_event "get_weather" "allow" "" '{"city":"Berlin"}'
-
-print_event 8 deny get_weather "city='Sydney'" "Rate limit: max 3 weather lookups per session"
-post_event "get_weather" "deny" "Rate limit: max 3 weather lookups per session" '{"city":"Sydney"}'
-
-print_event 9 allow search_web "query='edictum governance'" ""
-post_event "search_web" "allow" "" '{"query":"edictum governance"}'
-
-print_event 10 allow read_file "path='/home/user/readme.md'" ""
-post_event "read_file" "allow" "" '{"path":"/home/user/readme.md"}'
-
+echo "7. Running governed agent..."
 echo ""
-echo "  Done. 10 events sent to console."
+
+"$PYTHON" - "$URL" "$API_KEY" <<'PYTHON'
+import asyncio
+import sys
+
+from edictum import Edictum
+
+URL = sys.argv[1]
+API_KEY = sys.argv[2]
+
+SCENARIOS = [
+    ("get_weather",  {"city": "Tokyo"},                                          "Sunny, 22C"),
+    ("read_file",    {"path": "/home/user/notes.txt"},                           "Meeting notes from Monday..."),
+    ("send_email",   {"to": "alice@company.com", "subject": "Report", "body": "Q1 done"}, "Sent"),
+    ("read_file",    {"path": "/etc/passwd"},                                    None),
+    ("send_email",   {"to": "leak@competitor.com", "subject": "Data", "body": "..."}, None),
+    ("get_weather",  {"city": "London"},                                         "Cloudy, 14C"),
+    ("get_weather",  {"city": "Berlin"},                                         "Rainy, 8C"),
+    ("get_weather",  {"city": "Sydney"},                                         None),
+    ("search_web",   {"query": "edictum governance"},                            "Edictum: runtime contracts for AI agents"),
+    ("read_file",    {"path": "/home/user/readme.md"},                           "# Welcome to the project"),
+]
+
+
+def fmt(args):
+    return ", ".join(f"{k}='{v}'" if len(str(v)) < 30 else f"{k}='...'" for k, v in args.items())
+
+
+async def main():
+    guard = await Edictum.from_server(
+        url=URL, api_key=API_KEY, agent_id="try-it-agent",
+        bundle_name="try-it", env="production",
+    )
+    print(f"  Connected. Policy: {guard.policy_version[:16]}...")
+    print(f"  Running {len(SCENARIOS)} tool calls...\n")
+
+    for i, (tool, args, mock_result) in enumerate(SCENARIOS, 1):
+        async def tool_fn(_r=mock_result, **_kw):
+            return _r or "ok"
+
+        try:
+            await guard.run(tool, args, tool_fn)
+            print(f"  [{i:2d}] ALLOW  {tool}({fmt(args)})")
+        except Exception as exc:
+            print(f"  [{i:2d}] DENY   {tool}({fmt(args)})")
+            print(f"         -> {str(exc)[:80]}")
+
+        await asyncio.sleep(0.3)
+
+    if hasattr(guard, "close"):
+        await guard.close()
+    print(f"\n  Done. {len(SCENARIOS)} events sent to console.")
+
+
+asyncio.run(main())
+PYTHON
 
 # ── Done ────────────────────────────────────────────────────────────────
 
