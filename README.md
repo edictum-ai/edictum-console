@@ -26,20 +26,24 @@ Edictum Console solves all three. One Docker image. Five minutes to deploy.
 
 ## Quick Start
 
+**You need:** Docker. That's it.
+
 ```bash
-# 1. Clone and start
 git clone https://github.com/edictum-ai/edictum-console.git
 cd edictum-console
-cp .env.example .env   # edit with your secrets (or generate below)
+cp .env.example .env
 
+# Generate secrets
 python3 -c "import secrets; print(f'POSTGRES_PASSWORD={secrets.token_hex(16)}'); print(f'EDICTUM_SECRET_KEY={secrets.token_hex(32)}'); print(f'EDICTUM_SIGNING_KEY_SECRET={secrets.token_hex(32)}')" >> .env
 
 docker compose up -d
 ```
 
-### Try it — zero manual setup
+### See it work in 60 seconds
 
-One script that bootstraps admin, deploys contracts, and runs a governed agent:
+The try-it script does everything for you — creates an admin account, deploys
+demo contracts, connects a simulated agent, and runs tool calls that produce
+governance events. No API keys, no accounts, no configuration.
 
 ```bash
 pip install edictum[server]
@@ -71,7 +75,11 @@ python examples/try-it.py
   Open the dashboard: http://localhost:8000/dashboard
 ```
 
-Test the AI contract assistant with a free model (no cost):
+Open the dashboard to see every event, verdict, and contract in action.
+
+**Optional:** the console has an AI contract assistant that generates YAML from
+plain English. To try it, pass a free [OpenRouter](https://openrouter.ai/keys)
+key (no cost, uses `google/gemma-3-1b-it:free`):
 
 ```bash
 python examples/try-it.py --openrouter-key sk-or-v1-...
@@ -79,21 +87,31 @@ python examples/try-it.py --openrouter-key sk-or-v1-...
 
 ### Connect your own agent
 
+Once the console is running, connect any Python agent with two lines:
+
+```bash
+pip install edictum[server]
+```
+
 ```python
 from edictum import Edictum
 
 guard = await Edictum.from_server(
     url="http://localhost:8000",
-    api_key="edk_production_...",
+    api_key="edk_production_...",   # create in Dashboard > API Keys
     agent_id="my-agent",
     env="production",
     bundle_name="my-contracts",
 )
 
-# Same API as local edictum -- events stream to console,
+# Every tool call is now governed — events stream to console,
 # approvals route through dashboard, contract updates arrive via SSE.
 result = await guard.run("read_file", {"path": "data.csv"}, read_file)
 ```
+
+Edictum works with any framework — LangChain, CrewAI, OpenAI Agents, Claude SDK,
+and [5 more](https://github.com/edictum-ai/edictum#adapters). See
+[examples/demo-agent/](examples/demo-agent/) for a full LangChain example.
 
 See [examples/demo-agent/](examples/demo-agent/) for a full LangChain ReAct agent with 8 contract types.
 
