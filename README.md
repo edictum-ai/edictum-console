@@ -27,34 +27,64 @@ Edictum Console solves all three. One Docker image. Five minutes to deploy.
 ## Quick Start
 
 ```bash
-# 1. Download the compose file
-curl -fsSL https://raw.githubusercontent.com/edictum-ai/edictum-console/main/deploy/docker-compose.yml -o docker-compose.yml
+# 1. Clone and start
+git clone https://github.com/edictum-ai/edictum-console.git
+cd edictum-console
+cp .env.example .env   # edit with your secrets (or generate below)
 
-# 2. Create .env with your secrets
-cat <<EOF > .env
-POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_hex(16))")
-EDICTUM_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-EDICTUM_SIGNING_KEY_SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-EOF
+python3 -c "import secrets; print(f'POSTGRES_PASSWORD={secrets.token_hex(16)}'); print(f'EDICTUM_SECRET_KEY={secrets.token_hex(32)}'); print(f'EDICTUM_SIGNING_KEY_SECRET={secrets.token_hex(32)}')" >> .env
 
-# 3. Start everything
 docker compose up -d
-
-# 4. Open http://localhost:8000/dashboard/setup
-#    Create your admin account
-
-# 5. Create an API key
-#    Dashboard > API Keys > Create Key > Copy the full key (shown once)
 ```
 
-Connect your agent:
+### Try it — zero manual setup
+
+One script that bootstraps admin, deploys contracts, and runs a governed agent:
+
+```bash
+pip install edictum[server]
+python examples/try-it.py
+```
+
+```
+1. Checking console...          OK
+2. Creating admin account...    Created: demo@edictum.dev
+3. Creating API key...          Key: edk_production_bdZ18_NkpL...
+4. Deploying contracts...       Bundle 'try-it' v1 deployed to production
+5. AI assistant                 skipped (pass --openrouter-key to enable)
+6. Running governed agent...
+
+  [ 1] ALLOW  get_weather(city='Tokyo')
+  [ 2] ALLOW  read_file(path='/home/user/notes.txt')
+  [ 3] ALLOW  send_email(to='alice@company.com', subject='Report', body='Q1 done')
+  [ 4] DENY   read_file(path='/etc/passwd')
+         -> Denied: sensitive file '/etc/passwd'
+  [ 5] DENY   send_email(to='leak@competitor.com', subject='Data', body='...')
+         -> Denied: can only email @company.com, not 'leak@competitor.com'
+  [ 6] ALLOW  get_weather(city='London')
+  [ 7] ALLOW  get_weather(city='Berlin')
+  [ 8] DENY   get_weather(city='Sydney')
+         -> Per-tool limit: get_weather called 3 times (limit: 3).
+  [ 9] ALLOW  search_web(query='edictum governance')
+  [10] ALLOW  read_file(path='/home/user/readme.md')
+
+  Open the dashboard: http://localhost:8000/dashboard
+```
+
+Test the AI contract assistant with a free model (no cost):
+
+```bash
+python examples/try-it.py --openrouter-key sk-or-v1-...
+```
+
+### Connect your own agent
 
 ```python
 from edictum import Edictum
 
 guard = await Edictum.from_server(
     url="http://localhost:8000",
-    api_key="edk_production_CZxKQvN3mHz...",
+    api_key="edk_production_...",
     agent_id="my-agent",
     env="production",
     bundle_name="my-contracts",
@@ -64,6 +94,8 @@ guard = await Edictum.from_server(
 # approvals route through dashboard, contract updates arrive via SSE.
 result = await guard.run("read_file", {"path": "data.csv"}, read_file)
 ```
+
+See [examples/demo-agent/](examples/demo-agent/) for a full LangChain ReAct agent with 8 contract types.
 
 ## What You Get
 
