@@ -55,6 +55,7 @@ interface EventFilterPanelProps {
   onToggleFilter: (field: string, value: string) => void
   onToggleFacetCollapse: (name: string) => void
   onClearAll: () => void
+  sizerRef?: React.RefObject<HTMLSpanElement | null>
 }
 
 export function EventFilterPanel({
@@ -64,8 +65,20 @@ export function EventFilterPanel({
   onToggleFilter,
   onToggleFacetCollapse,
   onClearAll,
+  sizerRef,
 }: EventFilterPanelProps) {
   const facets = useMemo(() => buildFacets(events), [events])
+
+  // Find the longest label for the hidden sizer element
+  const longestLabel = useMemo(() => {
+    let longest = ""
+    for (const facet of facets) {
+      for (const v of facet.values) {
+        if (v.label.length > longest.length) longest = v.label
+      }
+    }
+    return longest
+  }, [facets])
 
   const activeFilterCount = Object.values(activeFilters).reduce(
     (sum, set) => sum + set.size,
@@ -73,7 +86,18 @@ export function EventFilterPanel({
   )
 
   return (
-    <div className="h-full">
+    <div className="h-full relative">
+      {/* Hidden sizer for auto-width measurement */}
+      {sizerRef && (
+        <span
+          ref={sizerRef}
+          className="absolute invisible whitespace-nowrap pointer-events-none px-2 text-xs"
+          aria-hidden="true"
+        >
+          {longestLabel}
+          <span className="ml-1 px-1.5 text-[10px]">999</span>
+        </span>
+      )}
       <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Filters
@@ -127,19 +151,19 @@ export function EventFilterPanel({
                             onClick={() =>
                               onToggleFilter(facet.field, value.key)
                             }
-                            className={`w-full justify-between h-auto px-2 py-1 text-xs ${
+                            className={`w-full justify-between h-auto px-2 py-1 text-xs min-w-0 overflow-hidden ${
                               isActive
                                 ? "bg-primary/15 text-primary hover:bg-primary/20"
                                 : "text-muted-foreground hover:bg-accent hover:text-foreground"
                             }`}
                           >
-                            <span className="flex items-center gap-1.5 truncate">
+                            <span className="flex items-center gap-1.5 min-w-0 truncate">
                               {facet.field === "verdict" && (
                                 <span
                                   className={`inline-block h-2 w-2 rounded-full ${verdictDot(value.key)}`}
                                 />
                               )}
-                              <span className="truncate">{value.label}</span>
+                              <span className="truncate" title={value.label}>{value.label}</span>
                             </span>
                             <span
                               className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium ${

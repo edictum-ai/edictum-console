@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { EventResponse } from "@/lib/api"
 import { extractProvenance, isObserveFinding } from "@/lib/payload-helpers"
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
+import { EnvBadge } from "@/lib/env-colors"
 import { DetailRow } from "@/components/detail-row"
 import { DecisionContextCard } from "./detail-decision-context"
 import { ToolArgsCard } from "./detail-tool-args"
@@ -78,27 +79,17 @@ export function EventDetail({ event, onClose }: EventDetailProps) {
               <div className="flex items-center gap-2">
                 <Badge
                   variant="outline"
-                  className={`rounded border px-2 py-0.5 text-xs font-medium ${verdictColor(event.verdict)}`}
+                  className={`text-[11px] font-medium ${verdictColor(event.verdict)}`}
                 >
                   <VerdictIcon verdict={event.verdict} />
-                  <span className="ml-1 capitalize">{event.verdict}</span>
+                  {event.verdict}
                 </Badge>
                 {event.mode && (
-                  <Badge
-                    variant="outline"
-                    className="rounded text-[10px] font-normal"
-                  >
+                  <Badge variant="outline" className="text-[11px] font-normal">
                     {event.mode}
                   </Badge>
                 )}
-                {environment && (
-                  <Badge
-                    variant="outline"
-                    className="rounded text-[10px] font-normal"
-                  >
-                    {environment}
-                  </Badge>
-                )}
+                {environment && <EnvBadge env={environment} />}
               </div>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />

@@ -17,7 +17,7 @@ const DEFAULT_ENV_STYLE = "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400 borde
 export function EnvBadge({ env }: { env: string }) {
   const style = ENV_COLORS[env] ?? DEFAULT_ENV_STYLE
   return (
-    <Badge variant="outline" className={`${style} text-[10px]`}>
+    <Badge variant="outline" className={`${style} text-[11px]`}>
       {env}
     </Badge>
   )

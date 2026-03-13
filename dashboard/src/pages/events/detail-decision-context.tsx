@@ -56,7 +56,7 @@ export function DecisionContextCard({ prov }: { prov: Provenance }) {
             </span>
             <Badge
               variant="outline"
-              className="h-5 rounded px-1.5 text-[10px] font-normal"
+              className="text-[10px] font-normal"
             >
               {formatDecisionSource(prov.decisionSource)}
             </Badge>

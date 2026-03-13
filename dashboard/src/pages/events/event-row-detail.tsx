@@ -77,13 +77,13 @@ export function EventRowDetail({ event, colSpan }: EventRowDetailProps) {
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`rounded border px-2 py-0.5 text-xs font-medium ${verdictColor(event.verdict)}`}
+              className={`text-[11px] font-medium ${verdictColor(event.verdict)}`}
             >
               <VerdictIcon verdict={event.verdict} className="h-3 w-3" />
-              <span className="ml-1 uppercase">{event.verdict}</span>
+              {event.verdict}
             </Badge>
             {event.mode && (
-              <Badge variant="outline" className="rounded text-[10px] font-normal">
+              <Badge variant="outline" className="text-[11px] font-normal">
                 {event.mode}
               </Badge>
             )}

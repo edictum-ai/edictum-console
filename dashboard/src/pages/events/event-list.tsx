@@ -213,18 +213,22 @@ function EventTableRow({
         )
       case "tool":
         return (
-          <Badge variant="outline" className="h-5 rounded px-1.5 font-mono text-[10px] font-normal">
+          <Badge variant="outline" className="font-mono text-[10px] font-normal">
             {event.tool_name}
           </Badge>
         )
       case "mode":
-        return <span className="text-muted-foreground">{event.mode}</span>
+        return (
+          <Badge variant="outline" className="text-[10px] font-normal">
+            {event.mode}
+          </Badge>
+        )
       case "verdict":
         return (
-          <span className={`inline-flex items-center gap-1 ${verdictColor(event.verdict)}`}>
+          <Badge variant="outline" className={`text-[10px] font-medium ${verdictColor(event.verdict)} ${observe ? "border-dashed" : ""}`}>
             <VerdictIcon verdict={event.verdict} className="h-3 w-3" />
-            <span className={observe ? "border-b border-dashed" : ""}>{event.verdict}</span>
-          </span>
+            {event.verdict}
+          </Badge>
         )
       case "contract":
         return label ? (

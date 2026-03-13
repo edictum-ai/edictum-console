@@ -41,16 +41,13 @@ export function ContractsEvaluatedCard({ contracts }: ContractsEvaluatedCardProp
                 <span className="font-mono text-[11px] text-foreground">
                   {c.name}
                 </span>
-                <Badge
-                  variant="outline"
-                  className="h-4 rounded px-1 text-[9px] font-normal"
-                >
+                <Badge variant="outline" className="text-[9px] font-normal">
                   {c.type}
                 </Badge>
                 {c.observed && (
                   <Badge
                     variant="outline"
-                    className="h-4 rounded px-1 text-[9px] font-normal border-amber-500/30 text-amber-600 dark:text-amber-400"
+                    className="text-[9px] font-normal border-amber-500/30 text-amber-600 dark:text-amber-400"
                   >
                     observed
                   </Badge>

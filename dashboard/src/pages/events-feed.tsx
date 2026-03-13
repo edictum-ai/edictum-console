@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useResizableFilterWidth } from "@/hooks/use-resizable-filter-width"
 import { useSearchParams } from "react-router"
 import { listEvents, type EventResponse } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
@@ -78,6 +79,15 @@ export function EventsFeed() {
   const [timeWindow, setTimeWindow] = useState<TimeWindow>(DEFAULT_TIME_WINDOW)
   const [isLive, setIsLive] = useState(true)
   const [collapsedFacets, setCollapsedFacets] = useState<Set<string>>(new Set())
+
+  const filterPanelRef = useRef<HTMLDivElement>(null)
+  const filterSizerRef = useRef<HTMLSpanElement>(null)
+  const filterContainerRef = useRef<HTMLDivElement>(null)
+  const { width: filterWidth, handleDragStart, handleDoubleClick: handleDragDoubleClick } = useResizableFilterWidth({
+    sizerRef: filterSizerRef,
+    containerRef: filterContainerRef,
+    enabled: options.panels.filters,
+  })
 
   // Initialize active filters from URL search params
   const [activeFilters, setActiveFilters] = useState<Record<string, Set<string>>>(() => {
@@ -408,11 +418,25 @@ export function EventsFeed() {
         onResetDefaults={resetDefaults}
         events={filteredEvents}
       />
-      <div className="flex flex-1 min-h-0">
+      <div ref={filterContainerRef} className="flex flex-1 min-h-0">
         {options.panels.filters && (
-          <div className="w-[220px] shrink-0 border-r border-border overflow-y-auto">
-            <EventFilterPanel {...filterPanelProps} />
-          </div>
+          <>
+            <div
+              ref={filterPanelRef}
+              className="shrink-0 overflow-y-auto overflow-x-hidden"
+              style={{ width: filterWidth }}
+            >
+              <EventFilterPanel {...filterPanelProps} sizerRef={filterSizerRef} />
+            </div>
+            <div
+              onMouseDown={handleDragStart}
+              onDoubleClick={handleDragDoubleClick}
+              title="Drag to resize, double-click to auto-fit"
+              className="group shrink-0 w-1.5 cursor-col-resize border-x border-border bg-transparent hover:bg-primary/10 active:bg-primary/20 flex items-center justify-center"
+            >
+              <div className="h-8 w-0.5 rounded-full bg-border group-hover:bg-primary/40 group-active:bg-primary/60" />
+            </div>
+          </>
         )}
         <div className="flex-1 overflow-hidden">
           <EventList {...eventListProps} />
