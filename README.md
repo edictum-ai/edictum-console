@@ -46,8 +46,7 @@ demo contracts, connects a simulated agent, and runs tool calls that produce
 governance events. No API keys, no accounts, no configuration.
 
 ```bash
-pip install edictum[server]
-python examples/try-it.py
+./examples/try-it.sh
 ```
 
 ```
@@ -82,7 +81,7 @@ plain English. To try it, pass a free [OpenRouter](https://openrouter.ai/keys)
 key (no cost, uses `google/gemma-3-1b-it:free`):
 
 ```bash
-python examples/try-it.py --openrouter-key sk-or-v1-...
+./examples/try-it.sh --openrouter-key sk-or-v1-...
 ```
 
 ### Connect your own agent
