@@ -4,12 +4,14 @@
   "app_version": "0.1.0",
   "findings": {
     "H2-security-headers": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "high",
       "issue": 12,
       "file": "src/edictum_server/main.py",
       "description": "Missing security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "380daa9",
+      "fixed_date": "2026-03-14"
     },
     "H1-https-downgrade": {
       "status": "fix-planned",
@@ -28,20 +30,24 @@
       "found": "2026-03-10"
     },
     "M2-timing-oracle": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "medium",
       "issue": 15,
       "file": "src/edictum_server/routes/auth.py",
       "description": "Timing side-channel on login enables account enumeration",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "380daa9",
+      "fixed_date": "2026-03-14"
     },
     "M3-body-size": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "medium",
       "issue": 16,
       "file": "src/edictum_server/main.py",
       "description": "No request body size limit - 10MB payloads accepted on all endpoints",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "380daa9",
+      "fixed_date": "2026-03-14"
     },
     "M5-health-disclosure": {
       "status": "fix-planned",
@@ -68,12 +74,14 @@
       "found": "2026-03-10"
     },
     "C2-unsigned-sessions": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "critical",
       "issue": 20,
       "file": "src/edictum_server/auth/local.py",
       "description": "Sessions stored unsigned in Redis - EDICTUM_SECRET_KEY required but never used",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "380daa9",
+      "fixed_date": "2026-03-14"
     },
     "H1-webhook-security": {
       "status": "fix-planned",
@@ -84,12 +92,14 @@
       "found": "2026-03-10"
     },
     "H6-server-hardening": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "high",
       "issue": 22,
       "file": "docker-entrypoint.sh",
       "description": "Server hardening: uvicorn limits, DB pool config, Docker network isolation",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "380daa9",
+      "fixed_date": "2026-03-14"
     },
     "M4-ssrf": {
       "status": "fix-planned",
@@ -138,6 +148,55 @@
       "file": "pyproject.toml",
       "description": "Dependency pinning: no lock file for Python dependencies",
       "found": "2026-03-10"
+    },
+    "M-ssrf-discord-slack": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/notifications/discord.py",
+      "description": "Discord and Slack notification clients use raw httpx.AsyncClient without SafeTransport \u2014 CLAUDE.md standards violation",
+      "found": "2026-03-14"
+    },
+    "M-safe-transport-blocking-dns": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/security/safe_transport.py",
+      "description": "SafeTransport uses blocking socket.getaddrinfo in async context \u2014 event loop stall under slow DNS",
+      "found": "2026-03-14"
+    },
+    "M-agent-id-header-unbounded": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length \u2014 enables Redis key namespace exhaustion and log amplification",
+      "found": "2026-03-14"
+    },
+    "M-events-schema-no-maxlen": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/events.py",
+      "description": "EventPayload and ManifestContract string fields lack max_length \u2014 violates CLAUDE.md bounds requirement",
+      "found": "2026-03-14"
+    },
+    "M-sse-no-connection-limit": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/stream.py",
+      "description": "No per-tenant SSE connection limit \u2014 valid API key can exhaust server memory with concurrent connections",
+      "found": "2026-03-14"
+    },
+    "L-setup-tenant-name-maxlen": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/setup.py",
+      "description": "SetupRequest.tenant_name missing max_length constraint",
+      "found": "2026-03-14"
+    },
+    "L-get-current-tenant-silent": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "get_current_tenant swallows all HTTPException from dashboard auth \u2014 too broad; should only catch 401",
+      "found": "2026-03-14"
     }
   }
 }
