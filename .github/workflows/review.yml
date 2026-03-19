@@ -152,6 +152,7 @@ jobs:
               will find 5 more, causing endless fix-review cycles. Find them ALL now.
             - A clean PR with zero findings is a good outcome — don't manufacture findings.
             - Do NOT flag style/formatting (linters handle that)
+            - For pre-existing issues (not introduced by this PR): still report them, but label as "ℹ️ Pre-existing:" in the review comment. Do NOT classify them as Critical or Warning — they do not block the PR and are not counted in ISSUE_COUNT. The PR author should file a separate issue for legitimate pre-existing findings, not fix them in the current PR.
             - ALWAYS include the attack path: "An attacker could... by..."
             - ALWAYS include file path + line number + concrete fix with code
             - Check EVERY public method that accepts untrusted input for validation
