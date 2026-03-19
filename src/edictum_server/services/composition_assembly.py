@@ -68,7 +68,7 @@ async def assemble_bundle(
                 "contract_id": contract.contract_id,
                 "version": contract.version,
                 "mode": contract_def.get("mode"),
-                "shadow": cid != contract.contract_id,
+                "observe": cid != contract.contract_id,
             }
         )
 
