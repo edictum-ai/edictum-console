@@ -7,7 +7,9 @@ on:
 
 concurrency:
   group: review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  # Do NOT cancel in-progress: killing a review mid-flight and restarting
+  # on the latest push loses findings from the full diff analysis (#67).
+  cancel-in-progress: false
 
 jobs:
   review:
@@ -17,7 +19,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: read
+      issues: write
 
     steps:
       - name: Checkout repository
@@ -45,6 +47,11 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
+      - name: Ensure review label exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: gh label create review --description "Code review finding" --color "c5def5" 2>/dev/null || true
+
       # SECURITY: Do NOT run `pip install -e ".[dev]"` here.
       # The PR branch's pyproject.toml is untrusted — build hooks could
       # exfiltrate secrets. Install only the tools Claude needs directly.
@@ -63,9 +70,12 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
           model: claude-sonnet-4-6
-          claude_args: '--max-turns 30 --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(cat:*),Bash(ruff:*),Bash(mypy:*),Read,Glob,Grep,Write"'
+          # SECURITY (#66): Claude writes files only — no gh pr comment / gh api.
+          # Workflow posts after validation. Prevents garbage overwrite and
+          # comment injection race condition.
+          claude_args: '--max-turns 30 --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh issue create:*),Bash(cat:*),Bash(ruff:*),Bash(mypy:*),Read,Glob,Grep,Write"'
           prompt: |
-            You are an adversarial code reviewer for Edictum Console — a **security product** (self-hostable agent operations console). A single vulnerability destroys the credibility of a startup that sells trust. Think like an attacker first, reviewer second.
+            You are an adversarial code reviewer for Edictum Console — a **security product** (self-hostable agent operations console). A single vulnerability destroys the credibility of a startup whose entire value proposition is securing AI agents. Think like an attacker first, reviewer second.
 
             PR: #${{ github.event.pull_request.number }}
             SHA: ${{ github.event.pull_request.head.sha }}
@@ -78,9 +88,12 @@ jobs:
                - `/tmp/governance/review-instructions.md` — comment formatting rules
                - `/tmp/governance/review-template.md` — the template to fill in
 
-            2. Get the diff:
-               - `git diff origin/main...HEAD --name-only` for changed files
-               - `git diff origin/main...HEAD` for full diff
+            2. Get the FULL diff against main (not just the latest push):
+               - `git diff origin/main...HEAD --name-only` for ALL changed files in the PR
+               - `git diff origin/main...HEAD` for the complete diff
+               - IMPORTANT: Review the ENTIRE PR diff, not just the latest commit.
+                 This workflow runs on every push. You must review all accumulated
+                 changes to avoid missing issues introduced in earlier commits.
 
             3. For EACH changed file:
                a. Read the FULL source file (not just the diff)
@@ -97,9 +110,9 @@ jobs:
 
             5. Fill in the template from `/tmp/governance/review-template.md` per `/tmp/governance/review-instructions.md`. Write to `/tmp/review.md`.
 
-            6. Post inline review comments on specific changed lines:
+            6. Write inline review comments for specific changed lines:
                - For each finding, note the exact file path and line number in the HEAD commit
-               - ONLY include comments for lines that appear in the diff (added or modified lines). Lines outside the diff will cause the API call to fail.
+               - ONLY include comments for lines that appear in the diff (added or modified lines)
                - Write the review payload to `/tmp/review-payload.json`:
                  ```json
                  {
@@ -110,23 +123,98 @@ jobs:
                      {
                        "path": "src/edictum_server/routes/example.py",
                        "line": 42,
-                       "body": "🔴 **Critical:** Description of the issue.\n\n**Attack path:** An attacker could...\n\n**Fix:**\n```python\ncode fix here\n```"
+                       "body": "**Critical:** Description.\n\n**Attack path:** An attacker could...\n\n**Fix:**\n```python\ncode fix\n```"
                      }
                    ]
                  }
                  ```
-               - Post it: `gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" --input /tmp/review-payload.json`
-               - If there are ZERO findings, skip this step entirely — do not create an empty review.
-               - If the API call fails (e.g., a line wasn't in the diff), fall back to the summary comment only.
+               - If there are ZERO findings, skip this step entirely — do not create the file.
+               - Do NOT post the payload yourself. The workflow handles posting after validation.
 
-            7. Post the sticky summary comment (authoritative record of all findings):
-               - Check for existing: `gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --jq '.[] | select(.body | contains("<!-- edictum-console-review -->")) | .id'`
-               - If found, update: `gh api "repos/${{ github.repository }}/issues/comments/COMMENT_ID" -X PATCH -f body=@/tmp/review.md`
-               - If not found, create: `gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/review.md`
+            7. Do NOT post the review comment yourself. Write to `/tmp/review.md` ONLY.
+               The workflow validates and posts after you finish.
 
-            ## Rules
-            - One pass. If the PR is clean, say so and stop. Do NOT re-scan looking for nitpicks.
-            - A clean PR with zero findings is a good outcome — don't manufacture findings to justify the review.
+            ## Classification rules
+
+            Use `<!-- STATUS: fail -->` ONLY for critical issues that have a concrete
+            attack path or correctness bug that MUST be fixed before merge. These are
+            things like: secrets leaking, fail-open on error paths, data corruption,
+            injection vulnerabilities, broken core enforcement logic, tenant isolation bypass.
+
+            Use `<!-- STATUS: pass -->` for everything else — including warnings and
+            suggestions. These are tracked as GitHub issues instead of blocking the PR.
+
+            After writing the review comment to `/tmp/review.md`, create a GitHub issue
+            for EACH warning and suggestion using:
+
+            ```
+            gh issue create --title "review: <short description>" --body "<details with file, line, suggested fix>" --label "review"
+            ```
+
+            This ensures nothing is lost while keeping PRs unblocked by non-critical findings.
+
+            ## Review rules
+            - **Exhaustive, single pass.** Find ALL issues — 20, 30, 50, however many.
+              Do NOT stop at 3-5 findings. Scan every file, every function, every parameter.
+              There is no "next round." If you report 5 findings and miss 15, the next run
+              will find 5 more, causing endless fix-review cycles. Find them ALL now.
+            - A clean PR with zero findings is a good outcome — don't manufacture findings.
             - Do NOT flag style/formatting (linters handle that)
             - ALWAYS include the attack path: "An attacker could... by..."
             - ALWAYS include file path + line number + concrete fix with code
+            - Check EVERY public method that accepts untrusted input for validation
+            - Check EVERY error path for fail-closed behavior
+            - Check EVERY parameter for boundary edge cases
+            - Check EVERY string interpolated into URLs/paths/headers for injection
+            - Do NOT report the same class of issue multiple times across files.
+              If you find the same pattern in 5 files, report them together.
+
+      - name: Validate and post review comment
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Validate review file exists and contains the required marker
+          if [ ! -f /tmp/review.md ]; then
+            echo "::error::Review file /tmp/review.md not found. Claude may have failed."
+            exit 1
+          fi
+          if ! grep -q '<!-- edictum-console-review -->' /tmp/review.md; then
+            echo "::error::Review file missing <!-- edictum-console-review --> marker. Content:"
+            head -5 /tmp/review.md
+            exit 1
+          fi
+
+          # Post or update sticky comment
+          EXISTING_ID=$(gh api "repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.body | contains("<!-- edictum-console-review -->"))] | last | .id // empty')
+          if [ -n "$EXISTING_ID" ]; then
+            gh api "repos/${{ github.repository }}/issues/comments/${EXISTING_ID}" \
+              -X PATCH -F body=@/tmp/review.md
+            echo "Updated existing review comment ${EXISTING_ID}"
+          else
+            gh pr comment "${PR_NUMBER}" --body-file /tmp/review.md
+            echo "Created new review comment"
+          fi
+
+          # Post inline review comments if payload exists
+          if [ -f /tmp/review-payload.json ]; then
+            gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/reviews" \
+              --input /tmp/review-payload.json \
+              && echo "Posted inline review comments" \
+              || echo "::warning::Inline comments failed (line not in diff?). Summary comment still posted."
+          fi
+
+      - name: Fail on critical findings only
+        run: |
+          # Read the local file directly — immune to comment injection (#66).
+          if [ ! -f /tmp/review.md ]; then
+            echo "::error::Review file missing."
+            exit 1
+          fi
+          if grep -q '<!-- STATUS: fail -->' /tmp/review.md; then
+            echo "::error::Code review found critical issues. See PR comment for details."
+            exit 1
+          fi
+          # Warnings and suggestions are tracked as GitHub issues, not PR blockers (#68).
+          echo "Code review passed (warnings/suggestions tracked as issues)."

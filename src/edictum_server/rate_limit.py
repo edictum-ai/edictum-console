@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import time
 
 import redis.asyncio as aioredis
 
 from edictum_server.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class RateLimitExceeded(Exception):
@@ -36,6 +39,9 @@ async def check_rate_limit(
     *before* recording the new attempt so that the counter does not inflate
     from rejected requests.
 
+    **Fail-closed:** If Redis is unreachable, the request is denied with a
+    conservative retry_after. A security product must never fail open.
+
     Args:
         redis: Async Redis client.
         key: Redis key for the sorted set (e.g. ``rate_limit:login:1.2.3.4``).
@@ -45,7 +51,8 @@ async def check_rate_limit(
             ``settings.rate_limit_window_seconds``.
 
     Raises:
-        RateLimitExceeded: If the caller has exceeded the rate limit.
+        RateLimitExceeded: If the caller has exceeded the rate limit or Redis
+            is unavailable (fail-closed).
     """
     settings = get_settings()
     max_attempts = max_attempts if max_attempts is not None else settings.rate_limit_max_attempts
@@ -53,28 +60,41 @@ async def check_rate_limit(
         window_seconds if window_seconds is not None else settings.rate_limit_window_seconds
     )
 
-    now = time.time()
-    window_start = now - window_seconds
+    try:
+        now = time.time()
+        window_start = now - window_seconds
 
-    pipe = redis.pipeline()
-    # Remove entries outside the sliding window
-    pipe.zremrangebyscore(key, "-inf", window_start)
-    # Count remaining entries
-    pipe.zcard(key)
-    results = await pipe.execute()
+        pipe = redis.pipeline()
+        # Remove entries outside the sliding window
+        pipe.zremrangebyscore(key, "-inf", window_start)
+        # Count remaining entries
+        pipe.zcard(key)
+        results = await pipe.execute()
 
-    current_count: int = results[1]
+        current_count: int = results[1]
 
-    if current_count >= max_attempts:
-        # Find the oldest entry to calculate retry_after
-        oldest = await redis.zrange(key, 0, 0, withscores=True)
-        if oldest:
-            oldest_ts: float = oldest[0][1]
-            retry_after = int(oldest_ts + window_seconds - now) + 1
-        else:
-            retry_after = window_seconds
-        raise RateLimitExceeded(retry_after=max(retry_after, 1))
+        if current_count >= max_attempts:
+            # Find the oldest entry to calculate retry_after
+            oldest = await redis.zrange(key, 0, 0, withscores=True)
+            if oldest:
+                oldest_ts: float = oldest[0][1]
+                retry_after = int(oldest_ts + window_seconds - now) + 1
+            else:
+                retry_after = window_seconds
+            raise RateLimitExceeded(retry_after=max(retry_after, 1))
 
-    # Record this attempt (use now as both score and a unique member)
-    await redis.zadd(key, {f"{now}": now})
-    await redis.expire(key, window_seconds + 60)
+        # Record this attempt in a pipeline (reduces race window vs
+        # separate calls for zadd + expire).
+        record_pipe = redis.pipeline()
+        record_pipe.zadd(key, {f"{now}": now})
+        record_pipe.expire(key, window_seconds + 60)
+        await record_pipe.execute()
+
+    except RateLimitExceeded:
+        raise
+    except Exception:
+        # Fail closed: if Redis is down, deny the request.
+        # A security product must never allow unlimited attempts
+        # during infrastructure outages.
+        logger.warning("Rate limiter Redis error — failing closed", exc_info=True)
+        raise RateLimitExceeded(retry_after=30) from None

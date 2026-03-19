@@ -99,7 +99,7 @@ export const MODE_TOOLTIPS: Record<string, { title: string; description: string;
   },
   observe: {
     title: "observe",
-    description: "Violations are logged but allowed through. Use for shadow testing.",
+    description: "Violations are logged but allowed through. Use for observe mode testing.",
     href: `${DOCS}/contracts/modes#observe`,
   },
   log: {

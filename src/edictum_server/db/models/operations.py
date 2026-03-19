@@ -19,7 +19,6 @@ class Event(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint(
             "tenant_id",
             "call_id",
-            "created_at",
             name="uq_event_tenant_call",
         ),
     )
