@@ -19,7 +19,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
+      issues: read
 
     steps:
       - name: Checkout repository
@@ -139,7 +139,7 @@ jobs:
             injection vulnerabilities, broken core enforcement logic, tenant isolation bypass.
 
             Use `<!-- STATUS: pass -->` for everything else — including warnings and
-            suggestions. These are tracked as GitHub issues instead of blocking the PR.
+            suggestions. These stay in the PR comment for the author to review — not filed as issues.
 
             Warnings and suggestions are included in the PR review comment only —
             do NOT create GitHub issues for them. The PR author reads the comment and
@@ -208,5 +208,5 @@ jobs:
             echo "::error::Code review found critical issues. See PR comment for details."
             exit 1
           fi
-          # Warnings and suggestions are tracked as GitHub issues, not PR blockers (#68).
-          echo "Code review passed (warnings/suggestions tracked as issues)."
+          # Warnings and suggestions stay in the PR comment; they do not block the PR.
+          echo "Code review passed (warnings/suggestions in PR comment, not blocking)."
