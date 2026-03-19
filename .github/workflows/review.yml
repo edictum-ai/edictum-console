@@ -47,11 +47,6 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Ensure review label exists
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: gh label create review --description "Code review finding" --color "c5def5" 2>/dev/null || true
-
       # SECURITY: Do NOT run `pip install -e ".[dev]"` here.
       # The PR branch's pyproject.toml is untrusted — build hooks could
       # exfiltrate secrets. Install only the tools Claude needs directly.
@@ -73,7 +68,9 @@ jobs:
           # SECURITY (#66): Claude writes files only — no gh pr comment / gh api.
           # Workflow posts after validation. Prevents garbage overwrite and
           # comment injection race condition.
-          claude_args: '--max-turns 30 --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(gh issue create:*),Bash(cat:*),Bash(ruff:*),Bash(mypy:*),Read,Glob,Grep,Write"'
+          # SECURITY: Claude writes /tmp/review.md only — no direct comment posting.
+          # Issue creation removed — warnings stay in the PR comment, not as noise issues.
+          claude_args: '--max-turns 30 --allowedTools "Bash(git diff:*),Bash(git log:*),Bash(cat:*),Bash(ruff:*),Bash(mypy:*),Read,Glob,Grep,Write"'
           prompt: |
             You are an adversarial code reviewer for Edictum Console — a **security product** (self-hostable agent operations console). A single vulnerability destroys the credibility of a startup whose entire value proposition is securing AI agents. Think like an attacker first, reviewer second.
 
@@ -144,14 +141,9 @@ jobs:
             Use `<!-- STATUS: pass -->` for everything else — including warnings and
             suggestions. These are tracked as GitHub issues instead of blocking the PR.
 
-            After writing the review comment to `/tmp/review.md`, create a GitHub issue
-            for EACH warning and suggestion using:
-
-            ```
-            gh issue create --title "review: <short description>" --body "<details with file, line, suggested fix>" --label "review"
-            ```
-
-            This ensures nothing is lost while keeping PRs unblocked by non-critical findings.
+            Warnings and suggestions are included in the PR review comment only —
+            do NOT create GitHub issues for them. The PR author reads the comment and
+            decides whether to address warnings before merging.
 
             ## Review rules
             - **Exhaustive, single pass.** Find ALL issues — 20, 30, 50, however many.
