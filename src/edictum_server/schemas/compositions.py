@@ -37,9 +37,7 @@ class CompositionCreateRequest(BaseModel):
     @classmethod
     def validate_name(cls, v: str) -> str:
         if len(v) > _BUNDLE_NAME_MAX_LEN:
-            raise ValueError(
-                f"name must be at most {_BUNDLE_NAME_MAX_LEN} characters"
-            )
+            raise ValueError(f"name must be at most {_BUNDLE_NAME_MAX_LEN} characters")
         if not _BUNDLE_NAME_RE.match(v):
             raise ValueError(
                 "name must match [a-z0-9][a-z0-9._-]* "

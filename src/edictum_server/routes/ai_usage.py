@@ -33,9 +33,12 @@ async def get_usage_stats(
             func.coalesce(func.sum(AiUsageLog.output_tokens), 0).label("total_output"),
             func.sum(AiUsageLog.estimated_cost_usd).label("total_cost"),
             func.count().label("query_count"),
-            func.coalesce(func.avg(
-                AiUsageLog.output_tokens * 1000.0 / func.nullif(AiUsageLog.duration_ms, 0)
-            ), 0.0).label("avg_tps"),
+            func.coalesce(
+                func.avg(
+                    AiUsageLog.output_tokens * 1000.0 / func.nullif(AiUsageLog.duration_ms, 0)
+                ),
+                0.0,
+            ).label("avg_tps"),
         ).where(
             AiUsageLog.tenant_id == auth.tenant_id,
             AiUsageLog.created_at >= since,
@@ -51,10 +54,13 @@ async def get_usage_stats(
             func.sum(AiUsageLog.output_tokens).label("output_tokens"),
             func.sum(AiUsageLog.estimated_cost_usd).label("cost_usd"),
             func.count().label("queries"),
-        ).where(
+        )
+        .where(
             AiUsageLog.tenant_id == auth.tenant_id,
             AiUsageLog.created_at >= since,
-        ).group_by("day").order_by("day")
+        )
+        .group_by("day")
+        .order_by("day")
     )
     daily_rows = daily_q.all()
 

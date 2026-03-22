@@ -140,13 +140,15 @@ async def test_hmac_wrong_key_rejected(
 ) -> None:
     """A session signed with the wrong key must be rejected (401)."""
     cookie, _ = _user_with_session
-    payload = json.dumps({
-        "user_id": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "email": "attacker@evil.com",
-        "is_admin": True,
-        "created_at": time.time(),
-    })
+    payload = json.dumps(
+        {
+            "user_id": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "email": "attacker@evil.com",
+            "is_admin": True,
+            "created_at": time.time(),
+        }
+    )
     bad_mac = hmac.new(
         b"wrong-key-not-the-real-secret",
         payload.encode(),
@@ -177,15 +179,18 @@ async def test_hmac_tampered_payload_rejected(
     original = await test_redis.get(f"session:{cookie}")
     real_mac, _, _ = original.partition(":")
 
-    forged_payload = json.dumps({
-        "user_id": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "email": "forged@evil.com",
-        "is_admin": True,
-        "created_at": time.time(),
-    })
+    forged_payload = json.dumps(
+        {
+            "user_id": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "email": "forged@evil.com",
+            "is_admin": True,
+            "created_at": time.time(),
+        }
+    )
     await test_redis.set(
-        f"session:{cookie}", f"{real_mac}:{forged_payload}",
+        f"session:{cookie}",
+        f"{real_mac}:{forged_payload}",
     )
 
     resp = await no_auth_client.get(
@@ -207,12 +212,14 @@ async def test_unsigned_legacy_session_rejected(
     raw JSON directly to Redis without computing an HMAC.
     """
     cookie, _ = _user_with_session
-    raw_json = json.dumps({
-        "user_id": str(uuid.uuid4()),
-        "tenant_id": str(uuid.uuid4()),
-        "email": "legacy@evil.com",
-        "is_admin": True,
-    })
+    raw_json = json.dumps(
+        {
+            "user_id": str(uuid.uuid4()),
+            "tenant_id": str(uuid.uuid4()),
+            "email": "legacy@evil.com",
+            "is_admin": True,
+        }
+    )
     # No "mac:" prefix — just plain JSON
     await test_redis.set(f"session:{cookie}", raw_json)
 

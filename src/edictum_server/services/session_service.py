@@ -17,9 +17,7 @@ def _validate_key(key: str) -> None:
     Raises ValueError if the key contains disallowed characters.
     """
     if not key or not _VALID_KEY_PATTERN.match(key):
-        raise ValueError(
-            f"Invalid session key: must match [a-zA-Z0-9_\\-\\.:/]+, got {key!r}"
-        )
+        raise ValueError(f"Invalid session key: must match [a-zA-Z0-9_\\-\\.:/]+, got {key!r}")
 
 
 def _key(tenant_id: uuid.UUID, key: str) -> str:

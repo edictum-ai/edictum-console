@@ -47,9 +47,7 @@ async def test_list_deployments_filtered(
 ) -> None:
     """Filter by env returns only matching deployments."""
     await _seed_deployment(db_session, env="production", version=1, at=_T0)
-    await _seed_deployment(
-        db_session, env="staging", version=2, at=_T0 + timedelta(seconds=1)
-    )
+    await _seed_deployment(db_session, env="staging", version=2, at=_T0 + timedelta(seconds=1))
 
     resp = await client.get("/api/v1/deployments", params={"env": "staging"})
     assert resp.status_code == 200
@@ -83,9 +81,7 @@ async def test_list_deployments_ordered_desc(
 ) -> None:
     """Deployments are returned newest-first."""
     await _seed_deployment(db_session, env="production", version=1, at=_T0)
-    await _seed_deployment(
-        db_session, env="production", version=2, at=_T0 + timedelta(seconds=10)
-    )
+    await _seed_deployment(db_session, env="production", version=2, at=_T0 + timedelta(seconds=10))
 
     resp = await client.get("/api/v1/deployments")
     assert resp.status_code == 200

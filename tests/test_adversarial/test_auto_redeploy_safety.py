@@ -40,12 +40,15 @@ async def _setup_contract_and_composition(
 ) -> None:
     """Helper: create a contract and composition."""
     await client.post("/api/v1/contracts", json=_contract_payload())
-    await client.post("/api/v1/compositions", json={
-        "name": comp_name,
-        "defaults_mode": "enforce",
-        "update_strategy": update_strategy,
-        "contracts": [{"contract_id": "block-reads", "position": 10}],
-    })
+    await client.post(
+        "/api/v1/compositions",
+        json={
+            "name": comp_name,
+            "defaults_mode": "enforce",
+            "update_strategy": update_strategy,
+            "contracts": [{"contract_id": "block-reads", "position": 10}],
+        },
+    )
 
 
 async def _ensure_signing_key(db_session: AsyncSession) -> None:
@@ -70,7 +73,8 @@ async def _ensure_signing_key(db_session: AsyncSession) -> None:
 
 @pytest.fixture()
 async def deploy_client(
-    test_redis, push_manager,
+    test_redis,
+    push_manager,
 ) -> AsyncClient:
     """Client with signing_key_secret configured for deploy tests."""
     from edictum_server.auth.dependencies import (
@@ -106,7 +110,8 @@ async def deploy_client(
     app.state.redis = test_redis
     app.state.push_manager = push_manager
     app.state.auth_provider = LocalAuthProvider(
-        redis=test_redis, session_ttl_hours=24,
+        redis=test_redis,
+        session_ttl_hours=24,
         secret_key="test-secret-key-for-unit-tests!!",
     )
     app.state.notification_manager = NotificationManager()
@@ -123,7 +128,8 @@ async def deploy_client(
 
 
 async def test_manual_strategy_no_auto_deploy(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Create composition with update_strategy='manual'. Update a contract.
     Verify NO automatic deployment happens — bundle count stays the same."""
@@ -168,7 +174,8 @@ async def test_deploy_without_signing_secret_configured(
 
 
 async def test_deploy_requires_signing_key_in_db(
-    deploy_client: AsyncClient, db_session: AsyncSession,
+    deploy_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Deploy with valid secret but no signing key row -> 422."""
     await _setup_contract_and_composition(deploy_client)
@@ -190,18 +197,22 @@ async def test_deploy_requires_signing_key_in_db(
 
 
 async def test_deploy_composition_empty_contracts(
-    deploy_client: AsyncClient, db_session: AsyncSession,
+    deploy_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Deploy a composition with zero enabled contracts -> 422."""
     await _ensure_signing_key(db_session)
 
     # Create composition with no contracts
-    await deploy_client.post("/api/v1/compositions", json={
-        "name": "empty-comp",
-        "defaults_mode": "enforce",
-        "update_strategy": "manual",
-        "contracts": [],
-    })
+    await deploy_client.post(
+        "/api/v1/compositions",
+        json={
+            "name": "empty-comp",
+            "defaults_mode": "enforce",
+            "update_strategy": "manual",
+            "contracts": [],
+        },
+    )
 
     resp = await deploy_client.post(
         "/api/v1/compositions/empty-comp/deploy",
@@ -212,7 +223,8 @@ async def test_deploy_composition_empty_contracts(
 
 
 async def test_composition_snapshot_frozen_on_deploy(
-    deploy_client: AsyncClient, db_session: AsyncSession,
+    deploy_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Deploy composition v1. Update composition (add contracts).
     Verify Bundle row's composition_snapshot still reflects v1 state."""
@@ -230,12 +242,15 @@ async def test_composition_snapshot_frozen_on_deploy(
 
     # Add a second contract to the composition
     await deploy_client.post("/api/v1/contracts", json=_contract_payload("audit-logs"))
-    await deploy_client.put("/api/v1/compositions/test-comp", json={
-        "contracts": [
-            {"contract_id": "block-reads", "position": 10},
-            {"contract_id": "audit-logs", "position": 20},
-        ],
-    })
+    await deploy_client.put(
+        "/api/v1/compositions/test-comp",
+        json={
+            "contracts": [
+                {"contract_id": "block-reads", "position": 10},
+                {"contract_id": "audit-logs", "position": 20},
+            ],
+        },
+    )
 
     # Verify the Bundle's snapshot is still the original (frozen)
     result = await db_session.execute(
@@ -251,7 +266,8 @@ async def test_composition_snapshot_frozen_on_deploy(
 
 
 async def test_deploy_creates_bundle_with_correct_content(
-    deploy_client: AsyncClient, db_session: AsyncSession,
+    deploy_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Deploy composition -> verify bundle YAML contains the right contracts."""
     await _ensure_signing_key(db_session)
@@ -270,7 +286,8 @@ async def test_deploy_creates_bundle_with_correct_content(
 
 
 async def test_preview_does_not_create_bundle(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Preview a composition -> no Bundle row created."""
     await _setup_contract_and_composition(client)

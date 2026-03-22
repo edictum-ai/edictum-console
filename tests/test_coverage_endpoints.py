@@ -37,35 +37,52 @@ async def _seed_events(
 ) -> None:
     """Seed events for tools: exec (5 events), file_read (3), web_scrape (2)."""
     now = datetime.now(UTC)
-    events = [
-        Event(
-            tenant_id=TENANT_A_ID, call_id=f"{agent_id}-exec-{i}", agent_id=agent_id,
-            tool_name="exec", verdict="call_denied", mode="enforce", env=env,
-            timestamp=now - timedelta(hours=i),
-        )
-        for i in range(5)
-    ] + [
-        Event(
-            tenant_id=TENANT_A_ID, call_id=f"{agent_id}-file_read-{i}", agent_id=agent_id,
-            tool_name="file_read", verdict="call_allowed", mode="enforce", env=env,
-            timestamp=now - timedelta(hours=i),
-        )
-        for i in range(3)
-    ] + [
-        Event(
-            tenant_id=TENANT_A_ID, call_id=f"{agent_id}-web_scrape-{i}", agent_id=agent_id,
-            tool_name="web_scrape", verdict="call_allowed", mode="enforce", env=env,
-            timestamp=now - timedelta(hours=i),
-        )
-        for i in range(2)
-    ]
+    events = (
+        [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id=f"{agent_id}-exec-{i}",
+                agent_id=agent_id,
+                tool_name="exec",
+                verdict="call_denied",
+                mode="enforce",
+                env=env,
+                timestamp=now - timedelta(hours=i),
+            )
+            for i in range(5)
+        ]
+        + [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id=f"{agent_id}-file_read-{i}",
+                agent_id=agent_id,
+                tool_name="file_read",
+                verdict="call_allowed",
+                mode="enforce",
+                env=env,
+                timestamp=now - timedelta(hours=i),
+            )
+            for i in range(3)
+        ]
+        + [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id=f"{agent_id}-web_scrape-{i}",
+                agent_id=agent_id,
+                tool_name="web_scrape",
+                verdict="call_allowed",
+                mode="enforce",
+                env=env,
+                timestamp=now - timedelta(hours=i),
+            )
+            for i in range(2)
+        ]
+    )
     db.add_all(events)
     await db.flush()
 
 
-async def _seed_bundle_and_deploy(
-    db: AsyncSession, env: str = "production"
-) -> None:
+async def _seed_bundle_and_deploy(db: AsyncSession, env: str = "production") -> None:
     """Create bundle + deploy to env."""
     bundle = Bundle(
         tenant_id=TENANT_A_ID,
@@ -77,20 +94,20 @@ async def _seed_bundle_and_deploy(
     )
     db.add(bundle)
     await db.flush()
-    db.add(Deployment(
-        tenant_id=TENANT_A_ID,
-        env=env,
-        bundle_name="devops-agent",
-        bundle_version=1,
-        deployed_by="test",
-    ))
+    db.add(
+        Deployment(
+            tenant_id=TENANT_A_ID,
+            env=env,
+            bundle_name="devops-agent",
+            bundle_version=1,
+            deployed_by="test",
+        )
+    )
     await db.flush()
 
 
 @pytest.mark.asyncio
-async def test_agent_coverage_happy_path(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_agent_coverage_happy_path(client: AsyncClient, db_session: AsyncSession) -> None:
     """Agent with mix of governed and ungoverned tools returns correct coverage."""
     await _seed_events(db_session)
     await _seed_bundle_and_deploy(db_session)
@@ -148,17 +165,24 @@ contracts:
     mode: enforce
 """
     bundle = Bundle(
-        tenant_id=TENANT_A_ID, name="wildcard-bundle", version=1,
+        tenant_id=TENANT_A_ID,
+        name="wildcard-bundle",
+        version=1,
         yaml_bytes=wildcard_yaml,
         revision_hash=hashlib.sha256(wildcard_yaml).hexdigest(),
         uploaded_by="test",
     )
     db_session.add(bundle)
     await db_session.flush()
-    db_session.add(Deployment(
-        tenant_id=TENANT_A_ID, env="production",
-        bundle_name="wildcard-bundle", bundle_version=1, deployed_by="test",
-    ))
+    db_session.add(
+        Deployment(
+            tenant_id=TENANT_A_ID,
+            env="production",
+            bundle_name="wildcard-bundle",
+            bundle_version=1,
+            deployed_by="test",
+        )
+    )
     await _seed_events(db_session)
     await db_session.commit()
 
@@ -169,23 +193,33 @@ contracts:
 
 
 @pytest.mark.asyncio
-async def test_agent_coverage_time_window(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_agent_coverage_time_window(client: AsyncClient, db_session: AsyncSession) -> None:
     """Time window filters events. 1h window shows fewer tools than 24h."""
     now = datetime.now(UTC)
-    db_session.add_all([
-        Event(
-            tenant_id=TENANT_A_ID, call_id="recent-1", agent_id="agent-1",
-            tool_name="exec", verdict="call_denied", mode="enforce", env="production",
-            timestamp=now - timedelta(minutes=30),
-        ),
-        Event(
-            tenant_id=TENANT_A_ID, call_id="old-1", agent_id="agent-1",
-            tool_name="web_scrape", verdict="call_allowed", mode="enforce", env="production",
-            timestamp=now - timedelta(hours=5),
-        ),
-    ])
+    db_session.add_all(
+        [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="recent-1",
+                agent_id="agent-1",
+                tool_name="exec",
+                verdict="call_denied",
+                mode="enforce",
+                env="production",
+                timestamp=now - timedelta(minutes=30),
+            ),
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="old-1",
+                agent_id="agent-1",
+                tool_name="web_scrape",
+                verdict="call_allowed",
+                mode="enforce",
+                env="production",
+                timestamp=now - timedelta(hours=5),
+            ),
+        ]
+    )
     await db_session.commit()
 
     # 1h window — only exec
@@ -217,9 +251,7 @@ async def test_agent_coverage_include_verdicts(
 
 
 @pytest.mark.asyncio
-async def test_fleet_coverage_happy_path(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_fleet_coverage_happy_path(client: AsyncClient, db_session: AsyncSession) -> None:
     """Fleet coverage returns all agents with summaries."""
     await _seed_events(db_session, agent_id="agent-1")
     await _seed_events(db_session, agent_id="agent-2")
@@ -234,9 +266,7 @@ async def test_fleet_coverage_happy_path(
 
 
 @pytest.mark.asyncio
-async def test_fleet_coverage_env_filter(
-    client: AsyncClient, db_session: AsyncSession
-) -> None:
+async def test_fleet_coverage_env_filter(client: AsyncClient, db_session: AsyncSession) -> None:
     """Fleet coverage with env filter returns only agents in that env."""
     await _seed_events(db_session, agent_id="prod-agent", env="production")
     await _seed_events(db_session, agent_id="staging-agent", env="staging")
@@ -308,20 +338,30 @@ async def test_fleet_env_filter_uses_correct_contracts(
 
     now = datetime.now(UTC)
     # Agent has recent staging event and older production events
-    db_session.add_all([
-        Event(
-            tenant_id=TENANT_A_ID, call_id="multi-env-staging",
-            agent_id="multi-env-agent", tool_name="exec", verdict="call_denied",
-            mode="enforce", env="staging",
-            timestamp=now - timedelta(minutes=5),  # most recent
-        ),
-        Event(
-            tenant_id=TENANT_A_ID, call_id="multi-env-prod",
-            agent_id="multi-env-agent", tool_name="exec", verdict="call_denied",
-            mode="enforce", env="production",
-            timestamp=now - timedelta(hours=1),  # older
-        ),
-    ])
+    db_session.add_all(
+        [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="multi-env-staging",
+                agent_id="multi-env-agent",
+                tool_name="exec",
+                verdict="call_denied",
+                mode="enforce",
+                env="staging",
+                timestamp=now - timedelta(minutes=5),  # most recent
+            ),
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="multi-env-prod",
+                agent_id="multi-env-agent",
+                tool_name="exec",
+                verdict="call_denied",
+                mode="enforce",
+                env="production",
+                timestamp=now - timedelta(hours=1),  # older
+            ),
+        ]
+    )
 
     # Deploy contract to production that covers "exec"
     prod_yaml = b"""\
@@ -332,17 +372,24 @@ contracts:
     mode: enforce
 """
     bundle = Bundle(
-        tenant_id=TENANT_A_ID, name="prod-bundle", version=1,
+        tenant_id=TENANT_A_ID,
+        name="prod-bundle",
+        version=1,
         yaml_bytes=prod_yaml,
         revision_hash=hashlib.sha256(prod_yaml).hexdigest(),
         uploaded_by="test",
     )
     db_session.add(bundle)
     await db_session.flush()
-    db_session.add(Deployment(
-        tenant_id=TENANT_A_ID, env="production",
-        bundle_name="prod-bundle", bundle_version=1, deployed_by="test",
-    ))
+    db_session.add(
+        Deployment(
+            tenant_id=TENANT_A_ID,
+            env="production",
+            bundle_name="prod-bundle",
+            bundle_version=1,
+            deployed_by="test",
+        )
+    )
     # No deployment to staging — so staging has no contracts
     await db_session.commit()
 

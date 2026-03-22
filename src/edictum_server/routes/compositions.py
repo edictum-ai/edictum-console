@@ -70,9 +70,11 @@ async def get_composition_endpoint(
     items = await get_composition_items(db, comp)
     return CompositionDetail(
         **_to_summary(comp, len(items)).model_dump(),
-        id=comp.id, tenant_id=comp.tenant_id,
+        id=comp.id,
+        tenant_id=comp.tenant_id,
         contracts=[CompositionItemDetail(**i) for i in items],
-        tools_config=comp.tools_config, observability=comp.observability,
+        tools_config=comp.tools_config,
+        observability=comp.observability,
     )
 
 
@@ -86,32 +88,49 @@ async def create_composition_endpoint(
     """Create a new bundle composition."""
     try:
         comp = await create_composition(
-            db, auth.tenant_id, body.name, auth.email or auth.user_id or "unknown",
-            description=body.description, defaults_mode=body.defaults_mode,
-            update_strategy=body.update_strategy, contracts=body.contracts,
-            tools_config=body.tools_config, observability=body.observability,
+            db,
+            auth.tenant_id,
+            body.name,
+            auth.email or auth.user_id or "unknown",
+            description=body.description,
+            defaults_mode=body.defaults_mode,
+            update_strategy=body.update_strategy,
+            contracts=body.contracts,
+            tools_config=body.tools_config,
+            observability=body.observability,
         )
         await db.commit()
     except ValueError as exc:
         status = 409 if "already exists" in str(exc) else 422
         raise HTTPException(status_code=status, detail=str(exc)) from exc
-    push.push_to_dashboard(auth.tenant_id, {
-        "type": "composition_changed", "composition_name": comp.name,
-    })
+    push.push_to_dashboard(
+        auth.tenant_id,
+        {
+            "type": "composition_changed",
+            "composition_name": comp.name,
+        },
+    )
     items = await get_composition_items(db, comp)
     return CompositionDetail(
-        name=comp.name, description=comp.description,
-        defaults_mode=comp.defaults_mode, update_strategy=comp.update_strategy,
-        contract_count=len(items), updated_at=comp.updated_at,
-        created_by=comp.created_by, id=comp.id, tenant_id=comp.tenant_id,
+        name=comp.name,
+        description=comp.description,
+        defaults_mode=comp.defaults_mode,
+        update_strategy=comp.update_strategy,
+        contract_count=len(items),
+        updated_at=comp.updated_at,
+        created_by=comp.created_by,
+        id=comp.id,
+        tenant_id=comp.tenant_id,
         contracts=[CompositionItemDetail(**i) for i in items],
-        tools_config=comp.tools_config, observability=comp.observability,
+        tools_config=comp.tools_config,
+        observability=comp.observability,
     )
 
 
 @router.put("/{name}", response_model=CompositionDetail)
 async def update_composition_endpoint(
-    name: str, body: CompositionUpdateRequest,
+    name: str,
+    body: CompositionUpdateRequest,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
@@ -119,26 +138,41 @@ async def update_composition_endpoint(
     """Update a composition (add/remove/reorder contracts)."""
     try:
         comp = await update_composition(
-            db, auth.tenant_id, name,
-            description=body.description, defaults_mode=body.defaults_mode,
-            update_strategy=body.update_strategy, contracts=body.contracts,
-            tools_config=body.tools_config, observability=body.observability,
+            db,
+            auth.tenant_id,
+            name,
+            description=body.description,
+            defaults_mode=body.defaults_mode,
+            update_strategy=body.update_strategy,
+            contracts=body.contracts,
+            tools_config=body.tools_config,
+            observability=body.observability,
         )
         await db.commit()
     except ValueError as exc:
         status = 404 if "not found" in str(exc).lower() else 422
         raise HTTPException(status_code=status, detail=str(exc)) from exc
-    push.push_to_dashboard(auth.tenant_id, {
-        "type": "composition_changed", "composition_name": comp.name,
-    })
+    push.push_to_dashboard(
+        auth.tenant_id,
+        {
+            "type": "composition_changed",
+            "composition_name": comp.name,
+        },
+    )
     items = await get_composition_items(db, comp)
     return CompositionDetail(
-        name=comp.name, description=comp.description,
-        defaults_mode=comp.defaults_mode, update_strategy=comp.update_strategy,
-        contract_count=len(items), updated_at=comp.updated_at,
-        created_by=comp.created_by, id=comp.id, tenant_id=comp.tenant_id,
+        name=comp.name,
+        description=comp.description,
+        defaults_mode=comp.defaults_mode,
+        update_strategy=comp.update_strategy,
+        contract_count=len(items),
+        updated_at=comp.updated_at,
+        created_by=comp.created_by,
+        id=comp.id,
+        tenant_id=comp.tenant_id,
         contracts=[CompositionItemDetail(**i) for i in items],
-        tools_config=comp.tools_config, observability=comp.observability,
+        tools_config=comp.tools_config,
+        observability=comp.observability,
     )
 
 
@@ -172,7 +206,8 @@ async def preview_endpoint(
 
 @router.post("/{name}/deploy", response_model=ComposeDeployResponse, status_code=201)
 async def deploy_endpoint(
-    name: str, body: ComposeDeployRequest,
+    name: str,
+    body: ComposeDeployRequest,
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
     push: PushManager = Depends(get_push_manager),
@@ -188,8 +223,13 @@ async def deploy_endpoint(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:
         result = await deploy_composition(
-            db, auth.tenant_id, comp, body.env,
-            auth.email or auth.user_id or "unknown", signing_secret, push,
+            db,
+            auth.tenant_id,
+            comp,
+            body.env,
+            auth.email or auth.user_id or "unknown",
+            signing_secret,
+            push,
         )
         await db.commit()
     except ValueError as exc:

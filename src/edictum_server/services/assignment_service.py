@@ -1,4 +1,5 @@
 """Service for assignment rule CRUD and bundle resolution."""
+
 from __future__ import annotations
 
 import fnmatch
@@ -68,8 +69,7 @@ async def resolve_bundle(
             continue
         # Check tag matching (AND logic — all tags in rule must match)
         if rule.tag_match and not all(
-            effective_tags.get(k) == v
-            for k, v in rule.tag_match.items()
+            effective_tags.get(k) == v for k, v in rule.tag_match.items()
         ):
             continue
         return (rule.bundle_name, "rule", rule.id, rule.pattern)
@@ -82,6 +82,7 @@ async def resolve_bundle(
 
 
 # --- Assignment Rule CRUD ---
+
 
 async def list_rules(
     db: AsyncSession,

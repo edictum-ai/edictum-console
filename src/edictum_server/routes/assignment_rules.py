@@ -1,4 +1,5 @@
 """Assignment rule CRUD endpoints (dashboard auth)."""
+
 from __future__ import annotations
 
 import re
@@ -149,7 +150,9 @@ async def delete_rule(
 async def resolve_agent_bundle(
     agent_id: str,
     env: str | None = Query(
-        default=None, max_length=64, description="Filter rules by environment",
+        default=None,
+        max_length=64,
+        description="Filter rules by environment",
     ),
     auth: AuthContext = Depends(require_dashboard_auth),
     db: AsyncSession = Depends(get_db),
@@ -160,7 +163,10 @@ async def resolve_agent_bundle(
     When omitted, all tenant rules are evaluated (useful for dashboard previews).
     """
     bundle_name, source, rule_id, rule_pattern = await svc.resolve_bundle(
-        db, auth.tenant_id, agent_id, env=env,
+        db,
+        auth.tenant_id,
+        agent_id,
+        env=env,
     )
     return ResolvedAssignment(
         bundle_name=bundle_name,

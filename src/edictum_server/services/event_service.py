@@ -109,12 +109,9 @@ async def purge_events(
     Returns (deleted_count, cutoff_datetime). Caller commits.
     """
     cutoff = datetime.now(UTC) - timedelta(days=older_than_days)
-    stmt = (
-        delete(Event)
-        .where(
-            Event.tenant_id == tenant_id,
-            Event.created_at < cutoff,
-        )
+    stmt = delete(Event).where(
+        Event.tenant_id == tenant_id,
+        Event.created_at < cutoff,
     )
     result = await db.execute(stmt)
     await db.flush()

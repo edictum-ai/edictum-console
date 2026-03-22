@@ -27,14 +27,21 @@ async def _seed_agent_events(
 ) -> None:
     """Seed events for a specific tenant's agent."""
     now = datetime.now(UTC)
-    db.add_all([
-        Event(
-            tenant_id=tenant_id, call_id=f"{tenant_id}-{agent_id}-{i}",
-            agent_id=agent_id, tool_name="exec", verdict="deny", mode="enforce",
-            env=env, timestamp=now - timedelta(hours=i),
-        )
-        for i in range(3)
-    ])
+    db.add_all(
+        [
+            Event(
+                tenant_id=tenant_id,
+                call_id=f"{tenant_id}-{agent_id}-{i}",
+                agent_id=agent_id,
+                tool_name="exec",
+                verdict="deny",
+                mode="enforce",
+                env=env,
+                timestamp=now - timedelta(hours=i),
+            )
+            for i in range(3)
+        ]
+    )
     await db.flush()
 
 
@@ -120,26 +127,45 @@ async def test_agent_id_reuse_independent_coverage(
     """Same agent_id across tenants produces independent coverage results."""
     now = datetime.now(UTC)
     # Tenant A: agent "bot" uses exec + web_scrape
-    db_session.add_all([
-        Event(
-            tenant_id=TENANT_A_ID, call_id="a-bot-1", agent_id="bot",
-            tool_name="exec", verdict="deny", mode="enforce", env="production",
-            timestamp=now,
-        ),
-        Event(
-            tenant_id=TENANT_A_ID, call_id="a-bot-2", agent_id="bot",
-            tool_name="web_scrape", verdict="allow", mode="enforce", env="production",
-            timestamp=now,
-        ),
-    ])
+    db_session.add_all(
+        [
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="a-bot-1",
+                agent_id="bot",
+                tool_name="exec",
+                verdict="deny",
+                mode="enforce",
+                env="production",
+                timestamp=now,
+            ),
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id="a-bot-2",
+                agent_id="bot",
+                tool_name="web_scrape",
+                verdict="allow",
+                mode="enforce",
+                env="production",
+                timestamp=now,
+            ),
+        ]
+    )
     # Tenant B: agent "bot" uses only sql_query
-    db_session.add_all([
-        Event(
-            tenant_id=TENANT_B_ID, call_id="b-bot-1", agent_id="bot",
-            tool_name="sql_query", verdict="allow", mode="enforce", env="staging",
-            timestamp=now,
-        ),
-    ])
+    db_session.add_all(
+        [
+            Event(
+                tenant_id=TENANT_B_ID,
+                call_id="b-bot-1",
+                agent_id="bot",
+                tool_name="sql_query",
+                verdict="allow",
+                mode="enforce",
+                env="staging",
+                timestamp=now,
+            ),
+        ]
+    )
     await db_session.commit()
 
     # Tenant A: 2 tools
@@ -166,17 +192,31 @@ async def test_fleet_ungoverned_tools_not_mixed(
     """Ungoverned tools in fleet summary only show agents from the requesting tenant."""
     now = datetime.now(UTC)
     # Tenant A agent uses "exec"
-    db_session.add(Event(
-        tenant_id=TENANT_A_ID, call_id="a-1", agent_id="agent-a",
-        tool_name="exec", verdict="deny", mode="enforce", env="production",
-        timestamp=now,
-    ))
+    db_session.add(
+        Event(
+            tenant_id=TENANT_A_ID,
+            call_id="a-1",
+            agent_id="agent-a",
+            tool_name="exec",
+            verdict="deny",
+            mode="enforce",
+            env="production",
+            timestamp=now,
+        )
+    )
     # Tenant B agent also uses "exec"
-    db_session.add(Event(
-        tenant_id=TENANT_B_ID, call_id="b-1", agent_id="agent-b",
-        tool_name="exec", verdict="deny", mode="enforce", env="production",
-        timestamp=now,
-    ))
+    db_session.add(
+        Event(
+            tenant_id=TENANT_B_ID,
+            call_id="b-1",
+            agent_id="agent-b",
+            tool_name="exec",
+            verdict="deny",
+            mode="enforce",
+            env="production",
+            timestamp=now,
+        )
+    )
     await db_session.commit()
 
     # Tenant A fleet — ungoverned "exec" should only list agent-a
@@ -205,49 +245,75 @@ async def _seed_history_both_tenants(db: AsyncSession) -> None:
 
     # Tenant A: bundle + deployment + event
     ba = Bundle(
-        tenant_id=TENANT_A_ID, name="team-bundle", version=1,
-        revision_hash=HASH_A, yaml_bytes=b"contracts: []",
+        tenant_id=TENANT_A_ID,
+        name="team-bundle",
+        version=1,
+        revision_hash=HASH_A,
+        yaml_bytes=b"contracts: []",
         uploaded_by="admin-a@test.com",
     )
     db.add(ba)
     await db.flush()
 
     da = Deployment(
-        tenant_id=TENANT_A_ID, env="production", bundle_name="team-bundle",
-        bundle_version=1, deployed_by="admin-a@test.com",
+        tenant_id=TENANT_A_ID,
+        env="production",
+        bundle_name="team-bundle",
+        bundle_version=1,
+        deployed_by="admin-a@test.com",
     )
     db.add(da)
     await db.flush()
 
-    db.add(Event(
-        tenant_id=TENANT_A_ID, call_id="call-a-hist-1", agent_id=SHARED_AGENT,
-        tool_name="exec", verdict="allow", mode="enforce", env="production",
-        timestamp=now - timedelta(days=2),
-        payload={"policy_version": HASH_A},
-    ))
+    db.add(
+        Event(
+            tenant_id=TENANT_A_ID,
+            call_id="call-a-hist-1",
+            agent_id=SHARED_AGENT,
+            tool_name="exec",
+            verdict="allow",
+            mode="enforce",
+            env="production",
+            timestamp=now - timedelta(days=2),
+            payload={"policy_version": HASH_A},
+        )
+    )
 
     # Tenant B: different bundle + deployment + event for same agent name
     bb = Bundle(
-        tenant_id=TENANT_B_ID, name="team-bundle", version=1,
-        revision_hash=HASH_B, yaml_bytes=b"contracts: []",
+        tenant_id=TENANT_B_ID,
+        name="team-bundle",
+        version=1,
+        revision_hash=HASH_B,
+        yaml_bytes=b"contracts: []",
         uploaded_by="admin-b@test.com",
     )
     db.add(bb)
     await db.flush()
 
     db_dep = Deployment(
-        tenant_id=TENANT_B_ID, env="production", bundle_name="team-bundle",
-        bundle_version=1, deployed_by="admin-b@test.com",
+        tenant_id=TENANT_B_ID,
+        env="production",
+        bundle_name="team-bundle",
+        bundle_version=1,
+        deployed_by="admin-b@test.com",
     )
     db.add(db_dep)
     await db.flush()
 
-    db.add(Event(
-        tenant_id=TENANT_B_ID, call_id="call-b-hist-1", agent_id=SHARED_AGENT,
-        tool_name="exec", verdict="deny", mode="enforce", env="production",
-        timestamp=now - timedelta(days=1),
-        payload={"policy_version": HASH_B},
-    ))
+    db.add(
+        Event(
+            tenant_id=TENANT_B_ID,
+            call_id="call-b-hist-1",
+            agent_id=SHARED_AGENT,
+            tool_name="exec",
+            verdict="deny",
+            mode="enforce",
+            env="production",
+            timestamp=now - timedelta(days=1),
+            payload={"policy_version": HASH_B},
+        )
+    )
     await db.commit()
 
 
@@ -299,12 +365,19 @@ async def test_history_cross_tenant_agent_id(
     """Agent existing only in tenant A returns 404 when queried by tenant B."""
     now = datetime.now(UTC)
 
-    db_session.add(Event(
-        tenant_id=TENANT_A_ID, call_id="call-only-a", agent_id="tenant-a-only",
-        tool_name="exec", verdict="allow", mode="enforce", env="production",
-        timestamp=now - timedelta(hours=1),
-        payload={"policy_version": "somehash"},
-    ))
+    db_session.add(
+        Event(
+            tenant_id=TENANT_A_ID,
+            call_id="call-only-a",
+            agent_id="tenant-a-only",
+            tool_name="exec",
+            verdict="allow",
+            mode="enforce",
+            env="production",
+            timestamp=now - timedelta(hours=1),
+            payload={"policy_version": "somehash"},
+        )
+    )
     await db_session.commit()
 
     # Tenant A can see it

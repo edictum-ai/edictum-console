@@ -33,9 +33,7 @@ def _build_body(
 def _sign(signing_secret: str, body: bytes, timestamp: str | None = None) -> tuple[str, str]:
     ts = timestamp or str(int(time.time()))
     sig_base = f"v0:{ts}:{body.decode()}"
-    sig = "v0=" + hmac.new(
-        signing_secret.encode(), sig_base.encode(), hashlib.sha256
-    ).hexdigest()
+    sig = "v0=" + hmac.new(signing_secret.encode(), sig_base.encode(), hashlib.sha256).hexdigest()
     return ts, sig
 
 
@@ -205,9 +203,7 @@ async def test_cross_tenant_blocked(
 
     # Create channel B under tenant B
     set_auth_tenant_b()
-    await _create_slack_app_channel(
-        client, signing_secret="secret-tenant-b", name="Channel B"
-    )
+    await _create_slack_app_channel(client, signing_secret="secret-tenant-b", name="Channel B")
 
     # Create approval under tenant A
     set_auth_tenant_a()

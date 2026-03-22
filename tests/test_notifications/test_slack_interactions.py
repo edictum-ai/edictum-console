@@ -31,9 +31,7 @@ def _build_body(
 def _sign(signing_secret: str, body: bytes, timestamp: str | None = None) -> tuple[str, str]:
     ts = timestamp or str(int(time.time()))
     sig_base = f"v0:{ts}:{body.decode()}"
-    sig = "v0=" + hmac.new(
-        signing_secret.encode(), sig_base.encode(), hashlib.sha256
-    ).hexdigest()
+    sig = "v0=" + hmac.new(signing_secret.encode(), sig_base.encode(), hashlib.sha256).hexdigest()
     return ts, sig
 
 

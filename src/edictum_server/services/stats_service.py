@@ -44,9 +44,8 @@ async def get_overview(
     pending_approvals = pending_result.scalar() or 0
 
     # Active agents (distinct agent_ids in last 1 hour)
-    active_stmt = (
-        select(func.count(func.distinct(Event.agent_id)))
-        .where(Event.tenant_id == tenant_id, Event.timestamp >= one_hour_ago)
+    active_stmt = select(func.count(func.distinct(Event.agent_id))).where(
+        Event.tenant_id == tenant_id, Event.timestamp >= one_hour_ago
     )
     if env is not None:
         active_stmt = active_stmt.where(Event.env == env)
@@ -54,9 +53,8 @@ async def get_overview(
     active_agents = active_result.scalar() or 0
 
     # Total agents (distinct agent_ids all-time)
-    total_stmt = (
-        select(func.count(func.distinct(Event.agent_id)))
-        .where(Event.tenant_id == tenant_id)
+    total_stmt = select(func.count(func.distinct(Event.agent_id))).where(
+        Event.tenant_id == tenant_id
     )
     if env is not None:
         total_stmt = total_stmt.where(Event.env == env)
@@ -106,15 +104,12 @@ async def get_overview(
     observe_findings_24h = observe_result.scalar() or 0
 
     # Distinct contracts triggered in last 24 hours
-    contracts_stmt = (
-        select(func.count(func.distinct(
-            Event.payload["decision_name"].as_string()
-        )))
-        .where(
-            Event.tenant_id == tenant_id,
-            Event.timestamp >= twenty_four_hours_ago,
-            Event.payload["decision_name"].isnot(None),
-        )
+    contracts_stmt = select(
+        func.count(func.distinct(Event.payload["decision_name"].as_string()))
+    ).where(
+        Event.tenant_id == tenant_id,
+        Event.timestamp >= twenty_four_hours_ago,
+        Event.payload["decision_name"].isnot(None),
     )
     if env is not None:
         contracts_stmt = contracts_stmt.where(Event.env == env)
@@ -149,9 +144,9 @@ async def get_contract_stats(
             decision_col.label("decision_name"),
             func.count().label("total_evaluations"),
             func.sum(case((Event.verdict == "call_denied", 1), else_=0)).label("total_denials"),
-            func.sum(
-                case((Event.verdict == "call_would_deny", 1), else_=0)
-            ).label("total_warnings"),
+            func.sum(case((Event.verdict == "call_would_deny", 1), else_=0)).label(
+                "total_warnings"
+            ),
             func.max(Event.timestamp).label("last_triggered"),
         )
         .where(

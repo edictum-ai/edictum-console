@@ -134,9 +134,7 @@ async def test_event_env_stored_on_ingest(
     )
     from sqlalchemy import select
 
-    result = await db_session.execute(
-        select(Event).where(Event.call_id == "env-check")
-    )
+    result = await db_session.execute(select(Event).where(Event.call_id == "env-check"))
     event = result.scalar_one_or_none()
     assert event is not None
     assert event.env == "staging"

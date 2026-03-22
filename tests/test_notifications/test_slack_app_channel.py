@@ -141,9 +141,11 @@ async def test_update_expired_edits_messages(
         json.dumps({"slack_channel": "#test", "ts": "999.000"}),
     )
     channel._client.post = _mock_post({"ok": True})
-    await channel.update_expired([
-        {"id": approval_id, "agent_id": "agent-1", "tool_name": "some_tool"},
-    ])
+    await channel.update_expired(
+        [
+            {"id": approval_id, "agent_id": "agent-1", "tool_name": "some_tool"},
+        ]
+    )
     channel._client.post.assert_called_once()
     call = channel._client.post.call_args
     assert call.args[0] == "https://slack.com/api/chat.update"

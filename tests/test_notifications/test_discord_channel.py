@@ -114,9 +114,7 @@ async def test_send_approval_decided_patches_approved(
     )
     channel._client.patch.assert_called_once()
     call = channel._client.patch.call_args
-    assert call.args[0] == (
-        f"{_DISCORD_API}/channels/{_DISCORD_CHANNEL_ID}/messages/msg-001"
-    )
+    assert call.args[0] == (f"{_DISCORD_API}/channels/{_DISCORD_CHANNEL_ID}/messages/msg-001")
     payload = call.kwargs["json"]
     assert payload["embeds"][0]["color"] == 0x57F287
     assert payload["components"] == []

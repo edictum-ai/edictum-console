@@ -273,21 +273,24 @@ async def test_history_ongoing_drift(
 
     # v1 should have drift_detected (ongoing) but no drift_resolved
     v1_drift = [
-        e for e in data["events"]
+        e
+        for e in data["events"]
         if e["type"] == "drift_detected" and e["expected_version"] == HASH_V1
     ]
     assert len(v1_drift) == 1
     assert v1_drift[0]["actual_version"] == OLD_HASH
 
     v1_resolved = [
-        e for e in data["events"]
+        e
+        for e in data["events"]
         if e["type"] == "drift_resolved" and e.get("policy_version") == HASH_V1
     ]
     assert len(v1_resolved) == 0
 
     # v0 should have drift_resolved (agent synced to it)
     v0_resolved = [
-        e for e in data["events"]
+        e
+        for e in data["events"]
         if e["type"] == "drift_resolved" and e.get("policy_version") == OLD_HASH
     ]
     assert len(v0_resolved) == 1
@@ -401,17 +404,19 @@ async def test_history_local_yaml_agent_no_false_drift(
 
     # Agent events all report a local hash that doesn't match any bundle
     for i in range(3):
-        db_session.add(Event(
-            tenant_id=TENANT_A_ID,
-            call_id=f"call-local-{i}",
-            agent_id="local-yaml-agent",
-            tool_name="exec",
-            verdict="allow",
-            mode="enforce",
-            env="production",
-            timestamp=now - timedelta(days=5 - i),
-            payload={"policy_version": local_hash, "bundle_name": "my-local-bundle"},
-        ))
+        db_session.add(
+            Event(
+                tenant_id=TENANT_A_ID,
+                call_id=f"call-local-{i}",
+                agent_id="local-yaml-agent",
+                tool_name="exec",
+                verdict="allow",
+                mode="enforce",
+                env="production",
+                timestamp=now - timedelta(days=5 - i),
+                payload={"policy_version": local_hash, "bundle_name": "my-local-bundle"},
+            )
+        )
     await db_session.commit()
 
     resp = await client.get("/api/v1/agents/local-yaml-agent/history")
@@ -459,17 +464,19 @@ async def test_history_no_payload_agent_no_false_drift(
     await db_session.flush()
 
     # Events with no payload (e.g. minimal audit integration)
-    db_session.add(Event(
-        tenant_id=TENANT_A_ID,
-        call_id="call-nopayload",
-        agent_id="bare-agent",
-        tool_name="exec",
-        verdict="allow",
-        mode="enforce",
-        env="production",
-        timestamp=now - timedelta(days=1),
-        payload=None,
-    ))
+    db_session.add(
+        Event(
+            tenant_id=TENANT_A_ID,
+            call_id="call-nopayload",
+            agent_id="bare-agent",
+            tool_name="exec",
+            verdict="allow",
+            mode="enforce",
+            env="production",
+            timestamp=now - timedelta(days=1),
+            payload=None,
+        )
+    )
     await db_session.commit()
 
     resp = await client.get("/api/v1/agents/bare-agent/history")

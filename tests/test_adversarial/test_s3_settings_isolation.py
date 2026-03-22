@@ -118,13 +118,17 @@ async def test_rotate_key_tenant_isolation(
         secret = b"0" * 32
         pub_a, priv_a = generate_signing_keypair(secret)
         key_a = SigningKeyModel(
-            tenant_id=TENANT_A_ID, public_key=pub_a,
-            private_key_encrypted=priv_a, active=True,
+            tenant_id=TENANT_A_ID,
+            public_key=pub_a,
+            private_key_encrypted=priv_a,
+            active=True,
         )
         pub_b, priv_b = generate_signing_keypair(secret)
         key_b = SigningKeyModel(
-            tenant_id=TENANT_B_ID, public_key=pub_b,
-            private_key_encrypted=priv_b, active=True,
+            tenant_id=TENANT_B_ID,
+            public_key=pub_b,
+            private_key_encrypted=priv_b,
+            active=True,
         )
         db_session.add_all([key_a, key_b])
         await db_session.commit()
@@ -173,9 +177,7 @@ async def test_purge_events_tenant_isolation(
     # Backdate created_at (server_default sets it to now())
     for call_id in ["a-call", "b-call"]:
         await db_session.execute(
-            update(Event)
-            .where(Event.call_id == call_id)
-            .values(created_at=old_time)
+            update(Event).where(Event.call_id == call_id).values(created_at=old_time)
         )
     await db_session.commit()
 

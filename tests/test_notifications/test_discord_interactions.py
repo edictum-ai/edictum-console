@@ -74,9 +74,7 @@ async def _post_interaction(
         headers["X-Signature-Timestamp"] = ts
     if not omit_sig:
         headers["X-Signature-Ed25519"] = sig
-    return await client.post(
-        "/api/v1/discord/interactions", content=body_bytes, headers=headers
-    )
+    return await client.post("/api/v1/discord/interactions", content=body_bytes, headers=headers)
 
 
 async def test_ping_pong(
@@ -100,9 +98,7 @@ async def test_button_approve_submits_decision(
     approval = await _create_approval(client)
     approval_id = approval["id"]
 
-    await test_redis.set(
-        f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID)
-    )
+    await test_redis.set(f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID))
     body = {
         "type": 3,
         "data": {"custom_id": f"edictum_approve:{approval_id}"},
@@ -130,9 +126,7 @@ async def test_button_deny_submits_decision(
     approval = await _create_approval(client)
     approval_id = approval["id"]
 
-    await test_redis.set(
-        f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID)
-    )
+    await test_redis.set(f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID))
     body = {
         "type": 3,
         "data": {"custom_id": f"edictum_deny:{approval_id}"},

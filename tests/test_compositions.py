@@ -10,18 +10,23 @@ from httpx import AsyncClient
 
 def _contract(cid: str = "block-reads", name: str = "Block Reads", type: str = "pre") -> dict:
     return {
-        "contract_id": cid, "name": name, "type": type,
+        "contract_id": cid,
+        "name": name,
+        "type": type,
         "definition": {"tool": "db_read", "then": {"effect": "deny"}},
         "tags": ["security"],
     }
 
 
 def _composition(
-    name: str = "finance-agents", contracts: list[dict] | None = None,
+    name: str = "finance-agents",
+    contracts: list[dict] | None = None,
 ) -> dict:
     return {
-        "name": name, "description": "Test bundle",
-        "defaults_mode": "enforce", "update_strategy": "manual",
+        "name": name,
+        "description": "Test bundle",
+        "defaults_mode": "enforce",
+        "update_strategy": "manual",
         "contracts": contracts or [],
     }
 
@@ -33,6 +38,7 @@ async def _seed_contracts(client: AsyncClient) -> None:
 
 
 # --- Create ---
+
 
 @pytest.mark.anyio
 async def test_create_empty_composition(client: AsyncClient) -> None:
@@ -48,10 +54,12 @@ async def test_create_empty_composition(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_create_composition_with_contracts(client: AsyncClient) -> None:
     await _seed_contracts(client)
-    body = _composition(contracts=[
-        {"contract_id": "c1", "position": 10},
-        {"contract_id": "c2", "position": 20, "mode_override": "observe"},
-    ])
+    body = _composition(
+        contracts=[
+            {"contract_id": "c1", "position": 10},
+            {"contract_id": "c2", "position": 20, "mode_override": "observe"},
+        ]
+    )
     resp = await client.post("/api/v1/compositions", json=body)
     assert resp.status_code == 201
     data = resp.json()
@@ -85,6 +93,7 @@ async def test_create_invalid_name_returns_422(client: AsyncClient) -> None:
 
 # --- Get ---
 
+
 @pytest.mark.anyio
 async def test_get_composition(client: AsyncClient) -> None:
     await _seed_contracts(client)
@@ -106,6 +115,7 @@ async def test_get_nonexistent_returns_404(client: AsyncClient) -> None:
 
 # --- List ---
 
+
 @pytest.mark.anyio
 async def test_list_compositions(client: AsyncClient) -> None:
     await client.post("/api/v1/compositions", json=_composition("bundle-a"))
@@ -117,12 +127,17 @@ async def test_list_compositions(client: AsyncClient) -> None:
 
 # --- Update ---
 
+
 @pytest.mark.anyio
 async def test_update_composition_scalars(client: AsyncClient) -> None:
     await client.post("/api/v1/compositions", json=_composition())
-    resp = await client.put("/api/v1/compositions/finance-agents", json={
-        "description": "Updated", "defaults_mode": "observe",
-    })
+    resp = await client.put(
+        "/api/v1/compositions/finance-agents",
+        json={
+            "description": "Updated",
+            "defaults_mode": "observe",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["description"] == "Updated"
@@ -136,9 +151,12 @@ async def test_update_composition_contracts(client: AsyncClient) -> None:
     await client.post("/api/v1/compositions", json=body)
 
     # Replace contracts with c2 only
-    resp = await client.put("/api/v1/compositions/finance-agents", json={
-        "contracts": [{"contract_id": "c2", "position": 10}],
-    })
+    resp = await client.put(
+        "/api/v1/compositions/finance-agents",
+        json={
+            "contracts": [{"contract_id": "c2", "position": 10}],
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert len(data["contracts"]) == 1
@@ -152,6 +170,7 @@ async def test_update_nonexistent_returns_404(client: AsyncClient) -> None:
 
 
 # --- Delete ---
+
 
 @pytest.mark.anyio
 async def test_delete_composition(client: AsyncClient) -> None:
@@ -170,13 +189,16 @@ async def test_delete_nonexistent_returns_404(client: AsyncClient) -> None:
 
 # --- Preview ---
 
+
 @pytest.mark.anyio
 async def test_preview_returns_yaml(client: AsyncClient) -> None:
     await _seed_contracts(client)
-    body = _composition(contracts=[
-        {"contract_id": "c1", "position": 10},
-        {"contract_id": "c2", "position": 20},
-    ])
+    body = _composition(
+        contracts=[
+            {"contract_id": "c1", "position": 10},
+            {"contract_id": "c2", "position": 20},
+        ]
+    )
     await client.post("/api/v1/compositions", json=body)
     resp = await client.post("/api/v1/compositions/finance-agents/preview")
     assert resp.status_code == 200
@@ -199,16 +221,24 @@ async def test_preview_empty_returns_errors(client: AsyncClient) -> None:
 
 # --- Mode Resolution ---
 
+
 @pytest.mark.anyio
 async def test_mode_resolution_item_override(client: AsyncClient) -> None:
     """item mode_override > contract definition mode > composition default."""
-    await client.post("/api/v1/contracts", json={
-        "contract_id": "c-mode", "name": "Mode Test", "type": "pre",
-        "definition": {"tool": "shell", "then": {"effect": "deny"}, "mode": "enforce"},
-    })
-    body = _composition(contracts=[
-        {"contract_id": "c-mode", "position": 10, "mode_override": "observe"},
-    ])
+    await client.post(
+        "/api/v1/contracts",
+        json={
+            "contract_id": "c-mode",
+            "name": "Mode Test",
+            "type": "pre",
+            "definition": {"tool": "shell", "then": {"effect": "deny"}, "mode": "enforce"},
+        },
+    )
+    body = _composition(
+        contracts=[
+            {"contract_id": "c-mode", "position": 10, "mode_override": "observe"},
+        ]
+    )
     await client.post("/api/v1/compositions", json=body)
     resp = await client.post("/api/v1/compositions/finance-agents/preview")
     data = resp.json()
@@ -218,13 +248,20 @@ async def test_mode_resolution_item_override(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_mode_resolution_contract_definition(client: AsyncClient) -> None:
     """When no item override, contract's own mode is used."""
-    await client.post("/api/v1/contracts", json={
-        "contract_id": "c-mode2", "name": "Mode Test 2", "type": "pre",
-        "definition": {"tool": "shell", "then": {"effect": "deny"}, "mode": "observe"},
-    })
-    body = _composition(contracts=[
-        {"contract_id": "c-mode2", "position": 10},
-    ])
+    await client.post(
+        "/api/v1/contracts",
+        json={
+            "contract_id": "c-mode2",
+            "name": "Mode Test 2",
+            "type": "pre",
+            "definition": {"tool": "shell", "then": {"effect": "deny"}, "mode": "observe"},
+        },
+    )
+    body = _composition(
+        contracts=[
+            {"contract_id": "c-mode2", "position": 10},
+        ]
+    )
     await client.post("/api/v1/compositions", json=body)
     resp = await client.post("/api/v1/compositions/finance-agents/preview")
     data = resp.json()
@@ -245,13 +282,16 @@ async def test_mode_resolution_composition_default(client: AsyncClient) -> None:
 
 # --- Position Ordering ---
 
+
 @pytest.mark.anyio
 async def test_position_ordering(client: AsyncClient) -> None:
     await _seed_contracts(client)
-    body = _composition(contracts=[
-        {"contract_id": "c2", "position": 5},
-        {"contract_id": "c1", "position": 15},
-    ])
+    body = _composition(
+        contracts=[
+            {"contract_id": "c2", "position": 5},
+            {"contract_id": "c1", "position": 15},
+        ]
+    )
     await client.post("/api/v1/compositions", json=body)
     resp = await client.post("/api/v1/compositions/finance-agents/preview")
     yaml_content = resp.json()["yaml_content"]
@@ -261,6 +301,7 @@ async def test_position_ordering(client: AsyncClient) -> None:
 
 
 # --- has_newer_version ---
+
 
 @pytest.mark.anyio
 async def test_has_newer_version_flag(client: AsyncClient) -> None:
@@ -278,9 +319,11 @@ async def test_has_newer_version_flag(client: AsyncClient) -> None:
 
 # --- Tenant Isolation ---
 
+
 @pytest.mark.anyio
 async def test_tenant_isolation_list(
-    client: AsyncClient, set_auth_tenant_b: Callable[[], None],
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
 ) -> None:
     await client.post("/api/v1/compositions", json=_composition())
     set_auth_tenant_b()
@@ -291,7 +334,8 @@ async def test_tenant_isolation_list(
 
 @pytest.mark.anyio
 async def test_tenant_isolation_get(
-    client: AsyncClient, set_auth_tenant_b: Callable[[], None],
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
 ) -> None:
     await client.post("/api/v1/compositions", json=_composition())
     set_auth_tenant_b()
@@ -301,7 +345,8 @@ async def test_tenant_isolation_get(
 
 @pytest.mark.anyio
 async def test_tenant_isolation_cross_tenant_contract_ref(
-    client: AsyncClient, set_auth_tenant_b: Callable[[], None],
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
     set_auth_tenant_a: Callable[[], None],  # noqa: ARG001
 ) -> None:
     """Composition can't reference another tenant's contract."""
@@ -318,7 +363,8 @@ async def test_tenant_isolation_cross_tenant_contract_ref(
 
 @pytest.mark.anyio
 async def test_tenant_isolation_delete(
-    client: AsyncClient, set_auth_tenant_b: Callable[[], None],
+    client: AsyncClient,
+    set_auth_tenant_b: Callable[[], None],
 ) -> None:
     await client.post("/api/v1/compositions", json=_composition())
     set_auth_tenant_b()
