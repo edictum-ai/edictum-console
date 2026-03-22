@@ -13,7 +13,7 @@ permissions:
 jobs:
   build:
     name: Docker Build
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # Run on pushes to main and PRs, but not on tag pushes (publish handles those)
     if: startsWith(github.ref, 'refs/tags/') == false
     steps:
@@ -49,7 +49,7 @@ jobs:
 
   publish:
     name: Publish to GHCR
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: read
