@@ -25,54 +25,28 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: "pip"
       - run: pip install -e ".[dev]"
       - run: pytest tests/ -v
-      - name: Security boundary tests
-        run: pytest -m security -v --tb=short
 
-  backend-lint:
-    name: Backend Lint
+  backend-quality:
+    name: Backend Quality
     runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
-      - run: ruff check src/ tests/
-
-  backend-typecheck:
-    name: Backend Type Check
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - run: mypy src/
-
-  backend-security:
-    name: Security Lint
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e ".[dev]" bandit pip-audit
-      - run: bandit -r src/ -ll -ii --exclude tests/
+          cache: "pip"
+      - run: pip install -e ".[dev]" "ruff==0.15.5" bandit pip-audit
+      - name: Lint
+        run: ruff check src/ tests/
+      - name: Type check
+        run: mypy src/
+      - name: Security lint (bandit)
+        run: bandit -r src/ -ll -ii --exclude tests/
       - name: Audit Python dependencies
         run: pip-audit
-
-  custom-security-lint:
-    name: Custom Security Checks
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
-        with:
-          python-version: "3.12"
       - name: Check tenant isolation (S3)
         run: python3 scripts/security-lint/check_tenant_isolation.py
       - name: Check input bounds
@@ -80,8 +54,8 @@ jobs:
       - name: Check timing-safe comparisons
         run: python3 scripts/security-lint/check_timing_safe.py
 
-  frontend-lint:
-    name: Frontend Lint & Type Check
+  frontend-ci:
+    name: Frontend
     runs-on: blacksmith-4vcpu-ubuntu-2404-arm
     defaults:
       run:
@@ -97,26 +71,10 @@ jobs:
           cache: pnpm
           cache-dependency-path: dashboard/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      - run: pnpm tsc --noEmit
+      - name: Type check
+        run: pnpm tsc --noEmit
+      - name: Build
+        run: pnpm build
       - name: Audit frontend dependencies
         run: pnpm audit --audit-level moderate
         continue-on-error: true
-
-  frontend-build:
-    name: Frontend Build
-    runs-on: blacksmith-4vcpu-ubuntu-2404-arm
-    defaults:
-      run:
-        working-directory: dashboard
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: pnpm/action-setup@c5ba7f7862a0f64c1b1a05fbac13e0b8e86ba08c # v4
-        with:
-          version: 10
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: dashboard/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
