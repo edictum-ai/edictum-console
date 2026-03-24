@@ -1,4 +1,5 @@
 """Service for agent registration operations."""
+
 from __future__ import annotations
 
 import uuid

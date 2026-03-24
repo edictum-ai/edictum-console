@@ -68,14 +68,10 @@ async def _post_raw(
         headers["X-Signature-Timestamp"] = ts
     if sig is not None:
         headers["X-Signature-Ed25519"] = sig
-    return await client.post(
-        "/api/v1/discord/interactions", content=body_bytes, headers=headers
-    )
+    return await client.post("/api/v1/discord/interactions", content=body_bytes, headers=headers)
 
 
-async def _signed_post(
-    client: AsyncClient, signing_key: SigningKey, body: dict
-) -> Response:
+async def _signed_post(client: AsyncClient, signing_key: SigningKey, body: dict) -> Response:
     body_bytes = json.dumps(body).encode()
     ts = str(int(time.time()))
     sig = sign_discord_payload(signing_key, ts, body_bytes)
@@ -125,9 +121,7 @@ async def test_malformed_signature_hex_401(
     _, public_key_hex = discord_keypair
     await _create_discord_channel(client, public_key_hex=public_key_hex)
     body_bytes = json.dumps({"type": 1}).encode()
-    resp = await _post_raw(
-        client, body_bytes, sig="not-valid-hex", ts=str(int(time.time()))
-    )
+    resp = await _post_raw(client, body_bytes, sig="not-valid-hex", ts=str(int(time.time())))
     assert resp.status_code == 401
 
 
@@ -144,9 +138,7 @@ async def test_disabled_channel_401(
 ) -> None:
     signing_key, public_key_hex = discord_keypair
     channel = await _create_discord_channel(client, public_key_hex=public_key_hex)
-    await client.put(
-        f"/api/v1/notifications/channels/{channel['id']}", json={"enabled": False}
-    )
+    await client.put(f"/api/v1/notifications/channels/{channel['id']}", json={"enabled": False})
     resp = await _signed_post(client, signing_key, {"type": 1})
     assert resp.status_code == 401
 
@@ -227,9 +219,7 @@ async def test_replay_already_decided(
     approval = await _create_approval(client)
     approval_id = approval["id"]
 
-    await test_redis.set(
-        f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID)
-    )
+    await test_redis.set(f"discord:tenant:{channel['id']}:{approval_id}", str(TENANT_A_ID))
     body = {
         "type": 3,
         "data": {"custom_id": f"edictum_approve:{approval_id}"},
@@ -313,6 +303,6 @@ def test_verify_signature_wrong_key() -> None:
 @pytest.mark.security
 def test_verify_signature_malformed_hex() -> None:
     key = SigningKey.generate()
-    assert verify_discord_signature(
-        key.verify_key.encode().hex(), "ts", b"body", "not-hex"
-    ) is False
+    assert (
+        verify_discord_signature(key.verify_key.encode().hex(), "ts", b"body", "not-hex") is False
+    )

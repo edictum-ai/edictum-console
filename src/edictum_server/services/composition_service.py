@@ -18,7 +18,9 @@ from edictum_server.db.models import (
 
 
 async def resolve_contracts(
-    db: AsyncSession, tenant_id: uuid.UUID, items: list[Any],
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    items: list[Any],
 ) -> list[tuple[Contract, int, str | None, bool]]:
     """Resolve contract_id strings → latest Contract rows for this tenant."""
     resolved = []
@@ -38,29 +40,46 @@ async def resolve_contracts(
 
 
 def _add_items(
-    db: AsyncSession, tenant_id: uuid.UUID, comp_id: uuid.UUID,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    comp_id: uuid.UUID,
     resolved: list[tuple[Contract, int, str | None, bool]],
 ) -> None:
     for contract, position, mode_override, enabled in resolved:
-        db.add(BundleCompositionItem(
-            tenant_id=tenant_id, composition_id=comp_id,
-            contract_id=contract.id, position=position,
-            mode_override=mode_override, enabled=enabled,
-        ))
+        db.add(
+            BundleCompositionItem(
+                tenant_id=tenant_id,
+                composition_id=comp_id,
+                contract_id=contract.id,
+                position=position,
+                mode_override=mode_override,
+                enabled=enabled,
+            )
+        )
 
 
 async def create_composition(
-    db: AsyncSession, tenant_id: uuid.UUID, name: str, created_by: str,
-    description: str | None = None, defaults_mode: str = "enforce",
-    update_strategy: str = "manual", contracts: list[Any] | None = None,
-    tools_config: dict[str, Any] | None = None, observability: dict[str, Any] | None = None,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    name: str,
+    created_by: str,
+    description: str | None = None,
+    defaults_mode: str = "enforce",
+    update_strategy: str = "manual",
+    contracts: list[Any] | None = None,
+    tools_config: dict[str, Any] | None = None,
+    observability: dict[str, Any] | None = None,
 ) -> BundleComposition:
     """Create a new bundle composition with optional contract items."""
     resolved = await resolve_contracts(db, tenant_id, contracts or [])
     comp = BundleComposition(
-        tenant_id=tenant_id, name=name, description=description,
-        defaults_mode=defaults_mode, update_strategy=update_strategy,
-        tools_config=tools_config, observability=observability,
+        tenant_id=tenant_id,
+        name=name,
+        description=description,
+        defaults_mode=defaults_mode,
+        update_strategy=update_strategy,
+        tools_config=tools_config,
+        observability=observability,
         created_by=created_by,
     )
     try:
@@ -75,10 +94,15 @@ async def create_composition(
 
 
 async def update_composition(
-    db: AsyncSession, tenant_id: uuid.UUID, name: str,
-    description: str | None = None, defaults_mode: str | None = None,
-    update_strategy: str | None = None, contracts: list[Any] | None = None,
-    tools_config: dict[str, Any] | None = None, observability: dict[str, Any] | None = None,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    name: str,
+    description: str | None = None,
+    defaults_mode: str | None = None,
+    update_strategy: str | None = None,
+    contracts: list[Any] | None = None,
+    tools_config: dict[str, Any] | None = None,
+    observability: dict[str, Any] | None = None,
 ) -> BundleComposition:
     """Update a composition. If contracts provided, full replacement."""
     comp = await get_composition(db, tenant_id, name)
@@ -96,17 +120,21 @@ async def update_composition(
         comp.observability = observability
     if contracts is not None:
         resolved = await resolve_contracts(db, tenant_id, contracts)
-        await db.execute(delete(BundleCompositionItem).where(
-            BundleCompositionItem.tenant_id == tenant_id,
-            BundleCompositionItem.composition_id == comp.id,
-        ))
+        await db.execute(
+            delete(BundleCompositionItem).where(
+                BundleCompositionItem.tenant_id == tenant_id,
+                BundleCompositionItem.composition_id == comp.id,
+            )
+        )
         _add_items(db, tenant_id, comp.id, resolved)
     await db.flush()
     return comp
 
 
 async def get_composition(
-    db: AsyncSession, tenant_id: uuid.UUID, name: str,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    name: str,
 ) -> BundleComposition | None:
     """Get a composition by (tenant_id, name)."""
     result = await db.execute(
@@ -119,7 +147,8 @@ async def get_composition(
 
 
 async def list_compositions(
-    db: AsyncSession, tenant_id: uuid.UUID,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
     """List compositions with contract counts."""
     item_count = (
@@ -133,14 +162,13 @@ async def list_compositions(
         .where(BundleComposition.tenant_id == tenant_id)
         .order_by(BundleComposition.updated_at.desc())
     )
-    return [
-        {"composition": comp, "contract_count": count}
-        for comp, count in result.all()
-    ]
+    return [{"composition": comp, "contract_count": count} for comp, count in result.all()]
 
 
 async def delete_composition(
-    db: AsyncSession, tenant_id: uuid.UUID, name: str,
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    name: str,
 ) -> None:
     """Delete a composition. SET NULL on bundles.composition_id."""
     comp = await get_composition(db, tenant_id, name)
@@ -148,22 +176,26 @@ async def delete_composition(
         raise ValueError(f"Composition '{name}' not found")
     result = await db.execute(
         select(Bundle).where(
-            Bundle.tenant_id == tenant_id, Bundle.composition_id == comp.id,
+            Bundle.tenant_id == tenant_id,
+            Bundle.composition_id == comp.id,
         )
     )
     for bundle in result.scalars().all():
         bundle.composition_id = None
     # Explicit item deletion — DB CASCADE works in Postgres but not SQLite
-    await db.execute(delete(BundleCompositionItem).where(
-        BundleCompositionItem.tenant_id == tenant_id,
-        BundleCompositionItem.composition_id == comp.id,
-    ))
+    await db.execute(
+        delete(BundleCompositionItem).where(
+            BundleCompositionItem.tenant_id == tenant_id,
+            BundleCompositionItem.composition_id == comp.id,
+        )
+    )
     await db.delete(comp)
     await db.flush()
 
 
 async def get_composition_items(
-    db: AsyncSession, composition: BundleComposition,
+    db: AsyncSession,
+    composition: BundleComposition,
 ) -> list[dict[str, Any]]:
     """Load composition items with contract details + has_newer_version."""
     result = await db.execute(
@@ -199,8 +231,7 @@ async def get_composition_items(
             "mode_override": item.mode_override,
             "enabled": item.enabled,
             "has_newer_version": (
-                max_versions.get(contract.contract_id, contract.version)
-                > contract.version
+                max_versions.get(contract.contract_id, contract.version) > contract.version
             ),
         }
         for item, contract in rows

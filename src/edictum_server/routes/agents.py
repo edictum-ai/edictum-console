@@ -32,9 +32,7 @@ async def agent_fleet_status(
     for conn in connections:
         status = "unknown"
         if conn.policy_version and conn.env:
-            status = await check_drift(
-                db, auth.tenant_id, conn.policy_version, conn.env
-            )
+            status = await check_drift(db, auth.tenant_id, conn.policy_version, conn.env)
 
         entries.append(
             AgentStatusEntry(

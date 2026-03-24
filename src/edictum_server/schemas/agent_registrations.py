@@ -1,4 +1,5 @@
 """Schemas for agent registration and assignment rule endpoints."""
+
 from __future__ import annotations
 
 import uuid
@@ -8,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 # --- Agent Registration ---
+
 
 class AgentRegistrationResponse(BaseModel):
     id: uuid.UUID
@@ -37,6 +39,7 @@ class BulkAssignResponse(BaseModel):
 
 # --- Assignment Rules ---
 
+
 class AssignmentRuleCreate(BaseModel):
     priority: int = Field(..., ge=0)
     pattern: str = Field(..., min_length=1, max_length=200)
@@ -65,6 +68,7 @@ class AssignmentRuleResponse(BaseModel):
 
 class ResolvedAssignment(BaseModel):
     """Result of bundle resolution for an agent."""
+
     bundle_name: str | None
     source: str  # "explicit" | "rule" | "agent_provided" | "none"
     rule_id: uuid.UUID | None = None

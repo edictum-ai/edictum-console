@@ -19,19 +19,28 @@ class EvaluateRequest(BaseModel):
     """Request body for contract evaluation playground."""
 
     yaml_content: str = Field(
-        ..., max_length=1_048_576, description="YAML contract bundle to evaluate against",
+        ...,
+        max_length=1_048_576,
+        description="YAML contract bundle to evaluate against",
     )
     tool_name: str = Field(
-        ..., max_length=255, description="Tool name to simulate",
+        ...,
+        max_length=255,
+        description="Tool name to simulate",
     )
     tool_args: dict[str, Any] = Field(
-        default_factory=dict, description="Tool arguments",
+        default_factory=dict,
+        description="Tool arguments",
     )
     environment: str = Field(
-        default="production", max_length=64, description="Environment context",
+        default="production",
+        max_length=64,
+        description="Environment context",
     )
     agent_id: str = Field(
-        default="test-agent", max_length=255, description="Simulated agent ID",
+        default="test-agent",
+        max_length=255,
+        description="Simulated agent ID",
     )
     principal: PrincipalInput | None = Field(
         default=None, description="Optional principal identity"

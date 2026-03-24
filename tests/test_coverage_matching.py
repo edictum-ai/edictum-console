@@ -22,9 +22,12 @@ from edictum_server.services.coverage_service import parse_since
 def test_exact_match() -> None:
     """Exact string match: 'exec' matches 'exec'."""
     matcher = ContractMatcher(
-        contract_name="block-exec", contract_type="pre",
-        mode="enforce", tool_patterns=["exec"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="block-exec",
+        contract_type="pre",
+        mode="enforce",
+        tool_patterns=["exec"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("exec", [matcher]) == [matcher]
 
@@ -32,9 +35,12 @@ def test_exact_match() -> None:
 def test_exact_no_match() -> None:
     """Exact match: 'web_scrape' does not match 'exec'."""
     matcher = ContractMatcher(
-        contract_name="block-exec", contract_type="pre",
-        mode="enforce", tool_patterns=["exec"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="block-exec",
+        contract_type="pre",
+        mode="enforce",
+        tool_patterns=["exec"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("web_scrape", [matcher]) == []
 
@@ -42,9 +48,12 @@ def test_exact_no_match() -> None:
 def test_glob_match() -> None:
     """Glob pattern: 'file_*' matches 'file_read'."""
     matcher = ContractMatcher(
-        contract_name="file-ops", contract_type="post",
-        mode="observe", tool_patterns=["file_*"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="file-ops",
+        contract_type="post",
+        mode="observe",
+        tool_patterns=["file_*"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("file_read", [matcher]) == [matcher]
 
@@ -52,9 +61,12 @@ def test_glob_match() -> None:
 def test_glob_no_match() -> None:
     """Glob pattern: 'file_*' does not match 'file' (no underscore)."""
     matcher = ContractMatcher(
-        contract_name="file-ops", contract_type="post",
-        mode="observe", tool_patterns=["file_*"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="file-ops",
+        contract_type="post",
+        mode="observe",
+        tool_patterns=["file_*"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("file", [matcher]) == []
 
@@ -62,9 +74,12 @@ def test_glob_no_match() -> None:
 def test_glob_empty_suffix() -> None:
     """Glob: 'file_*' matches 'file_' (empty suffix after underscore)."""
     matcher = ContractMatcher(
-        contract_name="file-ops", contract_type="post",
-        mode="observe", tool_patterns=["file_*"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="file-ops",
+        contract_type="post",
+        mode="observe",
+        tool_patterns=["file_*"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("file_", [matcher]) == [matcher]
 
@@ -72,9 +87,12 @@ def test_glob_empty_suffix() -> None:
 def test_wildcard_matches_everything() -> None:
     """Wildcard '*' matches any tool name."""
     matcher = ContractMatcher(
-        contract_name="catch-all", contract_type="session",
-        mode="enforce", tool_patterns=["*"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="catch-all",
+        contract_type="session",
+        mode="enforce",
+        tool_patterns=["*"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("anything_at_all", [matcher]) == [matcher]
 
@@ -82,9 +100,12 @@ def test_wildcard_matches_everything() -> None:
 def test_case_sensitivity() -> None:
     """Tool names are case-sensitive: 'Exec' != 'exec'."""
     matcher = ContractMatcher(
-        contract_name="block-exec", contract_type="pre",
-        mode="enforce", tool_patterns=["exec"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="block-exec",
+        contract_type="pre",
+        mode="enforce",
+        tool_patterns=["exec"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("Exec", [matcher]) == []
 
@@ -92,14 +113,20 @@ def test_case_sensitivity() -> None:
 def test_multiple_matchers_both_returned() -> None:
     """Multiple matchers can match the same tool."""
     m1 = ContractMatcher(
-        contract_name="c1", contract_type="pre",
-        mode="observe", tool_patterns=["exec"],
-        bundle_name="b1", bundle_version=1,
+        contract_name="c1",
+        contract_type="pre",
+        mode="observe",
+        tool_patterns=["exec"],
+        bundle_name="b1",
+        bundle_version=1,
     )
     m2 = ContractMatcher(
-        contract_name="c2", contract_type="pre",
-        mode="enforce", tool_patterns=["exec"],
-        bundle_name="b1", bundle_version=1,
+        contract_name="c2",
+        contract_type="pre",
+        mode="enforce",
+        tool_patterns=["exec"],
+        bundle_name="b1",
+        bundle_version=1,
     )
     result = match_tool("exec", [m1, m2])
     assert len(result) == 2
@@ -110,9 +137,12 @@ def test_multiple_matchers_both_returned() -> None:
 def test_multiple_patterns_in_one_matcher() -> None:
     """A matcher with multiple patterns matches if any pattern hits."""
     matcher = ContractMatcher(
-        contract_name="block-exec", contract_type="pre",
-        mode="enforce", tool_patterns=["exec", "shell_run"],
-        bundle_name="test-bundle", bundle_version=1,
+        contract_name="block-exec",
+        contract_type="pre",
+        mode="enforce",
+        tool_patterns=["exec", "shell_run"],
+        bundle_name="test-bundle",
+        bundle_version=1,
     )
     assert match_tool("shell_run", [matcher]) == [matcher]
 
@@ -252,9 +282,7 @@ def test_classify_wildcard_100_percent() -> None:
 
 def test_coverage_pct_enforced_only() -> None:
     """coverage_pct counts enforced only: 5 enforced + 1 observed + 1 ungoverned = 71%."""
-    rows = [
-        _make_row(f"tool_{i}") for i in range(5)
-    ] + [
+    rows = [_make_row(f"tool_{i}") for i in range(5)] + [
         _make_row("observed_tool"),
         _make_row("ungoverned_tool"),
     ]

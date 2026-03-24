@@ -67,10 +67,13 @@ async def post_events(
     # Notify dashboard subscribers about new events.  Push one summary
     # message per batch rather than one per event to avoid flooding.
     if accepted > 0:
-        push.push_to_dashboard(auth.tenant_id, {
-            "type": "event_created",
-            "accepted": accepted,
-        })
+        push.push_to_dashboard(
+            auth.tenant_id,
+            {
+                "type": "event_created",
+                "accepted": accepted,
+            },
+        )
 
     return EventIngestResponse(accepted=accepted, duplicates=duplicates)
 

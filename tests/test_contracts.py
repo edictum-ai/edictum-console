@@ -47,6 +47,7 @@ def _make_contract(
 
 # --- Create ---
 
+
 @pytest.mark.anyio
 async def test_create_contract(client: AsyncClient) -> None:
     resp = await client.post("/api/v1/contracts", json=_make_contract())
@@ -84,12 +85,16 @@ async def test_create_invalid_type_returns_422(client: AsyncClient) -> None:
 
 # --- Update ---
 
+
 @pytest.mark.anyio
 async def test_update_contract_increments_version(client: AsyncClient) -> None:
     await client.post("/api/v1/contracts", json=_make_contract())
-    resp = await client.put("/api/v1/contracts/block-reads", json={
-        "definition": {"tool": "db_write", "then": {"effect": "deny"}},
-    })
+    resp = await client.put(
+        "/api/v1/contracts/block-reads",
+        json={
+            "definition": {"tool": "db_write", "then": {"effect": "deny"}},
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["version"] == 2
@@ -108,6 +113,7 @@ async def test_update_nonexistent_returns_404(client: AsyncClient) -> None:
 
 
 # --- Get ---
+
 
 @pytest.mark.anyio
 async def test_get_contract_latest(client: AsyncClient) -> None:
@@ -143,6 +149,7 @@ async def test_get_nonexistent_returns_404(client: AsyncClient) -> None:
 
 
 # --- List ---
+
 
 @pytest.mark.anyio
 async def test_list_contracts(client: AsyncClient) -> None:
@@ -186,6 +193,7 @@ async def test_list_contracts_search(client: AsyncClient) -> None:
 
 # --- Delete ---
 
+
 @pytest.mark.anyio
 async def test_delete_unused_contract(client: AsyncClient) -> None:
     await client.post("/api/v1/contracts", json=_make_contract())
@@ -205,11 +213,15 @@ async def test_delete_nonexistent_returns_404(client: AsyncClient) -> None:
 
 # --- Import ---
 
+
 @pytest.mark.anyio
 async def test_import_from_yaml(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/contracts/import", json={
-        "yaml_content": SAMPLE_YAML,
-    })
+    resp = await client.post(
+        "/api/v1/contracts/import",
+        json={
+            "yaml_content": SAMPLE_YAML,
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert sorted(data["contracts_created"]) == ["audit-reads", "block-shell"]
@@ -225,16 +237,22 @@ async def test_import_from_yaml(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_import_with_existing_creates_new_version(client: AsyncClient) -> None:
     # Pre-create a contract that matches one in the YAML
-    await client.post("/api/v1/contracts", json={
-        "contract_id": "block-shell",
-        "name": "Block Shell",
-        "type": "pre",
-        "definition": {"tool": "shell", "then": {"effect": "log"}},
-    })
+    await client.post(
+        "/api/v1/contracts",
+        json={
+            "contract_id": "block-shell",
+            "name": "Block Shell",
+            "type": "pre",
+            "definition": {"tool": "shell", "then": {"effect": "log"}},
+        },
+    )
 
-    resp = await client.post("/api/v1/contracts/import", json={
-        "yaml_content": SAMPLE_YAML,
-    })
+    resp = await client.post(
+        "/api/v1/contracts/import",
+        json={
+            "yaml_content": SAMPLE_YAML,
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert "block-shell" in data["contracts_updated"]
@@ -247,13 +265,17 @@ async def test_import_with_existing_creates_new_version(client: AsyncClient) -> 
 
 @pytest.mark.anyio
 async def test_import_invalid_yaml_returns_422(client: AsyncClient) -> None:
-    resp = await client.post("/api/v1/contracts/import", json={
-        "yaml_content": "not: valid: yaml: [[",
-    })
+    resp = await client.post(
+        "/api/v1/contracts/import",
+        json={
+            "yaml_content": "not: valid: yaml: [[",
+        },
+    )
     assert resp.status_code == 422
 
 
 # --- Tenant Isolation ---
+
 
 @pytest.mark.anyio
 async def test_tenant_isolation(
@@ -283,6 +305,7 @@ async def test_tenant_isolation(
 
 # --- Usage ---
 
+
 @pytest.mark.anyio
 async def test_usage_empty(client: AsyncClient) -> None:
     await client.post("/api/v1/contracts", json=_make_contract())
@@ -292,6 +315,7 @@ async def test_usage_empty(client: AsyncClient) -> None:
 
 
 # --- Edge cases (bug fixes) ---
+
 
 @pytest.mark.anyio
 async def test_update_empty_body_returns_error(client: AsyncClient) -> None:
@@ -317,8 +341,11 @@ contracts:
     then:
       effect: deny
 """
-    resp = await client.post("/api/v1/contracts/import", json={
-        "yaml_content": bad_yaml,
-    })
+    resp = await client.post(
+        "/api/v1/contracts/import",
+        json={
+            "yaml_content": bad_yaml,
+        },
+    )
     assert resp.status_code == 422
     assert "type must be one of" in resp.json()["detail"]

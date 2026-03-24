@@ -51,12 +51,8 @@ async def test_agent_status_tenant_isolation(
     set_auth_tenant_b: Callable[[], None],
 ) -> None:
     # Add agents for both tenants
-    push_manager.subscribe(
-        "production", tenant_id=TENANT_A_ID, agent_id="agent-a"
-    )
-    push_manager.subscribe(
-        "production", tenant_id=TENANT_B_ID, agent_id="agent-b"
-    )
+    push_manager.subscribe("production", tenant_id=TENANT_A_ID, agent_id="agent-a")
+    push_manager.subscribe("production", tenant_id=TENANT_B_ID, agent_id="agent-b")
 
     # Tenant A sees only their agent
     resp = await client.get("/api/v1/agents/status")
@@ -75,9 +71,7 @@ async def test_agent_status_tenant_isolation(
 
 
 @pytest.mark.asyncio
-async def test_agent_status_bundle_filter(
-    client: AsyncClient, push_manager: PushManager
-) -> None:
+async def test_agent_status_bundle_filter(client: AsyncClient, push_manager: PushManager) -> None:
     push_manager.subscribe(
         "production",
         tenant_id=TENANT_A_ID,

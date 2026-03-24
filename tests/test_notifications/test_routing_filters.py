@@ -75,17 +75,35 @@ def test_contract_pattern_rejects() -> None:
 def test_multi_dimension_and() -> None:
     ch = FakeChannel(filters={"environments": ["production"], "agent_patterns": ["team-a-*"]})
     # Both match
-    assert _matches_filters(
-        ch, env="production", agent_id="team-a-billing", contract_name=None,
-    ) is True
+    assert (
+        _matches_filters(
+            ch,
+            env="production",
+            agent_id="team-a-billing",
+            contract_name=None,
+        )
+        is True
+    )
     # Env matches, agent doesn't
-    assert _matches_filters(
-        ch, env="production", agent_id="team-b-ops", contract_name=None,
-    ) is False
+    assert (
+        _matches_filters(
+            ch,
+            env="production",
+            agent_id="team-b-ops",
+            contract_name=None,
+        )
+        is False
+    )
     # Agent matches, env doesn't
-    assert _matches_filters(
-        ch, env="staging", agent_id="team-a-billing", contract_name=None,
-    ) is False
+    assert (
+        _matches_filters(
+            ch,
+            env="staging",
+            agent_id="team-a-billing",
+            contract_name=None,
+        )
+        is False
+    )
 
 
 def test_null_contract_name_skips_filter() -> None:
@@ -95,9 +113,15 @@ def test_null_contract_name_skips_filter() -> None:
 
 def test_glob_mid_pattern() -> None:
     ch = FakeChannel(filters={"agent_patterns": ["*-billing-*"]})
-    assert _matches_filters(
-        ch, env="prod", agent_id="team-a-billing-prod", contract_name=None,
-    ) is True
+    assert (
+        _matches_filters(
+            ch,
+            env="prod",
+            agent_id="team-a-billing-prod",
+            contract_name=None,
+        )
+        is True
+    )
 
 
 # --- Manager fan-out routing ---

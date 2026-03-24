@@ -131,9 +131,7 @@ async def test_agent_id_path_traversal(client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_agent_id_sql_metacharacters(client: AsyncClient) -> None:
     """SQL metacharacters in agent_id don't cause injection."""
-    resp = await client.get(
-        "/api/v1/agents/agent'; DROP TABLE events; --/coverage"
-    )
+    resp = await client.get("/api/v1/agents/agent'; DROP TABLE events; --/coverage")
     # Should be 404 (no events for this agent_id) or 400, never 500
     assert resp.status_code in (404, 400)
 
@@ -179,11 +177,18 @@ async def test_env_null_byte(
 ) -> None:
     """Null byte in env doesn't bypass filtering."""
     # Seed a real event
-    db_session.add(Event(
-        tenant_id=TENANT_A_ID, call_id="env-null-test", agent_id="agent-env-test",
-        tool_name="exec", verdict="allow", mode="enforce", env="production",
-        timestamp=datetime.now(UTC),
-    ))
+    db_session.add(
+        Event(
+            tenant_id=TENANT_A_ID,
+            call_id="env-null-test",
+            agent_id="agent-env-test",
+            tool_name="exec",
+            verdict="allow",
+            mode="enforce",
+            env="production",
+            timestamp=datetime.now(UTC),
+        )
+    )
     await db_session.commit()
 
     # Null byte env should not match "production"

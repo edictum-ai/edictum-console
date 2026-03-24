@@ -24,7 +24,8 @@ def _contract_payload(contract_id: str = "block-reads") -> dict:
 
 
 def _composition_payload(
-    name: str = "finance-agents", contracts: list[dict] | None = None,
+    name: str = "finance-agents",
+    contracts: list[dict] | None = None,
 ) -> dict:
     return {
         "name": name,
@@ -36,16 +37,21 @@ def _composition_payload(
 
 
 async def _create_contract_and_composition(
-    client: AsyncClient, contract_id: str = "block-reads", comp_name: str = "finance-agents",
+    client: AsyncClient,
+    contract_id: str = "block-reads",
+    comp_name: str = "finance-agents",
 ) -> None:
     """Helper: create a contract then a composition referencing it."""
     resp = await client.post("/api/v1/contracts", json=_contract_payload(contract_id))
     assert resp.status_code == 201
     resp = await client.post(
         "/api/v1/compositions",
-        json=_composition_payload(comp_name, [
-            {"contract_id": contract_id, "position": 10},
-        ]),
+        json=_composition_payload(
+            comp_name,
+            [
+                {"contract_id": contract_id, "position": 10},
+            ],
+        ),
     )
     assert resp.status_code == 201
 
@@ -146,9 +152,12 @@ async def test_composition_references_cross_tenant_contract(
     set_auth_tenant_b()
     resp = await client.post(
         "/api/v1/compositions",
-        json=_composition_payload("evil-comp", [
-            {"contract_id": "secret-rule", "position": 10},
-        ]),
+        json=_composition_payload(
+            "evil-comp",
+            [
+                {"contract_id": "secret-rule", "position": 10},
+            ],
+        ),
     )
     assert resp.status_code == 422
     assert "not found" in resp.json()["detail"].lower()
@@ -172,9 +181,11 @@ async def test_composition_update_references_cross_tenant_contract(
     # B tries to update composition to reference A's contract
     resp = await client.put(
         "/api/v1/compositions/b-comp",
-        json={"contracts": [
-            {"contract_id": "secret-rule", "position": 10},
-        ]},
+        json={
+            "contracts": [
+                {"contract_id": "secret-rule", "position": 10},
+            ]
+        },
     )
     # Route returns 404 because resolve_contracts raises ValueError("not found")
     # and the route handler maps "not found" → 404. Either 404 or 422 is acceptable

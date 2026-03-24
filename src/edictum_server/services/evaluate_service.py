@@ -73,9 +73,7 @@ def _check_yaml_complexity(yaml_content: str) -> None:
     # Each '---' at the start of a line starts a new document.
     doc_count = yaml_content.count("\n---") + 1
     if doc_count > _MAX_YAML_DOCUMENTS:
-        raise ValueError(
-            f"YAML contains {doc_count} documents (limit: {_MAX_YAML_DOCUMENTS})."
-        )
+        raise ValueError(f"YAML contains {doc_count} documents (limit: {_MAX_YAML_DOCUMENTS}).")
 
 
 def evaluate_contracts(
@@ -123,9 +121,7 @@ def evaluate_contracts(
     # Check contract count after parsing.
     contract_count = len(getattr(edictum_instance, "contracts", []))
     if contract_count > _MAX_CONTRACTS:
-        raise ValueError(
-            f"Bundle contains {contract_count} contracts (limit: {_MAX_CONTRACTS})."
-        )
+        raise ValueError(f"Bundle contains {contract_count} contracts (limit: {_MAX_CONTRACTS}).")
 
     result: EvaluationResult = edictum_instance.evaluate(
         tool_name,

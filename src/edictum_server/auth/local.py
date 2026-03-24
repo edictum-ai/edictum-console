@@ -40,9 +40,7 @@ class LocalAuthProvider(AuthProvider):
 
     def _sign(self, data: str) -> str:
         """HMAC-SHA256 sign session data, return 'hmac_hex:json' string."""
-        mac = hmac.new(
-            self._secret_key.encode(), data.encode(), hashlib.sha256
-        ).hexdigest()
+        mac = hmac.new(self._secret_key.encode(), data.encode(), hashlib.sha256).hexdigest()
         return f"{mac}:{data}"
 
     def _verify_and_parse(self, raw: str) -> dict[str, object] | None:
@@ -88,7 +86,7 @@ class LocalAuthProvider(AuthProvider):
         # Enforce absolute session lifetime (7 days max)
         created_at = data.get("created_at")
         expired = (
-            isinstance(created_at, (int, float))
+            isinstance(created_at, int | float)
             and time.time() - created_at > _MAX_ABSOLUTE_LIFETIME
         )
         if expired:

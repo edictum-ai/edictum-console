@@ -55,10 +55,14 @@ async def test_contract_stats_with_events(
             ts=now - timedelta(hours=3),
         ),
         _make_event(
-            decision_name="rate_limit", verdict="call_allowed", ts=now - timedelta(hours=1),
+            decision_name="rate_limit",
+            verdict="call_allowed",
+            ts=now - timedelta(hours=1),
         ),
         _make_event(
-            decision_name="rate_limit", verdict="call_denied", ts=now - timedelta(hours=2),
+            decision_name="rate_limit",
+            verdict="call_denied",
+            ts=now - timedelta(hours=2),
         ),
     ]
     db_session.add_all(events)
@@ -91,10 +95,14 @@ async def test_contract_stats_time_filter(
     """Events outside the time window are excluded."""
     now = datetime.now(UTC)
     inside = _make_event(
-        decision_name="no_shell", verdict="call_allowed", ts=now - timedelta(hours=1),
+        decision_name="no_shell",
+        verdict="call_allowed",
+        ts=now - timedelta(hours=1),
     )
     outside = _make_event(
-        decision_name="no_shell", verdict="call_denied", ts=now - timedelta(hours=48),
+        decision_name="no_shell",
+        verdict="call_denied",
+        ts=now - timedelta(hours=48),
     )
     db_session.add_all([inside, outside])
     await db_session.commit()

@@ -29,18 +29,14 @@ _HEADERS = {
     "X-Frame-Options": "DENY",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": (
-        "camera=(), microphone=(), geolocation=(), payment=()"
-    ),
+    "Permissions-Policy": ("camera=(), microphone=(), geolocation=(), payment=()"),
 }
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security response headers to every HTTP response."""
 
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         for name, value in _HEADERS.items():
             response.headers.setdefault(name, value)

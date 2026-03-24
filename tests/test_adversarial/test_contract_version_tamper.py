@@ -27,7 +27,8 @@ def _contract_payload(contract_id: str = "block-reads") -> dict:
 
 
 async def test_update_sets_is_latest_correctly(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     """Create v1, update to v2. Verify v1.is_latest=False, v2.is_latest=True."""
     resp = await client.post("/api/v1/contracts", json=_contract_payload())
@@ -42,10 +43,12 @@ async def test_update_sets_is_latest_correctly(
 
     # Verify in DB
     result = await db_session.execute(
-        select(Contract).where(
+        select(Contract)
+        .where(
             Contract.tenant_id == TENANT_A_ID,
             Contract.contract_id == "block-reads",
-        ).order_by(Contract.version)
+        )
+        .order_by(Contract.version)
     )
     rows = list(result.scalars().all())
     assert len(rows) == 2
@@ -85,12 +88,15 @@ async def test_delete_contract_with_composition_reference(
 ) -> None:
     """Delete contract that's in a composition -> 409."""
     await client.post("/api/v1/contracts", json=_contract_payload())
-    await client.post("/api/v1/compositions", json={
-        "name": "test-comp",
-        "defaults_mode": "enforce",
-        "update_strategy": "manual",
-        "contracts": [{"contract_id": "block-reads", "position": 10}],
-    })
+    await client.post(
+        "/api/v1/compositions",
+        json={
+            "name": "test-comp",
+            "defaults_mode": "enforce",
+            "update_strategy": "manual",
+            "contracts": [{"contract_id": "block-reads", "position": 10}],
+        },
+    )
 
     resp = await client.delete("/api/v1/contracts/block-reads")
     assert resp.status_code == 409
@@ -102,12 +108,15 @@ async def test_import_existing_contract_creates_version(
 ) -> None:
     """Create 'block-shell' v1 manually, import YAML containing 'block-shell'
     -> creates v2, not duplicate error."""
-    await client.post("/api/v1/contracts", json={
-        "contract_id": "block-shell",
-        "name": "Block Shell",
-        "type": "pre",
-        "definition": {"tool": "shell", "then": {"effect": "deny"}},
-    })
+    await client.post(
+        "/api/v1/contracts",
+        json={
+            "contract_id": "block-shell",
+            "name": "Block Shell",
+            "type": "pre",
+            "definition": {"tool": "shell", "then": {"effect": "deny"}},
+        },
+    )
 
     yaml_with_existing = """\
 apiVersion: edictum/v1
@@ -140,12 +149,15 @@ async def test_composition_pins_to_contract_version(
     Updating the contract creates a new row. Composition still points
     to old version until explicitly updated."""
     await client.post("/api/v1/contracts", json=_contract_payload())
-    await client.post("/api/v1/compositions", json={
-        "name": "pin-test",
-        "defaults_mode": "enforce",
-        "update_strategy": "manual",
-        "contracts": [{"contract_id": "block-reads", "position": 10}],
-    })
+    await client.post(
+        "/api/v1/compositions",
+        json={
+            "name": "pin-test",
+            "defaults_mode": "enforce",
+            "update_strategy": "manual",
+            "contracts": [{"contract_id": "block-reads", "position": 10}],
+        },
+    )
 
     # Get the composition detail — should show v1
     resp = await client.get("/api/v1/compositions/pin-test")

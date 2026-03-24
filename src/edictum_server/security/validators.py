@@ -104,8 +104,7 @@ def sanitize_text(value: str, *, max_length: int | None = None) -> str:
 
     if max_length is not None and len(value) > max_length:
         raise ValidationError(
-            f"Input exceeds maximum length of {max_length} characters "
-            f"(got {len(value)})"
+            f"Input exceeds maximum length of {max_length} characters (got {len(value)})"
         )
 
     if _HTML_TAG_RE.search(value):

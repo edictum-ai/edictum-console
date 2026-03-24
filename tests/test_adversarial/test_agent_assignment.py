@@ -180,9 +180,7 @@ async def test_tenant_a_cannot_delete_tenant_b_rule(
     # Verify the rule still exists for Tenant B
     from sqlalchemy import select
 
-    result = await db_session.execute(
-        select(AssignmentRule).where(AssignmentRule.id == rule.id)
-    )
+    result = await db_session.execute(select(AssignmentRule).where(AssignmentRule.id == rule.id))
     assert result.scalar_one_or_none() is not None
 
 
@@ -444,13 +442,19 @@ async def test_tag_match_requires_all_tags(
     """Rule with tag_match requires ALL specified tags to match (AND logic)."""
     # Agent with partial tags
     await _create_agent_reg(
-        db_session, TENANT_A_ID, "multi-tag-agent",
+        db_session,
+        TENANT_A_ID,
+        "multi-tag-agent",
         tags={"role": "finance", "tier": "premium"},
     )
 
     # Rule requires role=finance AND region=us — agent lacks region
     await _create_rule(
-        db_session, TENANT_A_ID, 1, "multi-*", "restricted-bundle",
+        db_session,
+        TENANT_A_ID,
+        1,
+        "multi-*",
+        "restricted-bundle",
         tag_match={"role": "finance", "region": "us"},
     )
     # Fallback rule with no tag requirement
