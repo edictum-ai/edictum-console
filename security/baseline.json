@@ -4,12 +4,14 @@
   "app_version": "0.1.0",
   "findings": {
     "H2-security-headers": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "high",
       "issue": 12,
       "file": "src/edictum_server/main.py",
       "description": "Missing security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "H1-https-downgrade": {
       "status": "fix-planned",
@@ -28,68 +30,84 @@
       "found": "2026-03-10"
     },
     "M2-timing-oracle": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "medium",
       "issue": 15,
       "file": "src/edictum_server/routes/auth.py",
       "description": "Timing side-channel on login enables account enumeration",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "M3-body-size": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "medium",
       "issue": 16,
       "file": "src/edictum_server/main.py",
       "description": "No request body size limit - 10MB payloads accepted on all endpoints",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "M5-health-disclosure": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "medium",
       "issue": 17,
       "file": "src/edictum_server/routes/health.py",
       "description": "Health endpoint discloses version, infra details, and worker states without auth",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "L1-api-hardening": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "low",
       "issue": 18,
       "file": "src/edictum_server/main.py",
       "description": "Minor API hardening: SSE 422 to 401, CORS wildcards, Pydantic detail leakage",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "C1-approval-race": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "critical",
       "issue": 19,
       "file": "src/edictum_server/services/approval_service.py",
       "description": "Expired approvals can be approved during race window between logical expiry and timeout worker",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "C2-unsigned-sessions": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "critical",
       "issue": 20,
       "file": "src/edictum_server/auth/local.py",
       "description": "Sessions stored unsigned in Redis - EDICTUM_SECRET_KEY required but never used",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "H1-webhook-security": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "high",
       "issue": 21,
       "file": "src/edictum_server/routes/telegram.py",
       "description": "Telegram webhook secret comparison not timing-safe + webhook endpoints missing tenant filters",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "H6-server-hardening": {
-      "status": "fix-planned",
+      "status": "fixed",
       "severity": "high",
       "issue": 22,
       "file": "docker-entrypoint.sh",
       "description": "Server hardening: uvicorn limits, DB pool config, Docker network isolation",
-      "found": "2026-03-10"
+      "found": "2026-03-10",
+      "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
+      "fixed_date": "2026-03-21"
     },
     "M4-ssrf": {
       "status": "fix-planned",
@@ -138,6 +156,62 @@
       "file": "pyproject.toml",
       "description": "Dependency pinning: no lock file for Python dependencies",
       "found": "2026-03-10"
+    },
+    "NEW-1": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/ai/ollama.py",
+      "description": "Ollama provider bypasses SafeTransport SSRF protection \u2014 raw SDK client not transport-wrapped, DNS rebinding gap",
+      "found": "2026-03-21"
+    },
+    "NEW-2": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/events.py",
+      "description": "EventPayload, ManifestContract, AgentManifest string fields missing max_length",
+      "found": "2026-03-21"
+    },
+    "NEW-3": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/contracts.py",
+      "description": "ContractCreateRequest.tags and ContractUpdateRequest.tags missing max_length on list and elements",
+      "found": "2026-03-21"
+    },
+    "NEW-4": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/notifications.py",
+      "description": "RoutingFilters lists (environments, agent_patterns, contract_names) missing max_length \u2014 fnmatch DoS vector",
+      "found": "2026-03-21"
+    },
+    "NEW-5": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/setup.py",
+      "description": "SetupRequest.tenant_name missing max_length",
+      "found": "2026-03-21"
+    },
+    "NEW-6": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/stream.py",
+      "description": "SSE query parameters (env, bundle_name, policy_version, tags) missing max_length; tags JSON parsed without size check",
+      "found": "2026-03-21"
+    },
+    "NEW-7": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/auth.py",
+      "description": "Login rate limit keyed on proxy IP when EDICTUM_TRUSTED_PROXIES not configured \u2014 shared bucket DoS",
+      "found": "2026-03-21"
+    },
+    "NEW-8": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/security/safe_transport.py",
+      "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
+      "found": "2026-03-21"
     }
   }
 }
