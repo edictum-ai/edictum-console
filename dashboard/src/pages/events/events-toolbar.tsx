@@ -37,6 +37,7 @@ interface EventsToolbarProps {
   onToggleWrapData: () => void
   onResetDefaults: () => void
   events: EventResponse[]
+  hasMore?: boolean
 }
 
 export function EventsToolbar({
@@ -45,7 +46,7 @@ export function EventsToolbar({
   eventCount, newEventCount, onShowNewEvents,
   isLive, onToggleLive,
   viewOptions, onSetColumn, onSetPanel, onSetDensity, onToggleWrapData, onResetDefaults,
-  events,
+  events, hasMore,
 }: EventsToolbarProps) {
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -161,7 +162,7 @@ export function EventsToolbar({
         {isLive ? "Live" : "Paused"}
       </Button>
 
-      <span className="text-xs text-muted-foreground">{eventCount} events</span>
+      <span className="text-xs text-muted-foreground">{eventCount}{hasMore ? "+" : ""} events</span>
       {newEventCount > 0 && (
         <Button variant="outline" size="sm" className="h-7 gap-1 text-xs text-primary" onClick={onShowNewEvents}>
           <ArrowUp className="size-3" />

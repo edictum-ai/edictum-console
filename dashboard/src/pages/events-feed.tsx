@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { SlidersHorizontal } from "lucide-react"
 
+const PAGE_SIZE = 200
+
 function applyClientFilters(
   events: EventResponse[],
   activeFilters: Record<string, Set<string>>,
@@ -70,6 +72,14 @@ export function EventsFeed() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [newEventCount, setNewEventCount] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
+
+  // Refs for cursor-based pagination (avoid stale closures in async callbacks)
+  const eventsRef = useRef<EventResponse[]>([])
+  eventsRef.current = events
+  const loadingMoreRef = useRef(false)
+  const fetchGenRef = useRef(0)
 
   // UI state
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null)
@@ -122,18 +132,22 @@ export function EventsFeed() {
     }
   }, [timeWindow])
 
-  // Fetch events
+  // Fetch events (initial load / reset)
   const fetchEvents = useCallback(async () => {
     try {
+      fetchGenRef.current += 1
       setLoading(true)
       setError(null)
+      loadingMoreRef.current = false
+      setLoadingMore(false)
       const data = await listEvents({
         ...serverFilters,
         since: sinceIso,
         until: untilIso,
-        limit: 200,
+        limit: PAGE_SIZE,
       })
       setEvents(data)
+      setHasMore(data.length >= PAGE_SIZE)
       setNewEventCount(0)
     } catch {
       setError("Failed to load events")
@@ -141,6 +155,48 @@ export function EventsFeed() {
       setLoading(false)
     }
   }, [serverFilters, sinceIso, untilIso])
+
+  // Fetch next page (cursor = oldest loaded event's timestamp)
+  const fetchMoreEvents = useCallback(async () => {
+    if (loadingMoreRef.current) return
+    const currentEvents = eventsRef.current
+    if (currentEvents.length === 0) return
+
+    const gen = fetchGenRef.current
+    const oldestEvent = currentEvents[currentEvents.length - 1]
+    if (!oldestEvent) return
+    const cursor = oldestEvent.timestamp
+
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+
+    try {
+      const data = await listEvents({
+        ...serverFilters,
+        since: sinceIso,
+        until: cursor,
+        limit: PAGE_SIZE,
+      })
+
+      // Discard if a reset fetch happened while we were loading
+      if (gen !== fetchGenRef.current) return
+
+      setEvents(prev => {
+        if (data.length === 0) return prev
+        const existingIds = new Set(prev.map(e => e.id))
+        const newEvents = data.filter(e => !existingIds.has(e.id))
+        return [...prev, ...newEvents]
+      })
+      setHasMore(data.length >= PAGE_SIZE)
+    } catch {
+      // Silent fail on pagination — user can scroll again to retry
+    } finally {
+      if (gen === fetchGenRef.current) {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
+    }
+  }, [serverFilters, sinceIso])
 
   // Fetch when filters or timeframe change
   useEffect(() => {
@@ -344,6 +400,9 @@ export function EventsFeed() {
     highlightedEventId,
     onHighlightComplete: clearHighlight,
     onTimeWindowChange: setTimeWindow,
+    onLoadMore: fetchMoreEvents,
+    loadingMore,
+    hasMore,
   }
 
   // Mobile layout
@@ -367,6 +426,7 @@ export function EventsFeed() {
           onToggleWrapData={toggleWrapData}
           onResetDefaults={resetDefaults}
           events={filteredEvents}
+          hasMore={hasMore}
         />
         <div className="flex items-center gap-2 border-b border-border px-3 py-1.5">
           <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
@@ -417,6 +477,7 @@ export function EventsFeed() {
         onToggleWrapData={toggleWrapData}
         onResetDefaults={resetDefaults}
         events={filteredEvents}
+        hasMore={hasMore}
       />
       <div ref={filterContainerRef} className="flex flex-1 min-h-0">
         {options.panels.filters && (

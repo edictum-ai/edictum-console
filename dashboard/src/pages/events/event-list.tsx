@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect } from "react"
 import { Link } from "react-router"
-import { Activity } from "lucide-react"
+import { Activity, Loader2 } from "lucide-react"
 import {
   Table,
   TableBody,
@@ -68,6 +68,9 @@ interface EventListProps {
   highlightedEventId: string | null
   onHighlightComplete: () => void
   onTimeWindowChange: (tw: TimeWindow) => void
+  onLoadMore?: () => void
+  loadingMore?: boolean
+  hasMore?: boolean
 }
 
 export function EventList({
@@ -82,9 +85,16 @@ export function EventList({
   highlightedEventId,
   onHighlightComplete,
   onTimeWindowChange,
+  onLoadMore,
+  loadingMore,
+  hasMore,
 }: EventListProps) {
   const histogramData = useMemo(() => buildHistogram(events, timeWindow), [events, timeWindow])
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map())
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const onLoadMoreRef = useRef(onLoadMore)
+  onLoadMoreRef.current = onLoadMore
   const ds = DENSITY_STYLES[density]
   const visibleCols = useMemo(() => COLUMNS.filter((c) => columns[c.key]), [columns])
   const colSpan = visibleCols.length
@@ -97,6 +107,24 @@ export function EventList({
     const timer = setTimeout(() => onHighlightComplete(), 2000)
     return () => clearTimeout(timer)
   }, [highlightedEventId, onHighlightComplete])
+
+  // Infinite scroll — observe sentinel near bottom of scroll container
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          onLoadMoreRef.current?.()
+        }
+      },
+      { root: scrollContainerRef.current, rootMargin: "400px" },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, onLoadMore])
 
   return (
     <div className="flex h-full min-w-0 flex-col">
@@ -120,7 +148,7 @@ export function EventList({
           />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
@@ -152,6 +180,13 @@ export function EventList({
               ))}
             </TableBody>
           </Table>
+          {hasMore && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-3">
+              {loadingMore && (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
