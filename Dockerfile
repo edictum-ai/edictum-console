@@ -1,5 +1,7 @@
 # -- Stage 1: Frontend build ---------------------------------------------------
-FROM node:24-slim AS frontend
+# Use BUILDPLATFORM so node/esbuild run natively (not under QEMU).
+# Output is static HTML/CSS/JS — platform-agnostic.
+FROM --platform=$BUILDPLATFORM node:24-slim AS frontend
 
 WORKDIR /app/dashboard
 
@@ -10,7 +12,8 @@ COPY dashboard/ .
 RUN pnpm build
 
 # -- Stage 2: Python build -----------------------------------------------------
-FROM python:3.12-slim AS builder
+# Pure Python wheel — build natively, install in target runtime stage.
+FROM --platform=$BUILDPLATFORM python:3.12-slim AS builder
 
 WORKDIR /app
 
