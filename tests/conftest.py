@@ -87,8 +87,14 @@ async def test_redis() -> AsyncGenerator[fakeredis.aioredis.FakeRedis, None]:
     """Fake in-memory Redis -- no real server needed."""
     r = fakeredis.aioredis.FakeRedis(decode_responses=True)
     yield r
-    await r.flushdb()
-    await r.aclose()
+    try:
+        await r.flushdb()
+        await r.aclose()
+    except RuntimeError:
+        # fakeredis internal Queue can be bound to a different event loop
+        # during teardown (Python 3.12 + pytest-asyncio function-scoped loops).
+        # Safe to swallow -- the FakeRedis is in-memory and will be GC'd.
+        pass
 
 
 # Keep `fake_redis` as an alias so existing test signatures don't break
@@ -104,22 +110,31 @@ TENANT_B_ID = uuid.uuid4()
 
 def _make_auth_a_api_key() -> AuthContext:
     return AuthContext(
-        tenant_id=TENANT_A_ID, auth_type="api_key", env="production",
-        agent_id="test-agent", api_key_prefix="edk_production_test1234",
+        tenant_id=TENANT_A_ID,
+        auth_type="api_key",
+        env="production",
+        agent_id="test-agent",
+        api_key_prefix="edk_production_test1234",
     )
 
 
 def _make_auth_a_admin() -> AuthContext:
     return AuthContext(
-        tenant_id=TENANT_A_ID, auth_type="dashboard", user_id="user_test_123",
-        email="admin@test.com", is_admin=True,
+        tenant_id=TENANT_A_ID,
+        auth_type="dashboard",
+        user_id="user_test_123",
+        email="admin@test.com",
+        is_admin=True,
     )
 
 
 def _make_auth_b_api_key() -> AuthContext:
     return AuthContext(
-        tenant_id=TENANT_B_ID, auth_type="api_key", env="production",
-        agent_id="test-agent-b", api_key_prefix="edk_production_test5678",
+        tenant_id=TENANT_B_ID,
+        auth_type="api_key",
+        env="production",
+        agent_id="test-agent-b",
+        api_key_prefix="edk_production_test5678",
     )
 
 
@@ -168,7 +183,9 @@ async def client(
     app.state.redis = test_redis
     app.state.push_manager = push_manager
     app.state.auth_provider = LocalAuthProvider(
-        redis=test_redis, session_ttl_hours=24, secret_key=_TEST_SECRET_KEY,
+        redis=test_redis,
+        session_ttl_hours=24,
+        secret_key=_TEST_SECRET_KEY,
     )
     app.state.notification_manager = NotificationManager()
 
@@ -197,7 +214,9 @@ async def no_auth_client(
     app.state.redis = test_redis
     app.state.push_manager = push_manager
     app.state.auth_provider = LocalAuthProvider(
-        redis=test_redis, session_ttl_hours=24, secret_key=_TEST_SECRET_KEY,
+        redis=test_redis,
+        session_ttl_hours=24,
+        secret_key=_TEST_SECRET_KEY,
     )
     app.state.notification_manager = NotificationManager()
 
