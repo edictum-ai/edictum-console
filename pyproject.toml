@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "edictum-console"
-version = "0.1.0"
+version = "0.1.2"
 description = "Self-hostable agent operations console — runtime governance for AI agents"
 requires-python = ">=3.12"
 license = "FSL-1.1-ALv2"
