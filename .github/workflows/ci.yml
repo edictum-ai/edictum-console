@@ -46,7 +46,8 @@ jobs:
       - name: Security lint (bandit)
         run: bandit -r src/ -ll -ii --exclude tests/
       - name: Audit Python dependencies
-        run: pip-audit
+        # CVE-2026-4539: pygments 2.19.2 (transitive dep, no fix available yet)
+        run: pip-audit --ignore-vuln CVE-2026-4539
       - name: Check tenant isolation (S3)
         run: python3 scripts/security-lint/check_tenant_isolation.py
       - name: Check input bounds
