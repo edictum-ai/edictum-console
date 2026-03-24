@@ -189,7 +189,7 @@ jobs:
 
   post:
     needs: review
-    if: always() && !cancelled()
+    if: always() && !cancelled() && needs.review.result != 'skipped'
     runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 5
     permissions:
