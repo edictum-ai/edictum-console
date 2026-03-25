@@ -9,7 +9,7 @@ from sqlalchemy import Integer, delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Event
-from edictum_server.schemas.events import EventPayload
+from edictum_server.schemas.events import EventPayload, HistogramBucketResponse
 
 
 async def ingest_events(
@@ -110,7 +110,7 @@ async def query_event_histogram(
     tool_name: str | None = None,
     verdict: str | None = None,
     env: str | None = None,
-) -> list[dict[str, object]]:
+) -> list[HistogramBucketResponse]:
     """Aggregate event counts into epoch-aligned time buckets.
 
     Returns pre-classified buckets with allowed/denied/pending/observed counts.
@@ -118,6 +118,7 @@ async def query_event_histogram(
     """
     dialect_name = db.bind.dialect.name if db.bind else "postgresql"
 
+    epoch: object  # sqlalchemy column expression — varies by dialect
     if dialect_name == "postgresql":
         epoch = func.extract("epoch", Event.timestamp)
     else:
@@ -176,10 +177,13 @@ async def query_event_histogram(
             b["allowed"] += cnt  # fallback for unknown verdicts
 
     return [
-        {
-            "bucket_start": datetime.fromtimestamp(epoch_val, UTC),
-            **counts,
-        }
+        HistogramBucketResponse(
+            bucket_start=datetime.fromtimestamp(epoch_val, UTC),
+            allowed=counts["allowed"],
+            denied=counts["denied"],
+            pending=counts["pending"],
+            observed=counts["observed"],
+        )
         for epoch_val, counts in sorted(buckets.items())
     ]
 

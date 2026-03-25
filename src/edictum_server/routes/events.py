@@ -100,7 +100,7 @@ async def get_event_histogram(
 ) -> list[HistogramBucketResponse]:
     """Return event counts bucketed by time for histogram visualization."""
     env_filter = auth.env if auth.auth_type == "api_key" else None
-    rows = await query_event_histogram(
+    return await query_event_histogram(
         db,
         auth.tenant_id,
         since=since,
@@ -111,7 +111,6 @@ async def get_event_histogram(
         verdict=verdict,
         env=env_filter,
     )
-    return [HistogramBucketResponse(**row) for row in rows]
 
 
 @router.get(
