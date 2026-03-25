@@ -22,7 +22,7 @@ import {
 } from "@/lib/payload-helpers"
 import { verdictColor, VerdictIcon } from "@/lib/verdict-helpers"
 import { formatTime, truncate } from "@/lib/format"
-import { buildHistogram, type TimeWindow } from "@/lib/histogram"
+import { type HistogramBucket, type TimeWindow } from "@/lib/histogram"
 import { EnvBadge } from "@/lib/env-colors"
 import { EventHistogram } from "./event-histogram"
 import { EventRowDetail } from "./event-row-detail"
@@ -62,7 +62,7 @@ interface EventListProps {
   density: Density
   wrapData: boolean
   showHistogram: boolean
-  timeWindow: TimeWindow
+  histogramData: HistogramBucket[]
   expandedEventId: string | null
   onToggleExpand: (id: string) => void
   highlightedEventId: string | null
@@ -79,7 +79,7 @@ export function EventList({
   density,
   wrapData,
   showHistogram,
-  timeWindow,
+  histogramData,
   expandedEventId,
   onToggleExpand,
   highlightedEventId,
@@ -89,7 +89,6 @@ export function EventList({
   loadingMore,
   hasMore,
 }: EventListProps) {
-  const histogramData = useMemo(() => buildHistogram(events, timeWindow), [events, timeWindow])
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map())
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)

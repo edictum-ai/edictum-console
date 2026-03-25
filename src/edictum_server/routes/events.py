@@ -20,8 +20,13 @@ from edictum_server.schemas.events import (
     EventBatchRequest,
     EventIngestResponse,
     EventResponse,
+    HistogramBucketResponse,
 )
-from edictum_server.services.event_service import ingest_events, query_events
+from edictum_server.services.event_service import (
+    ingest_events,
+    query_event_histogram,
+    query_events,
+)
 from edictum_server.services.manifest_service import store_agent_manifest
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
@@ -76,6 +81,37 @@ async def post_events(
         )
 
     return EventIngestResponse(accepted=accepted, duplicates=duplicates)
+
+
+@router.get(
+    "/histogram",
+    response_model=list[HistogramBucketResponse],
+    summary="Get event histogram for a time window",
+)
+async def get_event_histogram(
+    since: datetime,
+    until: datetime,
+    bucket_seconds: int = Query(default=7200, ge=60, le=86400),
+    agent_id: str | None = None,
+    tool_name: str | None = None,
+    verdict: str | None = None,
+    auth: AuthContext = Depends(get_current_tenant),
+    db: AsyncSession = Depends(get_db),
+) -> list[HistogramBucketResponse]:
+    """Return event counts bucketed by time for histogram visualization."""
+    env_filter = auth.env if auth.auth_type == "api_key" else None
+    rows = await query_event_histogram(
+        db,
+        auth.tenant_id,
+        since=since,
+        until=until,
+        bucket_seconds=bucket_seconds,
+        agent_id=agent_id,
+        tool_name=tool_name,
+        verdict=verdict,
+        env=env_filter,
+    )
+    return [HistogramBucketResponse(**row) for row in rows]
 
 
 @router.get(

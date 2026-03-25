@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import delete, insert, select
+from sqlalchemy import Integer, delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from edictum_server.db.models import Event
@@ -97,6 +97,91 @@ async def query_events(
     stmt = stmt.order_by(Event.timestamp.desc()).limit(limit)
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def query_event_histogram(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    since: datetime,
+    until: datetime,
+    bucket_seconds: int,
+    agent_id: str | None = None,
+    tool_name: str | None = None,
+    verdict: str | None = None,
+    env: str | None = None,
+) -> list[dict[str, object]]:
+    """Aggregate event counts into epoch-aligned time buckets.
+
+    Returns pre-classified buckets with allowed/denied/pending/observed counts.
+    Observe-mode denials are categorized as 'observed'.
+    """
+    dialect_name = db.bind.dialect.name if db.bind else "postgresql"
+
+    if dialect_name == "postgresql":
+        epoch = func.extract("epoch", Event.timestamp)
+    else:
+        epoch = func.cast(func.strftime("%s", Event.timestamp), Integer)
+
+    bucket_col = (func.cast(epoch / bucket_seconds, Integer) * bucket_seconds).label(
+        "bucket_epoch"
+    )
+
+    stmt = (
+        select(
+            bucket_col,
+            Event.verdict,
+            Event.mode,
+            func.count().label("cnt"),
+        )
+        .where(Event.tenant_id == tenant_id)
+        .where(Event.timestamp >= since)
+        .where(Event.timestamp < until)
+    )
+
+    if agent_id is not None:
+        stmt = stmt.where(Event.agent_id == agent_id)
+    if tool_name is not None:
+        stmt = stmt.where(Event.tool_name == tool_name)
+    if verdict is not None:
+        stmt = stmt.where(Event.verdict == verdict)
+    if env is not None:
+        stmt = stmt.where(Event.env == env)
+
+    stmt = stmt.group_by(bucket_col, Event.verdict, Event.mode).order_by(bucket_col)
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    # Classify verdict/mode into categories and aggregate per bucket
+    buckets: dict[int, dict[str, int]] = {}
+    for row in rows:
+        epoch_val = int(row.bucket_epoch)
+        cnt = int(row.cnt)
+
+        if epoch_val not in buckets:
+            buckets[epoch_val] = {"allowed": 0, "denied": 0, "pending": 0, "observed": 0}
+
+        b = buckets[epoch_val]
+
+        # Observe-mode denials → observed category
+        if row.mode == "observe" and row.verdict in ("call_would_deny", "call_denied"):
+            b["observed"] += cnt
+        elif row.verdict in ("allowed", "call_allowed"):
+            b["allowed"] += cnt
+        elif row.verdict in ("denied", "call_denied", "would_deny", "call_would_deny"):
+            b["denied"] += cnt
+        elif row.verdict in ("pending", "pending_approval"):
+            b["pending"] += cnt
+        else:
+            b["allowed"] += cnt  # fallback for unknown verdicts
+
+    return [
+        {
+            "bucket_start": datetime.fromtimestamp(epoch_val, UTC),
+            **counts,
+        }
+        for epoch_val, counts in sorted(buckets.items())
+    ]
 
 
 async def purge_events(

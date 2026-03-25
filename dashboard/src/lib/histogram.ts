@@ -92,7 +92,7 @@ function formatBucketLabelForWindow(date: Date, windowMs: number): string {
   return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
 }
 
-function bestBucketConfig(windowMs: number): { bucketCount: number; bucketMs: number } {
+export function bestBucketConfig(windowMs: number): { bucketCount: number; bucketMs: number } {
   const targets = [
     5 * 60 * 1000, 15 * 60 * 1000, 30 * 60 * 1000, 60 * 60 * 1000,
     2 * 60 * 60 * 1000, 6 * 60 * 60 * 1000, 12 * 60 * 60 * 1000, 24 * 60 * 60 * 1000,
@@ -182,6 +182,69 @@ export function buildHistogram(events: EventForHistogram[], tw: TimeWindow): His
     }
     buckets.push(bucket)
   }
+  return buckets
+}
+
+/** Build histogram from server-side aggregated data.
+ *  Server returns pre-classified counts per epoch-aligned bucket.
+ *  This generates the full bucket array (including empty buckets) and fills in server data.
+ */
+export function buildHistogramFromServer(
+  serverBuckets: Array<{
+    bucket_start: string
+    allowed: number
+    denied: number
+    pending: number
+    observed: number
+  }>,
+  tw: TimeWindow,
+): HistogramBucket[] {
+  let bucketMs: number
+  let windowStart: number
+  let windowEnd: number
+
+  if (tw.kind === "preset") {
+    const cfg = PRESETS[tw.key]
+    bucketMs = cfg.bucketMs
+    windowEnd = Date.now()
+    windowStart = windowEnd - cfg.windowMs
+  } else {
+    const windowMs = tw.end - tw.start
+    bucketMs = bestBucketConfig(windowMs).bucketMs
+    windowStart = tw.start
+    windowEnd = tw.end
+  }
+
+  const windowMs = windowEnd - windowStart
+  const bucketSeconds = Math.round(bucketMs / 1000)
+
+  // Build lookup: epoch-aligned bucket start (ms) → server counts
+  const serverMap = new Map<number, (typeof serverBuckets)[0]>()
+  for (const b of serverBuckets) {
+    serverMap.set(new Date(b.bucket_start).getTime(), b)
+  }
+
+  // Generate epoch-aligned buckets spanning the window
+  const alignedStartSec = Math.floor(windowStart / 1000 / bucketSeconds) * bucketSeconds
+
+  const buckets: HistogramBucket[] = []
+  for (let sec = alignedStartSec; sec * 1000 < windowEnd; sec += bucketSeconds) {
+    const startMs = sec * 1000
+    const endMs = startMs + bucketMs
+    const server = serverMap.get(startMs)
+
+    buckets.push({
+      time: formatBucketLabelForWindow(new Date(endMs), windowMs),
+      allowed: server?.allowed ?? 0,
+      denied: server?.denied ?? 0,
+      pending: server?.pending ?? 0,
+      observed: server?.observed ?? 0,
+      _start: startMs,
+      _end: Math.min(endMs, windowEnd),
+      _index: buckets.length,
+    })
+  }
+
   return buckets
 }
 

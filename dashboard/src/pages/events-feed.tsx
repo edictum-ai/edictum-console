@@ -1,14 +1,17 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useResizableFilterWidth } from "@/hooks/use-resizable-filter-width"
 import { useSearchParams } from "react-router"
-import { listEvents, type EventResponse } from "@/lib/api"
+import { listEvents, getEventHistogram, type EventResponse } from "@/lib/api"
 import { useDashboardSSE } from "@/hooks/use-dashboard-sse"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useViewOptions } from "@/lib/hooks/use-view-options"
 import { EventFilterPanel } from "./events/event-filter-panel"
 import { EventList } from "./events/event-list"
 import { EventsToolbar } from "./events/events-toolbar"
-import { type TimeWindow, DEFAULT_TIME_WINDOW, resolveWindow } from "@/lib/histogram"
+import {
+  type TimeWindow, type HistogramBucket,
+  DEFAULT_TIME_WINDOW, resolveWindow, bestBucketConfig, buildHistogramFromServer,
+} from "@/lib/histogram"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,6 +77,7 @@ export function EventsFeed() {
   const [newEventCount, setNewEventCount] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
+  const [histogramData, setHistogramData] = useState<HistogramBucket[]>([])
 
   // Refs for cursor-based pagination (avoid stale closures in async callbacks)
   const eventsRef = useRef<EventResponse[]>([])
@@ -198,10 +202,30 @@ export function EventsFeed() {
     }
   }, [serverFilters, sinceIso])
 
+  // Fetch histogram (server-side aggregation — shows full picture regardless of pagination)
+  const fetchHistogram = useCallback(async () => {
+    try {
+      const { start, end } = resolveWindow(timeWindow)
+      const windowMs = end - start
+      const { bucketMs } = bestBucketConfig(windowMs)
+      const data = await getEventHistogram({
+        since: new Date(start).toISOString(),
+        until: new Date(end).toISOString(),
+        bucket_seconds: Math.round(bucketMs / 1000),
+        ...serverFilters,
+      })
+      setHistogramData(buildHistogramFromServer(data, timeWindow))
+    } catch {
+      // Histogram failure shouldn't block the page
+      setHistogramData([])
+    }
+  }, [timeWindow, serverFilters])
+
   // Fetch when filters or timeframe change
   useEffect(() => {
     void fetchEvents()
-  }, [fetchEvents])
+    void fetchHistogram()
+  }, [fetchEvents, fetchHistogram])
 
   // SSE for real-time events — accumulate count when live
   useDashboardSSE(
@@ -219,7 +243,8 @@ export function EventsFeed() {
   const handleShowNewEvents = useCallback(() => {
     setNewEventCount(0)
     void fetchEvents()
-  }, [fetchEvents])
+    void fetchHistogram()
+  }, [fetchEvents, fetchHistogram])
 
   // Toggle live/paused
   const handleToggleLive = useCallback(() => {
@@ -394,7 +419,7 @@ export function EventsFeed() {
     density: options.density,
     wrapData: options.wrapData,
     showHistogram: options.panels.histogram,
-    timeWindow,
+    histogramData,
     expandedEventId,
     onToggleExpand: handleToggleExpand,
     highlightedEventId,

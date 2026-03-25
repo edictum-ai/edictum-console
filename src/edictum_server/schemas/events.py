@@ -71,3 +71,13 @@ class EventIngestResponse(BaseModel):
 
     accepted: int = Field(..., description="Number of newly stored events")
     duplicates: int = Field(..., description="Number of events skipped (already ingested)")
+
+
+class HistogramBucketResponse(BaseModel):
+    """A single time bucket with pre-classified event counts."""
+
+    bucket_start: datetime
+    allowed: int = 0
+    denied: int = 0
+    pending: int = 0
+    observed: int = 0
