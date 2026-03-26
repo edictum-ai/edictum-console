@@ -8,6 +8,8 @@ Self-hostable operations console for governed AI agents.
 
 [Edictum](https://github.com/edictum-ai/edictum) enforces contracts. Edictum Console shows you what happened, and lets you change what happens next -- without restarting agents.
 
+**65+ API endpoints** · **6 notification channels** · **Hot-reload contracts** · **Self-hosted**
+
 ## Why This Exists
 
 You deployed edictum contracts to your agent fleet. Tool calls are governed. But now:
@@ -86,7 +88,7 @@ key (no cost, uses `google/gemma-3-1b-it:free`):
 
 ### Connect your own agent
 
-Once the console is running, connect any Python agent with two lines:
+All three Edictum SDKs -- Python, Go, and TypeScript -- can connect to the console. Here's the Python example:
 
 ```bash
 pip install edictum[server]
@@ -290,10 +292,18 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 65+ endpoints across 17 route groups. Full SDK compatibility contract in [SDK_COMPAT.md](SDK_COMPAT.md).
 
-## Links
+## Ecosystem
+
+| Repo | Role | Link |
+|------|------|------|
+| edictum | Python SDK (reference) | [github.com/edictum-ai/edictum](https://github.com/edictum-ai/edictum) |
+| edictum-go | Go SDK | [github.com/edictum-ai/edictum-go](https://github.com/edictum-ai/edictum-go) |
+| edictum-ts | TypeScript SDK | [github.com/edictum-ai/edictum-ts](https://github.com/edictum-ai/edictum-ts) |
+| edictum-console | Ops Console | [github.com/edictum-ai/edictum-console](https://github.com/edictum-ai/edictum-console) |
+| edictum-schemas | Contract schemas | [github.com/edictum-ai/edictum-schemas](https://github.com/edictum-ai/edictum-schemas) |
+| edictum-demo | Demos & benchmarks | [github.com/edictum-ai/edictum-demo](https://github.com/edictum-ai/edictum-demo) |
 
 - [Documentation](https://docs.edictum.ai)
-- [Edictum (core library)](https://github.com/edictum-ai/edictum)
 - [PyPI -- edictum](https://pypi.org/project/edictum/)
 
 ## License
