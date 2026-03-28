@@ -212,6 +212,27 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "SWEEP-2026-03-28-1": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/ai/openai_compat.py",
+      "description": "OpenAI-compatible and Anthropic AI providers bypass SafeTransport at request time \u2014 base_url validated once at config-save (TOCTOU), but SDK clients use default transport without SSRF block",
+      "found": "2026-03-28"
+    },
+    "SWEEP-2026-03-28-2": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/ai.py",
+      "description": "PUT/DELETE /api/v1/settings/ai uses require_dashboard_auth not require_admin \u2014 any authenticated user can swap AI provider config or API key",
+      "found": "2026-03-28"
+    },
+    "SWEEP-2026-03-28-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/slack.py",
+      "description": "Slack interaction handler has no nonce/replay tracking \u2014 same signed payload can be replayed within the 5-minute timestamp window to approve/deny approvals",
+      "found": "2026-03-28"
     }
   }
 }
