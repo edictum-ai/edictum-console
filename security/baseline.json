@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/ai/openai_compat.py",
+      "description": "DNS rebinding SSRF gap in AI provider base_url \u2014 OpenAI-compat and Ollama SDK clients bypass SafeTransport at request time; base_url validated at write time only (validate_url), not at HTTP call time. Non-admin dashboard users can trigger outbound requests to rebinding targets.",
+      "found": "2026-04-04"
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/rate_limit.py",
+      "description": "Rate limiter sorted set member key is time.time() float \u2014 not unique under concurrent load. Two requests in the same tick overwrite each other's entry, slightly weakening the rate limit window. Fix: append random suffix to member key.",
+      "found": "2026-04-04"
     }
   }
 }
