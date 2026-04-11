@@ -212,6 +212,78 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "SWEEP-009": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/notifications.py",
+      "description": "CreateChannelRequest.config dict has no size bound \u2014 unbounded nested JSON DoS + arbitrary key storage",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-010": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/approvals.py",
+      "description": "CreateApprovalRequest.tool_args unbounded dict \u2014 stores and SSE-broadcasts up to 10MB per approval event",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-011": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/events.py",
+      "description": "EventPayload.payload inner dict unbounded \u2014 payload bomb via batch events endpoint",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-012": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/evaluate.py",
+      "description": "EvaluateRequest.tool_args unbounded dict",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-013": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/notifications.py",
+      "description": "Webhook channel URL returned unredacted in ChannelResponse \u2014 embedded auth tokens exposed to all dashboard users",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-014": {
+      "status": "fix-planned",
+      "severity": "high",
+      "file": "src/edictum_server/routes/slack.py",
+      "description": "Slack interactions scans all tenants channels for signing secret match \u2014 timing oracle and DoS amplification",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-015": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interactions scans all tenants channels to find matching public key \u2014 DoS amplification",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-016": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/stream.py",
+      "description": "No per-tenant SSE connection limit \u2014 attacker can open thousands of connections exhausting memory and event loop",
+      "found": "2026-04-11",
+      "issue": 96
+    },
+    "SWEEP-017": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/push/manager.py",
+      "description": "PushManager set iteration not protected against concurrent mutation from cleanup task \u2014 latent RuntimeError",
+      "found": "2026-04-11",
+      "issue": 96
     }
   }
 }
