@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-17": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/notifications.py",
+      "description": "CreateChannelRequest.config and UpdateChannelRequest.config are unbounded dict[str, Any] \u2014 no constraints on key count, key length, or value size",
+      "found": "2026-04-18"
     }
   }
 }
