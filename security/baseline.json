@@ -212,6 +212,14 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/sessions.py",
+      "description": "IncrementRequest.amount unbounded float \u2014 1e309 parses as inf, Redis INCRBYFLOAT rejects it causing HTTP 500",
+      "found": "2026-04-25",
+      "issue": 100
     }
   }
 }
