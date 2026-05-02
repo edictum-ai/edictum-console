@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/contracts.py",
+      "description": "GET query params (search, type, tag, agent_id, tool_name, verdict, env, bundle_name) missing max_length \u2014 not covered by BodySizeLimitMiddleware",
+      "found": "2026-05-02"
     }
   }
 }
