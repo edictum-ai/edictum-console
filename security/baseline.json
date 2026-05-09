@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/approvals.py",
+      "description": "Approval rate limit bypass via attacker-controlled X-Edictum-Agent-Id header \u2014 per-agent rate key is not aggregate-per-tenant, attacker can rotate header to create unlimited approvals",
+      "found": "2026-05-09"
     }
   }
 }
