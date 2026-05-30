@@ -212,6 +212,30 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/notifications/slack_app.py",
+      "description": "SlackAppChannel and DiscordChannel make outbound HTTP calls without SafeTransport \u2014 raw httpx.AsyncClient, no protection against redirect-based SSRF",
+      "found": "2026-05-30",
+      "issue": 108
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/notifications/email.py",
+      "description": "Email header injection via user-controlled agent_id and tool_name in Subject line \u2014 no CRLF sanitization before email serialization",
+      "found": "2026-05-30",
+      "issue": 108
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length constraint \u2014 up to ~60KB stored in DB, Redis, and SSE connection memory per request",
+      "found": "2026-05-30",
+      "issue": 108
     }
   }
 }
