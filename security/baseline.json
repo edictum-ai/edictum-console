@@ -212,6 +212,27 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/services/notification_service.py",
+      "description": "SMTP SSRF via email channel smtp_host \u2014 smtp_host not validated against blocked networks, allows SSRF via aiosmtplib to 169.254.169.254 or internal IPs",
+      "found": "2026-06-06"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/sessions.py",
+      "description": "No rate limiting on session state write/delete/increment \u2014 agent with valid key can write 1MB values to Redis at unlimited rate, causing OOM DoS",
+      "found": "2026-06-06"
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length constraint \u2014 stored verbatim in AgentRegistration, AuditEvent, Approval; up to ~15KB via HTTP header limit",
+      "found": "2026-06-06"
     }
   }
 }
