@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/sessions.py",
+      "description": "Sessions write endpoint missing rate limit \u2014 agents can exhaust Redis memory by writing unlimited 1MB keys with 7-day TTL",
+      "found": "2026-06-13"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction endpoint missing timestamp freshness check \u2014 stale interactions can be replayed indefinitely (Slack has a 5-min window check; Discord does not)",
+      "found": "2026-06-13"
     }
   }
 }
