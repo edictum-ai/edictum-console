@@ -212,6 +212,34 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "Synchronous bcrypt.checkpw() in require_api_key blocks async event loop \u2014 any tenant with valid key prefix can DoS event loop via concurrent invalid-key requests",
+      "found": "2026-06-20"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/ai.py",
+      "description": "No rate limiting on AI inference endpoints (assist, test-connection, generate-description) \u2014 authenticated user can exhaust tenant AI API quota",
+      "found": "2026-06-20"
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/health.py",
+      "description": "/api/v1/health/ready exposes DB/Redis latency and internal worker states without auth \u2014 potential M5 partial regression; may be intentional for k8s probes",
+      "found": "2026-06-20"
+    },
+    "NEW-12": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/contracts.py",
+      "description": "GET /api/v1/contracts query params (type, tag, search) missing max_length \u2014 same class as NEW-2 through NEW-6",
+      "found": "2026-06-20"
     }
   }
 }
