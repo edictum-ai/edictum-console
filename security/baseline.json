@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-A-discord-replay": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction endpoint missing timestamp freshness check \u2014 stale interactions can be replayed; Slack handler has this check but Discord does not",
+      "found": "2026-06-27"
     }
   }
 }
