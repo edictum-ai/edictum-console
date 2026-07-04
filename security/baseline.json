@@ -212,6 +212,27 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/notifications/discord.py",
+      "description": "DiscordChannel and SlackAppChannel use raw httpx.AsyncClient without SafeTransport \u2014 violates coding standard; no transport-level SSRF protection if URL construction changes",
+      "found": "2026-07-04"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord/Slack/Telegram webhook interaction endpoints have no rate limiting \u2014 unauthenticated paths trigger DB queries + crypto verification per request; Discord amplifies cost by querying all channels",
+      "found": "2026-07-04"
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length constraint \u2014 agent can send oversized value that bypasses schema max_length=255, flows into DB columns and Redis rate-limit keys",
+      "found": "2026-07-04"
     }
   }
 }
