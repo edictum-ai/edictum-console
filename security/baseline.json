@@ -212,6 +212,30 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction endpoint missing timestamp freshness check \u2014 replay attack possible",
+      "found": "2026-07-11",
+      "issue": 120
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/ai/openai_compat.py",
+      "description": "OpenAI/OpenRouter provider bypasses SafeTransport for user-supplied base_url \u2014 DNS rebinding gap",
+      "found": "2026-07-11",
+      "issue": 120
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/ai.py",
+      "description": "AI assist endpoints (generate-description, assist) missing per-tenant rate limiting",
+      "found": "2026-07-11",
+      "issue": 120
     }
   }
 }
