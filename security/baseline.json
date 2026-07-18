@@ -212,6 +212,22 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "SWEEP-A": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/security/headers.py",
+      "description": "CSP script-src uses 'unsafe-inline' \u2014 nullifies XSS protection; fix requires extracting inline theme script from dashboard/index.html",
+      "found": "2026-07-18",
+      "issue": 122
+    },
+    "SWEEP-B": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/ai.py",
+      "description": "No rate limiting on AI assist and description-generation endpoints \u2014 authenticated users can exhaust AI API key budget",
+      "found": "2026-07-18",
+      "issue": 122
     }
   }
 }
