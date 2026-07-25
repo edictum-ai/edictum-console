@@ -212,6 +212,38 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header unbounded \u2014 bypasses agent_id max_length=255 constraint, stored in DB",
+      "found": "2026-07-25",
+      "issue": 124
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction handler lacks timestamp replay window (Slack has 300s check, Discord does not)",
+      "found": "2026-07-25",
+      "issue": 124
+    },
+    "NEW-11": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/services/notification_service.py",
+      "description": "Email channel smtp_host not validated against SSRF \u2014 absent from _URL_FIELDS, bypasses SafeTransport",
+      "found": "2026-07-25",
+      "issue": 124
+    },
+    "NEW-12": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/sessions.py",
+      "description": "IncrementRequest.amount lacks numeric bounds (ge/le) \u2014 extreme float values cause Redis errors and 500s",
+      "found": "2026-07-25",
+      "issue": 124
     }
   }
 }
