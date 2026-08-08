@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/services/channel_test_helpers.py",
+      "description": "Email channel smtp_host not validated against private/internal networks \u2014 SSRF bypass via SMTP for port-scanning internal infrastructure. _URL_FIELDS only covers webhook and slack; email is absent from SSRF validation.",
+      "found": "2026-08-08"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/agent_registrations.py",
+      "description": "Input validation gaps in schemas added after March 21 sweep: BulkAssignRequest.agent_ids elements unbounded, AgentRegistrationUpdate.tags dict unbounded, IncrementRequest.amount no min/max, CompositionCreateRequest tools_config/observability dicts unbounded, ContractCreateRequest.definition dict unbounded, CreateChannelRequest.config dict unbounded. Mitigated by 1MB body limit middleware.",
+      "found": "2026-08-08"
     }
   }
 }
