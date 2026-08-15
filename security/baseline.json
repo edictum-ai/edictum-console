@@ -1,7 +1,7 @@
 {
   "version": "1.0",
-  "last_full_audit": "2026-03-10",
-  "app_version": "0.1.0",
+  "last_full_audit": "2026-08-15",
+  "app_version": "0.1.2",
   "findings": {
     "H2-security-headers": {
       "status": "fixed",
@@ -212,6 +212,22 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "issue": 128,
+      "file": "src/edictum_server/services/channel_test_helpers.py",
+      "description": "Email channel smtp_host not validated against blocked networks \u2014 SSRF via SMTP to internal TCP services. _URL_FIELDS excludes email; test_channel bypasses SafeTransport for email type.",
+      "found": "2026-08-15"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "issue": 128,
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length \u2014 unbounded string stored in Redis rate-limit keys and Postgres agent_id/approval columns.",
+      "found": "2026-08-15"
     }
   }
 }
