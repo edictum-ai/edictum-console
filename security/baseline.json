@@ -212,6 +212,22 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "issue": 130,
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction handler missing timestamp staleness check \u2014 unlike Slack handler (300s window), replay attacks possible for pending approvals",
+      "found": "2026-08-22"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "low",
+      "issue": 130,
+      "file": "src/edictum_server/services/notification_service.py",
+      "description": "Email channel smtp_host not validated against private networks \u2014 admin can probe internal hosts via SMTP connect",
+      "found": "2026-08-22"
     }
   }
 }
