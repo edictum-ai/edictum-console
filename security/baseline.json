@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/notifications/discord.py",
+      "description": "DiscordChannel and SlackAppChannel use raw httpx.AsyncClient without SafeTransport in production notification sends",
+      "found": "2026-08-29"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/schemas/events.py",
+      "description": "AgentManifest.contracts list has no max_length bound \u2014 unbounded list parsed before body limit check enables CPU-intensive DoS with valid API key",
+      "found": "2026-08-29"
     }
   }
 }
