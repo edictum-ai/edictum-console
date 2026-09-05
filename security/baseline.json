@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-A": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "X-Edictum-Agent-Id header has no max_length validation \u2014 stored in unbounded TEXT column in AgentRegistration and Approval tables",
+      "found": "2026-09-05"
+    },
+    "NEW-B": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/slack.py",
+      "description": "Slack interactions endpoint throws HTTP 500 on non-UTF-8 request bodies \u2014 body.decode() in _verify_slack_signature has no error handling",
+      "found": "2026-09-05"
     }
   }
 }
