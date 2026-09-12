@@ -1,6 +1,7 @@
 {
   "version": "1.0",
   "last_full_audit": "2026-03-10",
+  "last_incremental_sweep": "2026-09-12",
   "app_version": "0.1.0",
   "findings": {
     "H2-security-headers": {
@@ -212,6 +213,14 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "issue": 137,
+      "file": "src/edictum_server/auth/dependencies.py",
+      "description": "API key lookup timing oracle: bcrypt skipped when prefix lookup returns no row (api_key is None or-short-circuits verify_api_key). ~200ms timing delta reveals whether a key prefix is active vs unknown/revoked.",
+      "found": "2026-09-12"
     }
   }
 }
