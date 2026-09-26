@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/notifications/discord.py,slack_app.py,telegram_client.py",
+      "description": "Discord, SlackApp, and TelegramClient channels use raw httpx.AsyncClient without SafeTransport \u2014 coding standards violation; actual SSRF risk to internal networks is minimal (hardcoded hostnames)",
+      "found": "2026-09-26"
     }
   }
 }
