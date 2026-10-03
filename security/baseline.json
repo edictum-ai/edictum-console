@@ -1,7 +1,9 @@
 {
   "version": "1.0",
   "last_full_audit": "2026-03-10",
-  "app_version": "0.1.0",
+  "last_sweep": "2026-10-03",
+  "last_sweep_commit": "de3cac33246ee3d3e30cea49405beddbcb2de5b9",
+  "app_version": "0.1.2",
   "findings": {
     "H2-security-headers": {
       "status": "fixed",
@@ -11,7 +13,8 @@
       "description": "Missing security response headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "H1-https-downgrade": {
       "status": "fix-planned",
@@ -37,7 +40,8 @@
       "description": "Timing side-channel on login enables account enumeration",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "M3-body-size": {
       "status": "fixed",
@@ -47,7 +51,8 @@
       "description": "No request body size limit - 10MB payloads accepted on all endpoints",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "M5-health-disclosure": {
       "status": "fixed",
@@ -57,7 +62,8 @@
       "description": "Health endpoint discloses version, infra details, and worker states without auth",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "L1-api-hardening": {
       "status": "fixed",
@@ -67,7 +73,8 @@
       "description": "Minor API hardening: SSE 422 to 401, CORS wildcards, Pydantic detail leakage",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "C1-approval-race": {
       "status": "fixed",
@@ -77,7 +84,8 @@
       "description": "Expired approvals can be approved during race window between logical expiry and timeout worker",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "C2-unsigned-sessions": {
       "status": "fixed",
@@ -87,7 +95,8 @@
       "description": "Sessions stored unsigned in Redis - EDICTUM_SECRET_KEY required but never used",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "H1-webhook-security": {
       "status": "fixed",
@@ -97,7 +106,8 @@
       "description": "Telegram webhook secret comparison not timing-safe + webhook endpoints missing tenant filters",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "H6-server-hardening": {
       "status": "fixed",
@@ -107,7 +117,8 @@
       "description": "Server hardening: uvicorn limits, DB pool config, Docker network isolation",
       "found": "2026-03-10",
       "fixed_in": "adb336b3e66b8916252fecb4b3b01682dfcf18ed",
-      "fixed_date": "2026-03-21"
+      "fixed_date": "2026-03-21",
+      "last_verified_clean": "2026-10-03"
     },
     "M4-ssrf": {
       "status": "fix-planned",
