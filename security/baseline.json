@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/health.py",
+      "description": "/health/ready readiness probe exposes worker state (running/crashed/stopped), DB latency, and Redis status without authentication \u2014 partial re-introduction of M5-health-disclosure for the readiness probe endpoint",
+      "found": "2026-10-10"
+    },
+    "NEW-10": {
+      "status": "fix-planned",
+      "severity": "medium",
+      "file": "src/edictum_server/ai/openai_compat.py",
+      "description": "OpenAICompatibleProvider passes base_url to openai.AsyncOpenAI without SafeTransport \u2014 DNS rebinding SSRF gap identical to NEW-1 (Ollama) affecting openai and openrouter provider types; OpenAI SDK uses its own internal httpx without transport-level SSRF protection",
+      "found": "2026-10-10"
     }
   }
 }
