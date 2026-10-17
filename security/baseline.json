@@ -212,6 +212,20 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/schemas/agent_registrations.py",
+      "description": "BulkAssignRequest.agent_ids list elements missing max_length \u2014 100 unbounded strings under 1MB body limit",
+      "found": "2026-10-17"
+    },
+    "M5-health-ready-regression": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/health.py",
+      "description": "/health/ready probe exposes worker state and infra latencies without auth \u2014 regression of M5-health-disclosure fix",
+      "found": "2026-10-17"
     }
   }
 }
