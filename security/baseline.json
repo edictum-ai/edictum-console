@@ -212,6 +212,13 @@
       "file": "src/edictum_server/security/safe_transport.py",
       "description": "Sync socket.getaddrinfo() in SafeTransport.handle_async_request blocks event loop",
       "found": "2026-03-21"
+    },
+    "NEW-9": {
+      "status": "fix-planned",
+      "severity": "low",
+      "file": "src/edictum_server/routes/discord.py",
+      "description": "Discord interaction endpoint missing timestamp freshness check \u2014 replay attacks possible within approval TTL",
+      "found": "2026-10-24"
     }
   }
 }
